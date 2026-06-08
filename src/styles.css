@@ -160,18 +160,21 @@
   .ranch-label {
     font-family: var(--font-label);
     text-transform: uppercase;
-    letter-spacing: 0.32em;
+    letter-spacing: 0.42em;
     font-size: 10px;
+    font-weight: 500;
     color: var(--amber);
-    opacity: 0.85;
   }
   .ranch-data {
     font-family: var(--font-data);
     font-size: 12px;
     color: var(--parchment-dark);
+    letter-spacing: 0.02em;
   }
   .ranch-display {
     font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.02em;
   }
   .ranch-body {
     font-family: var(--font-body);
@@ -183,19 +186,20 @@
   }
   .parchment-panel {
     background:
-      linear-gradient(180deg, rgba(242, 232, 208, 0.02) 0%, rgba(242, 232, 208, 0) 100%),
-      #1f160a;
-    border: 1px solid rgba(196, 135, 42, 0.18);
+      linear-gradient(180deg, rgba(239, 230, 210, 0.025) 0%, rgba(239, 230, 210, 0) 100%),
+      rgba(20, 17, 13, 0.92);
+    border: 1px solid rgba(201, 161, 74, 0.15);
+    backdrop-filter: blur(8px);
     box-shadow:
-      inset 0 1px 0 rgba(242, 232, 208, 0.03),
-      0 4px 24px rgba(0, 0, 0, 0.4);
+      inset 0 1px 0 rgba(239, 230, 210, 0.04),
+      0 12px 40px rgba(0, 0, 0, 0.5);
   }
   .parchment-panel-warm {
     background:
-      radial-gradient(ellipse at top, rgba(196, 135, 42, 0.04), transparent 60%),
-      #1f160a;
-    border: 1px solid rgba(196, 135, 42, 0.22);
-    border-top: 2px solid var(--amber);
+      radial-gradient(ellipse at top, rgba(201, 161, 74, 0.05), transparent 60%),
+      rgba(20, 17, 13, 0.92);
+    border: 1px solid rgba(201, 161, 74, 0.2);
+    border-top: 1px solid var(--amber);
   }
   .corner-brackets {
     position: relative;
@@ -204,67 +208,78 @@
   .corner-brackets::after {
     content: "";
     position: absolute;
-    width: 12px;
-    height: 12px;
+    width: 14px;
+    height: 14px;
     border-color: var(--amber);
     border-style: solid;
     border-width: 0;
-    opacity: 0.6;
+    opacity: 0.55;
   }
   .corner-brackets::before {
-    top: 4px;
-    left: 4px;
+    top: 6px;
+    left: 6px;
     border-top-width: 1px;
     border-left-width: 1px;
   }
   .corner-brackets::after {
-    bottom: 4px;
-    right: 4px;
+    bottom: 6px;
+    right: 6px;
     border-bottom-width: 1px;
     border-right-width: 1px;
   }
   .divider-amber {
     height: 1px;
     background: linear-gradient(90deg, transparent, var(--amber), transparent);
-    opacity: 0.4;
+    opacity: 0.35;
   }
   .btn-ranch {
     font-family: var(--font-label);
     text-transform: uppercase;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.22em;
     font-size: 11px;
-    padding: 8px 16px;
-    background: linear-gradient(180deg, rgba(196, 135, 42, 0.15), rgba(196, 135, 42, 0.05));
-    border: 1px solid rgba(196, 135, 42, 0.4);
+    font-weight: 500;
+    padding: 12px 22px;
+    background: rgba(201, 161, 74, 0.04);
+    border: 1px solid rgba(201, 161, 74, 0.28);
     color: var(--parchment);
     cursor: pointer;
-    transition: all 200ms cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    transition: all 280ms cubic-bezier(0.22, 1, 0.36, 1);
     position: relative;
+    overflow: hidden;
+  }
+  .btn-ranch::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(201, 161, 74, 0.12), transparent);
+    opacity: 0;
+    transition: opacity 280ms;
   }
   .btn-ranch:hover:not(:disabled) {
-    background: linear-gradient(180deg, rgba(196, 135, 42, 0.3), rgba(196, 135, 42, 0.1));
     border-color: var(--amber);
     color: var(--amber-light);
-    box-shadow: 0 0 18px rgba(196, 135, 42, 0.2);
+    box-shadow: 0 0 24px rgba(201, 161, 74, 0.18), inset 0 0 0 1px rgba(201, 161, 74, 0.1);
   }
+  .btn-ranch:hover:not(:disabled)::before { opacity: 1; }
   .btn-ranch:disabled {
-    opacity: 0.4;
+    opacity: 0.35;
     cursor: not-allowed;
   }
   .btn-ranch-primary {
-    background: linear-gradient(180deg, var(--amber), #a0701e);
+    background: linear-gradient(180deg, var(--amber-light), var(--amber) 55%, #8a6a2a);
     color: var(--ink);
     border-color: var(--amber-light);
-    font-weight: 500;
+    font-weight: 600;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.15);
   }
   .btn-ranch-primary:hover:not(:disabled) {
-    background: linear-gradient(180deg, var(--amber-light), var(--amber));
+    background: linear-gradient(180deg, #f5e0a8, var(--amber-light) 55%, var(--amber));
     color: var(--ink);
-    box-shadow: 0 0 24px rgba(196, 135, 42, 0.5);
+    box-shadow: 0 0 36px rgba(201, 161, 74, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.2);
   }
   .btn-ranch-ghost {
     background: transparent;
-    border-color: rgba(196, 135, 42, 0.25);
+    border-color: rgba(201, 161, 74, 0.18);
   }
   .ornate-rule {
     display: flex;
