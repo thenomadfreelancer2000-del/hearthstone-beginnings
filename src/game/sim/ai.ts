@@ -247,31 +247,29 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
   }
 
   // Occupation behavior
-  switch (s.occupation) {
-    case "builder": {
-      const b = nearestUnfinished(s, deps.buildings);
-      if (b) {
-        const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
-        if (dist(s.x, s.y, cx, cy) < 1.3) {
-          const work = (1 + s.skills.build * 0.18) * (dt / 30);
-          b.effortRemaining = Math.max(0, b.effortRemaining - work);
-          const def = (1 - b.effortRemaining / Math.max(1, getBuildEffort(b)));
-          b.builtProgress = Math.max(b.builtProgress, def);
-          if (b.effortRemaining <= 0) b.builtProgress = 1;
-          s.skills.build = Math.min(10, s.skills.build + 0.002 * dt);
-          s.state = "working";
-          s.action = `Building the ${b.kind}.`;
-        } else {
-          setTarget(s, cx, cy);
-          s.action = `Walking to the ${b.kind} build site.`;
-        }
-        return;
+  if (s.occupation === "builder") {
+    const b = nearestUnfinished(s, deps.buildings);
+    if (b) {
+      const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+      if (dist(s.x, s.y, cx, cy) < 1.3) {
+        const work = (1 + s.skills.build * 0.18) * (dt / 30);
+        b.effortRemaining = Math.max(0, b.effortRemaining - work);
+        const def = (1 - b.effortRemaining / Math.max(1, getBuildEffort(b)));
+        b.builtProgress = Math.max(b.builtProgress, def);
+        if (b.effortRemaining <= 0) b.builtProgress = 1;
+        s.skills.build = Math.min(10, s.skills.build + 0.002 * dt);
+        s.state = "working";
+        s.action = `Building the ${b.kind}.`;
+      } else {
+        setTarget(s, cx, cy);
+        s.action = `Walking to the ${b.kind} build site.`;
       }
-      // nothing to build, fall through to forage
-      // eslint-disable-next-line no-fallthrough
+      return;
     }
-    // eslint-disable-next-line no-fallthrough
-    case "forager":
+    // nothing to build — fall through to forage logic below
+  }
+
+  {
     case "woodcutter":
     case "miner":
     case "farmer":
