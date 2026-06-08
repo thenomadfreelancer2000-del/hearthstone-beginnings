@@ -9,7 +9,7 @@
    Fuses UI Bible (parchment/leather/amber) with Art Bible (earth/sage/sun)
 ═══════════════════════════════════════════════════════ */
 
-@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Oswald:wght@300;400;500;600&family=IM+Fell+English:ital@0;1&family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Special+Elite&display=swap");
+/* Fonts are loaded via <link> in src/routes/__root.tsx (Lightning CSS cannot resolve remote @import). */
 
 @theme inline {
   --radius-sm: 2px;
