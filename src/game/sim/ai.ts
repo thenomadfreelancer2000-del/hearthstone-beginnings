@@ -270,12 +270,7 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
   }
 
   {
-    case "woodcutter":
-    case "miner":
-    case "farmer":
-    case "hauler":
-    case "leader":
-    case "idle": {
+    {
       const wants: ResourceKind =
         s.occupation === "woodcutter" ? "wood" :
         s.occupation === "miner" ? "stone" :
