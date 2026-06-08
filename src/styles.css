@@ -63,62 +63,61 @@
   --color-success: var(--success);
   --color-chronicle: var(--chronicle);
 
-  --font-display: "IM Fell English", serif;
-  --font-primary: "Playfair Display", serif;
-  --font-body: "Crimson Text", serif;
-  --font-label: "Oswald", sans-serif;
-  --font-data: "Courier Prime", monospace;
+  --font-display: "Instrument Serif", "Cormorant Garamond", serif;
+  --font-primary: "Instrument Serif", "Playfair Display", serif;
+  --font-body: "Work Sans", "Inter", system-ui, sans-serif;
+  --font-label: "Work Sans", "Oswald", sans-serif;
+  --font-data: "JetBrains Mono", "Courier Prime", monospace;
   --font-handwritten: "Special Elite", cursive;
 }
 
 :root {
-  /* Ranch palette (UI Bible primary + Art Bible accents) */
-  --parchment: #f2e8d0;
-  --parchment-dark: #e8d9b5;
-  --parchment-deep: #d4c49a;
-  --ink: #1c1208;
-  --ink-mid: #2e1f0a;
-  --ink-light: #4a3520;
-  --leather: #6b3d1e;
-  --leather-light: #8b5230;
+  /* Cinematic Dark + Gold */
+  --parchment: #efe6d2;
+  --parchment-dark: #d8cab0;
+  --parchment-deep: #a89878;
+  --ink: #0b0907;
+  --ink-mid: #14110d;
+  --ink-light: #1d1814;
+  --leather: #3a2a1c;
+  --leather-light: #5a4230;
   --rust: #8b3a2a;
   --rust-light: #b04d38;
-  --amber: #c4872a;
-  --amber-light: #d4a040;
-  --sage: #4a6741;
-  --sage-light: #6a8a5f;
-  --dust: #a89070;
-  --dust-light: #c4ae90;
+  --amber: #c9a14a;
+  --amber-light: #e8d098;
+  --sage: #5a7050;
+  --sage-light: #7a9070;
+  --dust: #8a7860;
+  --dust-light: #b8a888;
   --bone: #e8dcc8;
-  --coal: #1a1410;
+  --coal: #050402;
 
-  --authority: #7a2828;
-  --influence: #4a5e7a;
-  --family: #6b4e2a;
-  --danger: #8b2a2a;
-  --warning: #8b6a1a;
-  --success: #4a6a3a;
-  --chronicle: #2a2a4a;
+  --authority: #9b3838;
+  --influence: #5a7090;
+  --family: #c9a14a;
+  --danger: #b04438;
+  --warning: #c9a14a;
+  --success: #6a8a5a;
+  --chronicle: #5a6a8a;
 
-  /* shadcn semantic — mapped to ranch */
   --background: var(--ink);
   --foreground: var(--parchment);
-  --card: #251a0c;
+  --card: #14110d;
   --card-foreground: var(--parchment);
-  --popover: #1f160a;
+  --popover: #0f0d0a;
   --popover-foreground: var(--parchment);
   --primary: var(--amber);
   --primary-foreground: var(--ink);
   --secondary: var(--leather);
   --secondary-foreground: var(--parchment);
-  --muted: #2a1f10;
-  --muted-foreground: var(--dust);
+  --muted: #1a1612;
+  --muted-foreground: var(--dust-light);
   --accent: var(--amber);
   --accent-foreground: var(--ink);
   --destructive: var(--danger);
   --destructive-foreground: var(--parchment);
-  --border: rgba(196, 135, 42, 0.2);
-  --input: rgba(196, 135, 42, 0.25);
+  --border: rgba(201, 161, 74, 0.18);
+  --input: rgba(201, 161, 74, 0.22);
   --ring: var(--amber);
 }
 
