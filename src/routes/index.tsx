@@ -1,29 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useGame } from "@/game/store";
+import { MainMenu } from "@/components/game/MainMenu";
+import { FounderCreation } from "@/components/game/FounderCreation";
+import { GameShell } from "@/components/game/GameShell";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "Your App" },
-      { name: "description", content: "Replace this with a one-sentence description of your app." },
-      { property: "og:title", content: "Your App" },
-      { property: "og:description", content: "Replace this with a one-sentence description of your app." },
+      { title: "The Ranch — A Frontier Dynasty Chronicle" },
+      { name: "description", content: "Build a family. Build a people. Build a civilization — and pray your name survives what comes next." },
+      { property: "og:title", content: "The Ranch" },
+      { property: "og:description", content: "Post-apocalyptic colony and dynasty simulation." },
     ],
   }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
 function Index() {
-  return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
-  );
+  const screen = useGame((s) => s.screen);
+  if (screen === "menu") return <MainMenu />;
+  if (screen === "founder") return <FounderCreation />;
+  return <GameShell />;
 }
