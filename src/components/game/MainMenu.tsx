@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useGame } from "@/game/store";
 import { hasSave } from "@/game/persistence";
@@ -5,7 +6,8 @@ import { hasSave } from "@/game/persistence";
 export function MainMenu() {
   const setScreen = useGame((s) => s.setScreen);
   const resume = useGame((s) => s.resumeFromSave);
-  const canResume = hasSave();
+  const [canResume, setCanResume] = useState(false);
+  useEffect(() => { setCanResume(hasSave()); }, []);
 
   return (
     <div className="grain min-h-screen flex flex-col items-center justify-center px-6 py-12 relative">
