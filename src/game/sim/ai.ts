@@ -268,8 +268,9 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
         return;
       }
       // nothing to build, fall through to forage
+      // eslint-disable-next-line no-fallthrough
     }
-    /* falls through */
+    // eslint-disable-next-line no-fallthrough
     case "forager":
     case "woodcutter":
     case "miner":
