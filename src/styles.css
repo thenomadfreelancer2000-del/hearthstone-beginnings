@@ -135,21 +135,23 @@
   }
   body {
     background:
-      radial-gradient(ellipse at 30% 20%, rgba(139, 58, 42, 0.1) 0%, transparent 60%),
-      radial-gradient(ellipse at 70% 80%, rgba(107, 61, 30, 0.08) 0%, transparent 50%),
-      linear-gradient(160deg, #1a1208 0%, #0e0a04 50%, #150e06 100%);
+      radial-gradient(ellipse at 50% 0%, rgba(201, 161, 74, 0.06) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 100%, rgba(176, 68, 56, 0.04) 0%, transparent 50%),
+      linear-gradient(180deg, #0b0907 0%, #050402 100%);
     background-attachment: fixed;
     color: var(--parchment);
     font-family: var(--font-body);
     font-size: 15px;
-    line-height: 1.6;
+    line-height: 1.55;
     overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
   h1, h2, h3, h4 {
     font-family: var(--font-display);
     font-weight: 400;
     color: var(--parchment);
-    letter-spacing: -0.005em;
+    letter-spacing: -0.015em;
   }
 }
 
