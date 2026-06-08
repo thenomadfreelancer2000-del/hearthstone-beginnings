@@ -1,0 +1,273 @@
+import { create } from "zustand";
+import { nanoid } from "nanoid";
+import type {
+  Building, BuildingKind, ChronicleEntry, GameSpeed, GameTime, Relationship,
+  ResourceKind, ResourceNode, SaveGame, SettlementStats, Survivor, Tile,
+} from "./types";
+import {
+  MAP_W, MAP_H, generateWorld, makeFounder, makeHomesteadBuilding,
+  makeWanderer, type FounderInput,
+} from "./sim/world";
+import { advance } from "./sim/engine";
+import { BUILDINGS } from "./data/content";
+import { saveToLocal, loadFromLocal } from "./persistence";
+import { makeRng } from "./sim/rng";
+
+export type Screen = "menu" | "founder" | "game";
+
+export interface SelectionNone { kind: "none" }
+export interface SelectionSurvivor { kind: "survivor"; id: string }
+export interface SelectionBuilding { kind: "building"; id: string }
+export interface SelectionTile { kind: "tile"; x: number; y: number }
+export type Selection = SelectionNone | SelectionSurvivor | SelectionBuilding | SelectionTile;
+
+export type BuildPlacement = { kind: BuildingKind } | null;
+
+interface GameState {
+  screen: Screen;
+  ranchName: string;
+  seed: number;
+  time: GameTime;
+  speed: GameSpeed;
+
+  tiles: Tile[];
+  mapW: number;
+  mapH: number;
+  nodes: ResourceNode[];
+  buildings: Building[];
+  resources: Record<ResourceKind, number>;
+  survivors: Survivor[];
+  relationships: Relationship[];
+  chronicle: ChronicleEntry[];
+  stats: SettlementStats;
+
+  selection: Selection;
+  buildPlacement: BuildPlacement;
+
+  // actions
+  setScreen: (s: Screen) => void;
+  setSpeed: (s: GameSpeed) => void;
+  selectSurvivor: (id: string) => void;
+  selectBuilding: (id: string) => void;
+  selectTile: (x: number, y: number) => void;
+  clearSelection: () => void;
+  startBuild: (kind: BuildingKind) => void;
+  cancelBuild: () => void;
+  placeBuilding: (x: number, y: number) => boolean;
+  setOccupation: (id: string, occ: Survivor["occupation"]) => void;
+  newGame: (ranchName: string, founderInput: FounderInput) => void;
+  resumeFromSave: () => boolean;
+  save: () => boolean;
+  tickReal: (deltaMs: number) => void;
+}
+
+const emptyResources = (): Record<ResourceKind, number> => ({
+  wood: 12, stone: 6, food: 30, water: 30, fiber: 6, tools: 1,
+});
+
+export const useGame = create<GameState>((set, get) => ({
+  screen: "menu",
+  ranchName: "The Hollow Ranch",
+  seed: 1,
+  time: { tick: 0, day: 1, season: "spring", year: 1 },
+  speed: 1,
+  tiles: [], mapW: MAP_W, mapH: MAP_H,
+  nodes: [], buildings: [],
+  resources: emptyResources(),
+  survivors: [], relationships: [], chronicle: [],
+  stats: { population: 0, morale: 0, prestige: 0, foundedYear: 1 },
+  selection: { kind: "none" },
+  buildPlacement: null,
+
+  setScreen: (s) => set({ screen: s }),
+  setSpeed: (s) => set({ speed: s }),
+  selectSurvivor: (id) => set({ selection: { kind: "survivor", id } }),
+  selectBuilding: (id) => set({ selection: { kind: "building", id } }),
+  selectTile: (x, y) => set({ selection: { kind: "tile", x, y } }),
+  clearSelection: () => set({ selection: { kind: "none" } }),
+  startBuild: (kind) => set({ buildPlacement: { kind }, selection: { kind: "none" } }),
+  cancelBuild: () => set({ buildPlacement: null }),
+
+  placeBuilding: (x, y) => {
+    const st = get();
+    const bp = st.buildPlacement;
+    if (!bp) return false;
+    const def = BUILDINGS[bp.kind];
+    // bounds check
+    if (x < 0 || y < 0 || x + def.size.w > st.mapW || y + def.size.h > st.mapH) return false;
+    // collision check
+    for (const b of st.buildings) {
+      if (x + def.size.w <= b.x || y + def.size.h <= b.y || b.x + b.w <= x || b.y + b.h <= y) continue;
+      return false;
+    }
+    // tile water check
+    for (let dy = 0; dy < def.size.h; dy++) {
+      for (let dx = 0; dx < def.size.w; dx++) {
+        const t = st.tiles[(y + dy) * st.mapW + (x + dx)];
+        if (!t) return false;
+        if (t.kind === "water" && bp.kind !== "well") return false;
+        if (t.kind === "stone" && bp.kind !== "well") return false;
+      }
+    }
+    // cost check
+    for (const [r, amt] of Object.entries(def.cost)) {
+      if ((st.resources as any)[r] < (amt ?? 0)) return false;
+    }
+    const newResources = { ...st.resources };
+    for (const [r, amt] of Object.entries(def.cost)) {
+      (newResources as any)[r] -= amt ?? 0;
+    }
+    const b: Building = {
+      id: nanoid(10),
+      kind: bp.kind,
+      x, y,
+      w: def.size.w, h: def.size.h,
+      builtProgress: def.buildEffort === 0 ? 1 : 0,
+      effortRemaining: def.buildEffort,
+      occupantIds: [],
+      stored: {},
+    };
+    set({
+      buildings: [...st.buildings, b],
+      resources: newResources,
+      buildPlacement: null,
+    });
+    return true;
+  },
+
+  setOccupation: (id, occ) => {
+    const st = get();
+    set({
+      survivors: st.survivors.map(s => s.id === id ? { ...s, occupation: occ } : s),
+    });
+  },
+
+  newGame: (ranchName, founderInput) => {
+    const seed = Math.floor(Math.random() * 0xffffffff);
+    const { tiles, nodes, homesteadTile } = generateWorld(seed);
+    const founder = makeFounder(founderInput, homesteadTile);
+    const homestead = makeHomesteadBuilding(homesteadTile);
+    set({
+      screen: "game",
+      ranchName,
+      seed,
+      time: { tick: 0, day: 1, season: "spring", year: 1 },
+      speed: 1,
+      tiles, mapW: MAP_W, mapH: MAP_H, nodes,
+      buildings: [homestead],
+      resources: emptyResources(),
+      survivors: [founder],
+      relationships: [],
+      chronicle: [
+        {
+          id: nanoid(8),
+          tick: 0, year: 1, season: "spring", day: 1,
+          category: "founding",
+          title: `${founder.name} ${founder.surname} stands on the porch`,
+          body: `The road is empty behind them. The fields are empty in front. They put down the bag. They start to count what they have.`,
+          involvedIds: [founder.id],
+        },
+      ],
+      stats: { population: 1, morale: 20, prestige: 0, foundedYear: 1 },
+      selection: { kind: "survivor", id: founder.id },
+      buildPlacement: null,
+    });
+  },
+
+  resumeFromSave: () => {
+    const save = loadFromLocal();
+    if (!save) return false;
+    set({
+      screen: "game",
+      ranchName: save.ranchName,
+      seed: save.seed,
+      time: save.time,
+      speed: save.speed,
+      tiles: save.tiles, mapW: save.mapW, mapH: save.mapH,
+      nodes: save.resourceNodes,
+      buildings: save.buildings,
+      resources: save.resources,
+      survivors: save.survivors,
+      relationships: save.relationships,
+      chronicle: save.chronicle,
+      stats: save.stats,
+      selection: { kind: "none" },
+      buildPlacement: null,
+    });
+    return true;
+  },
+
+  save: () => {
+    const st = get();
+    const data: SaveGame = {
+      version: 1,
+      ranchName: st.ranchName,
+      seed: st.seed,
+      time: st.time,
+      speed: st.speed,
+      tiles: st.tiles,
+      mapW: st.mapW, mapH: st.mapH,
+      resourceNodes: st.nodes,
+      survivors: st.survivors,
+      relationships: st.relationships,
+      buildings: st.buildings,
+      resources: st.resources,
+      chronicle: st.chronicle,
+      stats: st.stats,
+      factions: [], laws: [], externalSettlements: [],
+    };
+    return saveToLocal(data);
+  },
+
+  tickReal: (deltaMs) => {
+    const st = get();
+    if (st.speed === 0 || st.screen !== "game") return;
+    // ticks per second: 12 at 1x
+    const tps = 12 * (st.speed === 1 ? 1 : st.speed === 2 ? 2 : 4);
+    const n = Math.max(1, Math.floor((deltaMs / 1000) * tps));
+
+    // We mutate copies in an Engine and then set state.
+    const eng = {
+      time: { ...st.time },
+      tiles: st.tiles, mapW: st.mapW, mapH: st.mapH,
+      nodes: st.nodes.map(n => ({ ...n })),
+      buildings: st.buildings.map(b => ({ ...b, stored: { ...b.stored }, occupantIds: [...b.occupantIds] })),
+      resources: { ...st.resources },
+      survivors: st.survivors.map(s => ({
+        ...s,
+        needs: { ...s.needs },
+        skills: { ...s.skills },
+        memories: [...s.memories],
+        carrying: s.carrying ? { ...s.carrying } : null,
+      })),
+      relationships: st.relationships.map(r => ({ ...r })),
+      chronicle: [...st.chronicle],
+      stats: { ...st.stats },
+      seed: st.seed,
+    };
+
+    const rng = makeRng(eng.seed ^ Math.floor(eng.time.tick / 240));
+
+    advance(eng, n, {
+      onArrival: () => {
+        // pick a tile near homestead
+        const h = eng.buildings.find(b => b.kind === "homestead");
+        if (!h) return null;
+        const sx = h.x + Math.floor(rng() * h.w);
+        const sy = h.y + Math.floor(rng() * h.h);
+        return makeWanderer(rng, { x: sx, y: sy });
+      },
+    });
+
+    set({
+      time: eng.time,
+      nodes: eng.nodes,
+      buildings: eng.buildings,
+      resources: eng.resources,
+      survivors: eng.survivors,
+      relationships: eng.relationships,
+      chronicle: eng.chronicle,
+      stats: eng.stats,
+    });
+  },
+}));
