@@ -1,6 +1,6 @@
 // THE RANCH — Domain Types
-// Phase 1 active. Phase 2 fields (spouseId, childrenIds, factionId, lawIds, etc.)
-// are present but nullable so save schema can grow without migration breakage.
+// Phase 1 + Phase 2. Phase 3+ fields (factionId, lawIds, etc.) remain nullable
+// so save schema can grow without migration breakage.
 
 export type ID = string;
 
@@ -16,23 +16,16 @@ export interface GameTime {
 
 // ── Map ──────────────────────────────────────────────────────────
 export type TileKind =
-  | "grass"
-  | "tall-grass"
-  | "dirt"
-  | "forest"
-  | "stone"
-  | "water"
-  | "road"
-  | "ruin";
+  | "grass" | "tall-grass" | "dirt" | "forest"
+  | "stone" | "water" | "road" | "ruin";
 
 export interface Tile {
   x: number;
   y: number;
   kind: TileKind;
-  // resource node attached to this tile (trees, rocks, berry bushes)
   resourceNodeId?: ID | null;
   buildingId?: ID | null;
-  variant: number; // 0-3, visual variation
+  variant: number;
 }
 
 export type ResourceKind = "wood" | "stone" | "food" | "water" | "fiber" | "tools";
@@ -45,7 +38,7 @@ export interface ResourceNode {
   yields: ResourceKind;
   amount: number;
   max: number;
-  regrowsPerDay: number; // 0 means non-renewable
+  regrowsPerDay: number;
 }
 
 // ── Survivors ────────────────────────────────────────────────────
@@ -55,21 +48,17 @@ export type Trait =
 
 export type Background =
   | "rancher" | "soldier" | "medic" | "scholar" | "carpenter"
-  | "farmer" | "drifter" | "criminal";
+  | "farmer" | "drifter" | "criminal" | "native-born";
 
-export type LifeStage = "child" | "youth" | "adult" | "elder";
+export type LifeStage = "child" | "teen" | "youth" | "adult" | "elder";
 
 export type Occupation =
   | "idle" | "forager" | "woodcutter" | "miner"
   | "farmer" | "builder" | "hauler" | "leader";
 
 export interface Needs {
-  food: number;     // 0-100
-  water: number;    // 0-100
-  rest: number;     // 0-100
-  shelter: number;  // 0-100 (cumulative comfort from sleeping in a roof)
-  belonging: number;// 0-100
-  purpose: number;  // 0-100
+  food: number; water: number; rest: number;
+  shelter: number; belonging: number; purpose: number;
 }
 
 export interface Skills {
@@ -81,8 +70,8 @@ export interface Memory {
   id: ID;
   tick: number;
   text: string;
-  emotion: "joy" | "fear" | "grief" | "pride" | "anger" | "trust" | "betrayal";
-  weight: number; // 1-100
+  emotion: "joy" | "fear" | "grief" | "pride" | "anger" | "trust" | "betrayal" | "love";
+  weight: number;
   aboutSurvivorId?: ID | null;
 }
 
@@ -95,13 +84,17 @@ export interface Survivor {
   id: ID;
   name: string;
   surname: string;
-  age: number;
+  age: number;                  // in years, fractional
   stage: LifeStage;
   gender: "m" | "f";
   background: Background;
   isFounder: boolean;
+  bornTick: number;             // when added to the world
+  bornYear: number;             // year of birth (chronicle convenience)
+  deathTick?: number | null;
+  deathYear?: number | null;
 
-  // Position (tile coords, can be fractional during movement)
+  // Position
   x: number;
   y: number;
   targetX?: number | null;
@@ -109,54 +102,75 @@ export interface Survivor {
   state: AIState;
   workTarget?: { kind: "node" | "building"; id: ID } | null;
   carrying?: { resource: ResourceKind; amount: number } | null;
-  // last action visible label
   action: string;
 
-  // inner world
   traits: Trait[];
   values: ("Family" | "Freedom" | "Security" | "Status" | "Community")[];
 
   occupation: Occupation;
   skills: Skills;
-  health: number;     // 0-100
-  mood: number;       // -100..100
+  health: number;
+  mood: number;
   needs: Needs;
 
-  loyaltyToFounder: number; // -100..100
-  // memory ring buffer (cap ~24 for perf in phase 1)
+  loyaltyToFounder: number;
   memories: Memory[];
 
-  // ── Phase 2 placeholders (kept nullable for forward-compat) ──
+  // ── Family / lineage ───────────────────────────────────────────
+  familyId: ID;
+  parentIds: ID[];              // 0..2
+  childrenIds: ID[];
   spouseId?: ID | null;
-  parentIds?: ID[];
-  childrenIds?: ID[];
+  marriedTick?: number | null;
+  marriedYear?: number | null;
+  generation: number;           // 0 = founder, 1 = first child, etc.
+
+  // achievements & legacy
+  achievements?: string[];
+
+  // ── Phase 3+ placeholders (nullable for forward-compat) ──
   factionId?: ID | null;
   politicalLean?: number | null;
 }
 
-// Relationship edge between two survivors
+// ── Relationships ────────────────────────────────────────────────
+export type RelationshipTag =
+  | "stranger" | "acquaintance" | "friend" | "close-friend"
+  | "rival" | "enemy" | "kin" | "spouse";
+
 export interface Relationship {
-  // canonical key: `${min(idA,idB)}::${max(idA,idB)}`
   a: ID;
   b: ID;
-  affection: number; // -100..100
-  trust: number;     // -100..100
-  tag: "stranger" | "acquaintance" | "friend" | "close-friend" | "rival" | "enemy";
+  affection: number;   // -100..100 (general warmth)
+  trust: number;       // -100..100
+  respect: number;     // -100..100 (admiration of competence/standing)
+  attraction: number;  // -100..100 (romantic interest; gated by stage/gender)
+  friendship: number;  // -100..100 (peer bond strength)
+  rivalry: number;     // 0..100   (one-sided competitive tension)
+  tag: RelationshipTag;
   interactions: number;
+  marriedTick?: number | null;
+}
+
+// ── Families ─────────────────────────────────────────────────────
+export interface Family {
+  id: ID;
+  name: string;                 // surname or chosen
+  founderId: ID;                // the first member of this family in the chronicle
+  memberIds: ID[];              // all living + dead members (filter alive at runtime)
+  prestige: number;             // grows from achievements / marriages / generations
+  wealth: number;               // future: own assets
+  motto?: string | null;
+  foundedYear: number;
+  extinctYear?: number | null;  // set when all members are dead
+  // Family-to-family relations: keyed by other family id, -100..100
+  relations: Record<ID, number>;
 }
 
 // ── Buildings ────────────────────────────────────────────────────
 export type BuildingKind =
-  | "homestead"          // founder's house, starting structure
-  | "tent"               // basic shelter
-  | "cabin"              // proper housing
-  | "campfire"           // social + warmth
-  | "stockpile"          // resource cache
-  | "workbench"          // tools production
-  | "well"               // water (when placed next to water tile)
-  | "watchtower"         // future combat hook
-  | "field"              // farming (phase 1 lite)
-  ;
+  | "homestead" | "tent" | "cabin" | "campfire" | "stockpile"
+  | "workbench" | "well" | "watchtower" | "field";
 
 export interface BuildingDef {
   kind: BuildingKind;
@@ -164,7 +178,7 @@ export interface BuildingDef {
   blurb: string;
   size: { w: number; h: number };
   cost: Partial<Record<ResourceKind, number>>;
-  buildEffort: number;   // worker-ticks
+  buildEffort: number;
   housingCapacity: number;
   storageCapacity: number;
   social: boolean;
@@ -176,15 +190,16 @@ export interface Building {
   kind: BuildingKind;
   x: number; y: number;
   w: number; h: number;
-  builtProgress: number; // 0..1
+  builtProgress: number;
   effortRemaining: number;
-  occupantIds: ID[]; // for housing assignments
+  occupantIds: ID[];
   stored: Partial<Record<ResourceKind, number>>;
 }
 
 // ── Chronicle ────────────────────────────────────────────────────
 export type ChronicleCategory =
   | "founding" | "arrival" | "departure" | "death"
+  | "birth" | "marriage" | "succession" | "coming-of-age"
   | "construction" | "milestone" | "event" | "season";
 
 export interface ChronicleEntry {
@@ -197,19 +212,24 @@ export interface ChronicleEntry {
   title: string;
   body: string;
   involvedIds?: ID[];
+  involvedFamilyIds?: ID[];
 }
 
-// ── Settlement / aggregate ───────────────────────────────────────
+// ── Settlement / dynasty aggregates ──────────────────────────────
 export interface SettlementStats {
   population: number;
-  morale: number;        // weighted avg mood
-  prestige: number;      // grows from milestones — used later for factions
+  morale: number;
+  prestige: number;
   foundedYear: number;
+  generations: number;          // highest generation number alive
+  dynastyName: string;          // founder's family name
+  totalBorn: number;
+  totalDied: number;
 }
 
 // ── Save Game ────────────────────────────────────────────────────
 export interface SaveGame {
-  version: 1;
+  version: 2;
   ranchName: string;
   seed: number;
   time: GameTime;
@@ -220,11 +240,14 @@ export interface SaveGame {
   resourceNodes: ResourceNode[];
   survivors: Survivor[];
   relationships: Relationship[];
+  families: Family[];
+  founderId: ID;
+  currentLeaderId: ID;
   buildings: Building[];
-  resources: Record<ResourceKind, number>; // global stockpile (Phase 1 simplification)
+  resources: Record<ResourceKind, number>;
   chronicle: ChronicleEntry[];
   stats: SettlementStats;
-  // Phase 2 reservations (always present, empty in Phase 1):
+  // Phase 3+ reservations (always present, empty for now):
   factions: unknown[];
   laws: unknown[];
   externalSettlements: unknown[];
