@@ -151,14 +151,20 @@ export function FounderCreation() {
               transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
               className="pt-2 sm:pt-6"
             >
-              <p className="ranch-label mb-3 text-[9px] sm:text-[10px]">{t.eyebrow}</p>
-              <h1 className="ranch-display text-3xl sm:text-5xl md:text-6xl leading-[1.05] mb-3 sm:mb-4">
+              <p
+                className="ranch-label mb-3 text-[9px] sm:text-[10px]"
+                style={{ letterSpacing: "0.2em" }}
+              >
+                {t.eyebrow}
+              </p>
+              <h1 className="ranch-display text-[26px] sm:text-5xl md:text-6xl leading-[1.05] mb-2 sm:mb-4">
                 {t.title}
               </h1>
-              <p className="ranch-display italic text-dust-light text-base sm:text-lg max-w-2xl">
+              <p className="ranch-display italic text-dust-light text-sm sm:text-lg max-w-2xl leading-snug">
                 {t.sub}
               </p>
-              <div className="divider-amber my-6 sm:my-8" />
+              <div className="divider-amber my-5 sm:my-8" />
+
 
               {step === 1 && (
                 <StepIdentity
