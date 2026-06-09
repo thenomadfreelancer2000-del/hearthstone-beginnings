@@ -1,13 +1,18 @@
 import { nanoid } from "nanoid";
 import type {
-  Building, ChronicleEntry, GameTime, ResourceKind, ResourceNode,
+  Building, ChronicleEntry, Family, GameTime, ID, ResourceKind, ResourceNode,
   Survivor, Relationship, SettlementStats, Tile, Memory,
 } from "../types";
-import { DAYS_PER_SEASON, SEASONS, TICKS_PER_DAY, decayNeeds, tickSurvivor, touchRelationship } from "./ai";
-import { CHRONICLE_OPENERS } from "../data/content";
-import { makeRng, chance } from "./rng";
+import {
+  DAYS_PER_SEASON, SEASONS, TICKS_PER_DAY,
+  decayNeeds, tickSurvivor, touchRelationship, markAsSpouses, markAsKin,
+  findRelationship,
+} from "./ai";
+import { CHRONICLE_OPENERS, FERTILE_MAX, FERTILE_MIN, NATURAL_DEATH_AGE } from "../data/content";
+import { makeRng, chance, pick } from "./rng";
+import { makeChild, stageFromAge } from "./world";
 
-interface Engine {
+export interface Engine {
   time: GameTime;
   tiles: Tile[];
   mapW: number;
@@ -17,6 +22,9 @@ interface Engine {
   resources: Record<ResourceKind, number>;
   survivors: Survivor[];
   relationships: Relationship[];
+  families: Family[];
+  founderId: ID;
+  currentLeaderId: ID;
   chronicle: ChronicleEntry[];
   stats: SettlementStats;
   seed: number;
@@ -26,7 +34,6 @@ function nextTime(t: GameTime): GameTime {
   const tick = t.tick + 1;
   const ticksIntoDay = tick % TICKS_PER_DAY;
   if (ticksIntoDay !== 0) return { ...t, tick };
-  // new day
   let day = t.day + 1;
   let season = t.season;
   let year = t.year;
@@ -49,15 +56,16 @@ export function addChronicle(
   title: string,
   body: string,
   involvedIds?: string[],
+  involvedFamilyIds?: string[],
 ) {
   const e: ChronicleEntry = {
     id: nanoid(8),
     tick: eng.time.tick,
     year: eng.time.year, season: eng.time.season, day: eng.time.day,
-    category, title, body, involvedIds,
+    category, title, body, involvedIds, involvedFamilyIds,
   };
   eng.chronicle.unshift(e);
-  if (eng.chronicle.length > 400) eng.chronicle.pop();
+  if (eng.chronicle.length > 600) eng.chronicle.pop();
 }
 
 export function emitMemory(
@@ -70,9 +78,7 @@ export function emitMemory(
   s.memories.unshift({
     id: nanoid(6),
     tick: 0,
-    text,
-    emotion,
-    weight,
+    text, emotion, weight,
     aboutSurvivorId: aboutId ?? null,
   });
   if (s.memories.length > 24) s.memories.pop();
@@ -85,6 +91,10 @@ function recomputeStats(eng: Engine) {
     : 0;
   eng.stats.population = alive.length;
   eng.stats.morale = moraleAvg;
+  eng.stats.generations = alive.reduce((m, s) => Math.max(m, s.generation), 0);
+  const founderFamily = eng.families.find(f => f.id === eng.survivors.find(s => s.id === eng.founderId)?.familyId);
+  if (founderFamily) eng.stats.dynastyName = founderFamily.name;
+  eng.stats.prestige = eng.families.reduce((a, f) => a + f.prestige, 0);
 }
 
 // Advance the world by `n` ticks
@@ -110,12 +120,24 @@ export function advance(eng: Engine, n: number, opts?: { onArrival?: (s: Survivo
       tickSurvivor(s, dt, deps);
     }
 
-    // periodic events happen at day boundaries
     if (eng.time.tick % TICKS_PER_DAY === 0) {
       dailyTick(eng, opts);
     }
   }
   recomputeStats(eng);
+}
+
+function familyOf(eng: Engine, survivorId: ID): Family | undefined {
+  const s = eng.survivors.find(x => x.id === survivorId);
+  if (!s) return undefined;
+  return eng.families.find(f => f.id === s.familyId);
+}
+
+function addToFamily(family: Family, survivor: Survivor) {
+  if (!family.memberIds.includes(survivor.id)) {
+    family.memberIds.push(survivor.id);
+  }
+  survivor.familyId = family.id;
 }
 
 function dailyTick(eng: Engine, opts?: { onArrival?: (s: Survivor) => Survivor | null }) {
@@ -126,7 +148,7 @@ function dailyTick(eng: Engine, opts?: { onArrival?: (s: Survivor) => Survivor |
     if (n.regrowsPerDay > 0) n.amount = Math.min(n.max, n.amount + n.regrowsPerDay);
   }
 
-  // Building daily production (well, field, workbench)
+  // Building production
   for (const b of eng.buildings) {
     if (b.builtProgress < 1) continue;
     if (b.kind === "well") eng.resources.water += 8;
@@ -137,17 +159,30 @@ function dailyTick(eng: Engine, opts?: { onArrival?: (s: Survivor) => Survivor |
     }
   }
 
-  // Survivor aging — only at season change to keep it slow
-  if (eng.time.day === 1) {
+  // ── Lifecycle: aging happens at season change ─────────────────
+  const seasonChange = eng.time.day === 1;
+  if (seasonChange) {
     for (const s of eng.survivors) {
-      // age advances every 4 seasons; we track in fractional year per season tick
-      // (Phase 1: age does not progress in real time to avoid death of founder mid-Phase-1)
-      void s;
+      if (s.health <= 0) continue;
+      const prevStage = s.stage;
+      s.age += 0.25;
+      const newStage = stageFromAge(s.age);
+      if (newStage !== prevStage) {
+        s.stage = newStage;
+        if (newStage === "adult") {
+          addChronicle(
+            eng, "coming-of-age",
+            `${s.name} ${s.surname} comes of age`,
+            `${s.name} is reckoned an adult of the ranch at year ${eng.time.year}.`,
+            [s.id], [s.familyId],
+          );
+        }
+      }
     }
   }
 
-  // Chronicle season banner
-  if (eng.time.day === 1) {
+  // Season banner
+  if (seasonChange) {
     addChronicle(
       eng, "season",
       `${cap(eng.time.season)} of Year ${eng.time.year}`,
@@ -155,15 +190,37 @@ function dailyTick(eng: Engine, opts?: { onArrival?: (s: Survivor) => Survivor |
     );
   }
 
-  // Newcomer arrival chance — only after a homestead exists, scales with morale and prestige
+  // ── Marriages ─────────────────────────────────────────────────
+  if (seasonChange) {
+    processMarriages(eng, rng);
+  }
+
+  // ── Births ────────────────────────────────────────────────────
+  if (seasonChange) {
+    processBirths(eng, rng);
+  }
+
+  // ── Natural death ─────────────────────────────────────────────
+  if (seasonChange) {
+    for (const s of eng.survivors) {
+      if (s.health <= 0) continue;
+      if (s.age < NATURAL_DEATH_AGE) continue;
+      const over = s.age - NATURAL_DEATH_AGE;
+      const p = Math.min(0.95, 0.08 + over * 0.04);
+      if (chance(rng, p)) {
+        killSurvivor(eng, s, `Passed peacefully at ${Math.floor(s.age)}.`);
+      }
+    }
+  }
+
+  // Newcomer arrival — only after a homestead, scales with morale & pop
   const homestead = eng.buildings.find(b => b.kind === "homestead");
   if (homestead) {
     const baseP = 0.18;
     const moodMod = eng.stats.morale > 0 ? 0.08 : -0.05;
-    const popMod = -Math.min(0.12, eng.survivors.length * 0.015);
+    const popMod = -Math.min(0.12, eng.survivors.filter(s => s.health > 0).length * 0.012);
     const p = baseP + moodMod + popMod;
     if (chance(rng, p)) {
-      // place near homestead edge
       const sx = homestead.x - 2 + Math.floor(rng() * (homestead.w + 4));
       const sy = homestead.y - 2 + Math.floor(rng() * (homestead.h + 4));
       const candidate = opts?.onArrival
@@ -175,7 +232,7 @@ function dailyTick(eng: Engine, opts?: { onArrival?: (s: Survivor) => Survivor |
           eng, "arrival",
           `${candidate.name} ${candidate.surname} arrives`,
           `A ${candidate.background} walked in from the road with the dust still on them. They asked to stay.`,
-          [candidate.id],
+          [candidate.id], [candidate.familyId],
         );
       }
     }
@@ -188,7 +245,7 @@ function dailyTick(eng: Engine, opts?: { onArrival?: (s: Survivor) => Survivor |
       eng, "founding",
       "The first night",
       `${f.name} ${f.surname} slept alone under a roof that wasn't theirs yet — and was, by morning.`,
-      [f.id],
+      [f.id], [f.familyId],
     );
   }
 
@@ -196,32 +253,221 @@ function dailyTick(eng: Engine, opts?: { onArrival?: (s: Survivor) => Survivor |
   if (eng.survivors.length > 1 && chance(rng, 0.6)) {
     const a = eng.survivors[Math.floor(rng() * eng.survivors.length)];
     const b = eng.survivors[Math.floor(rng() * eng.survivors.length)];
-    if (a.id !== b.id) {
-      touchRelationship(eng.relationships, a.id, b.id, (rng() - 0.5) * 2, (rng() - 0.5) * 1);
+    if (a.id !== b.id && a.health > 0 && b.health > 0) {
+      touchRelationship(eng.relationships, a.id, b.id, {
+        affection: (rng() - 0.5) * 2,
+        trust: (rng() - 0.5),
+        respect: (rng() - 0.5),
+      });
     }
   }
 
-  // Death from starvation/dehydration
+  // Starvation / dehydration → death (non-founder is the chronicle convention, founder dies too)
   for (const s of eng.survivors) {
-    if (s.health <= 0 && !s.isFounder) {
-      // ensure chronicled once
-      if (s.action !== "Dead.") {
-        s.action = "Dead.";
-        addChronicle(
-          eng, "death",
-          `${s.name} ${s.surname} is gone`,
-          `Hunger or the cold or both. The ranch is one quieter.`,
-          [s.id],
-        );
+    if (s.health <= 0 && (s.deathTick == null)) {
+      killSurvivor(eng, s, "Hunger or the cold or both.");
+    }
+  }
+
+  // ── Succession check ──────────────────────────────────────────
+  const leader = eng.survivors.find(s => s.id === eng.currentLeaderId);
+  if (!leader || leader.health <= 0) {
+    succeed(eng);
+  }
+}
+
+function killSurvivor(eng: Engine, s: Survivor, cause: string) {
+  if (s.deathTick != null) return;
+  s.deathTick = eng.time.tick;
+  s.deathYear = eng.time.year;
+  s.health = 0;
+  s.action = "Dead.";
+  addChronicle(
+    eng, "death",
+    `${s.name} ${s.surname} is gone`,
+    cause + " The ranch is one quieter.",
+    [s.id], [s.familyId],
+  );
+  eng.stats.totalDied += 1;
+  // Mark family extinct if no living members
+  const fam = eng.families.find(f => f.id === s.familyId);
+  if (fam) {
+    const anyAlive = fam.memberIds.some(id => {
+      const m = eng.survivors.find(x => x.id === id);
+      return m && m.health > 0;
+    });
+    if (!anyAlive && fam.extinctYear == null) {
+      fam.extinctYear = eng.time.year;
+    }
+  }
+}
+
+function succeed(eng: Engine) {
+  const oldLeader = eng.survivors.find(s => s.id === eng.currentLeaderId);
+  // Find heir: alive adult descendant of founder (preferred), then spouse, then any adult kin
+  const isDescendantOfFounder = (s: Survivor): boolean => {
+    if (s.id === eng.founderId) return true;
+    if (!s.parentIds || s.parentIds.length === 0) return false;
+    return s.parentIds.some(pid => {
+      const p = eng.survivors.find(x => x.id === pid);
+      return p ? isDescendantOfFounder(p) : false;
+    });
+  };
+  const candidates = eng.survivors.filter(s =>
+    s.health > 0 && s.id !== eng.currentLeaderId && (s.stage === "adult" || s.stage === "elder")
+  );
+  // Sort by: descendant > non-descendant; older first
+  candidates.sort((a, b) => {
+    const da = isDescendantOfFounder(a) ? 0 : 1;
+    const db = isDescendantOfFounder(b) ? 0 : 1;
+    if (da !== db) return da - db;
+    return b.age - a.age;
+  });
+  const heir = candidates[0];
+  if (!heir) return; // dynasty ends in silence
+  eng.currentLeaderId = heir.id;
+  heir.occupation = "leader";
+  heir.achievements = [...(heir.achievements ?? []), `Inherited the ranch in Year ${eng.time.year}`];
+  // Prestige bump
+  const fam = familyOf(eng, heir.id);
+  if (fam) fam.prestige = Math.min(200, fam.prestige + 10);
+  addChronicle(
+    eng, "succession",
+    `${heir.name} ${heir.surname} takes the porch`,
+    `With ${oldLeader?.name ?? "the leader"} gone, ${heir.name} ${heir.surname} stands at the door of the homestead and the dust settles around them.`,
+    [heir.id, ...(oldLeader ? [oldLeader.id] : [])],
+    [heir.familyId],
+  );
+}
+
+function processMarriages(eng: Engine, rng: () => number) {
+  // Scan for eligible pairs
+  const eligible = eng.survivors.filter(s =>
+    s.health > 0 && !s.spouseId && (s.stage === "adult" || s.stage === "youth") && s.age >= 18
+  );
+  // Build candidate list of pairs with strong attraction
+  const seen = new Set<string>();
+  for (const a of eligible) {
+    for (const b of eligible) {
+      if (a.id >= b.id) continue;
+      if (a.gender === b.gender) continue;
+      // skip kin
+      const sharedParent = a.parentIds.some(p => b.parentIds.includes(p));
+      if (a.parentIds.includes(b.id) || b.parentIds.includes(a.id) || sharedParent) continue;
+      const r = findRelationship(eng.relationships, a.id, b.id);
+      if (!r) continue;
+      if (r.attraction < 55 || r.affection < 35) continue;
+      const key = a.id + "::" + b.id;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      if (chance(rng, 0.55)) {
+        marry(eng, a, b);
       }
     }
   }
 }
 
-function cap(s: string) {
-  return s[0].toUpperCase() + s.slice(1);
+function marry(eng: Engine, a: Survivor, b: Survivor) {
+  a.spouseId = b.id;
+  b.spouseId = a.id;
+  a.marriedTick = eng.time.tick;
+  b.marriedTick = eng.time.tick;
+  a.marriedYear = eng.time.year;
+  b.marriedYear = eng.time.year;
+
+  // Higher-prestige family is the leading line; the other spouse adopts that surname/family.
+  const fa = familyOf(eng, a.id)!;
+  const fb = familyOf(eng, b.id)!;
+  let lead: Family, follow: Family, leadSpouse: Survivor, followSpouse: Survivor;
+  if (fa.prestige >= fb.prestige) {
+    lead = fa; follow = fb; leadSpouse = a; followSpouse = b;
+  } else {
+    lead = fb; follow = fa; leadSpouse = b; followSpouse = a;
+  }
+  // Move follower into lead family
+  followSpouse.surname = lead.name;
+  follow.memberIds = follow.memberIds.filter(id => id !== followSpouse.id);
+  addToFamily(lead, followSpouse);
+  if (follow.memberIds.length === 0) {
+    follow.extinctYear = eng.time.year;
+  }
+  lead.prestige = Math.min(200, lead.prestige + 5 + Math.floor(follow.prestige * 0.1));
+  // Inter-family bond
+  lead.relations[follow.id] = Math.min(100, (lead.relations[follow.id] ?? 0) + 25);
+  follow.relations[lead.id] = Math.min(100, (follow.relations[lead.id] ?? 0) + 25);
+
+  markAsSpouses(eng.relationships, a.id, b.id, eng.time.tick);
+
+  a.mood = Math.min(100, a.mood + 30);
+  b.mood = Math.min(100, b.mood + 30);
+  a.needs.belonging = 100;
+  b.needs.belonging = 100;
+  emitMemory(a, `Married ${b.name} ${b.surname}.`, "love", 90, b.id);
+  emitMemory(b, `Married ${a.name} ${a.surname}.`, "love", 90, a.id);
+
+  addChronicle(
+    eng, "marriage",
+    `${leadSpouse.name} of ${lead.name} weds ${followSpouse.name}`,
+    `Under the year of ${eng.time.year}, ${a.name} and ${b.name} swore to share roof, ration, and grave. The ${lead.name} line gains a new hand.`,
+    [a.id, b.id], [lead.id, follow.id],
+  );
 }
 
-function pick<T>(rng: () => number, arr: readonly T[]): T {
-  return arr[Math.floor(rng() * arr.length)];
+function processBirths(eng: Engine, rng: () => number) {
+  // Iterate copy to allow push during loop
+  const couples = new Set<string>();
+  for (const s of [...eng.survivors]) {
+    if (s.health <= 0) continue;
+    if (!s.spouseId) continue;
+    const spouse = eng.survivors.find(x => x.id === s.spouseId);
+    if (!spouse || spouse.health <= 0) continue;
+    const pairKey = s.id < spouse.id ? s.id + spouse.id : spouse.id + s.id;
+    if (couples.has(pairKey)) continue;
+    couples.add(pairKey);
+    // age check
+    const mother = s.gender === "f" ? s : spouse.gender === "f" ? spouse : null;
+    const father = s.gender === "m" ? s : spouse.gender === "m" ? spouse : null;
+    if (!mother || !father) continue;
+    if (mother.age < FERTILE_MIN || mother.age > FERTILE_MAX) continue;
+    // Conception chance per season — modulated by number of existing children
+    const existing = mother.childrenIds.length;
+    const base = 0.42;
+    const p = Math.max(0.05, base - existing * 0.08);
+    if (!chance(rng, p)) continue;
+    // Spawn near mother
+    const spawnX = mother.x + (rng() - 0.5);
+    const spawnY = mother.y + (rng() - 0.5);
+    const fam = familyOf(eng, father.id) ?? familyOf(eng, mother.id);
+    if (!fam) continue;
+    const generation = Math.max(mother.generation, father.generation) + 1;
+    const child = makeChild(
+      rng, [mother, father], eng.time.tick, eng.time.year,
+      fam.id, fam.name, generation,
+      { x: spawnX, y: spawnY },
+    );
+    eng.survivors.push(child);
+    addToFamily(fam, child);
+    mother.childrenIds.push(child.id);
+    father.childrenIds.push(child.id);
+    // kin relationships
+    markAsKin(eng.relationships, mother.id, child.id);
+    markAsKin(eng.relationships, father.id, child.id);
+    // siblings as kin
+    for (const sibId of [...mother.childrenIds, ...father.childrenIds]) {
+      if (sibId === child.id) continue;
+      markAsKin(eng.relationships, sibId, child.id);
+    }
+    fam.prestige = Math.min(200, fam.prestige + 2);
+    eng.stats.totalBorn += 1;
+    addChronicle(
+      eng, "birth",
+      `A child is born to ${mother.name} and ${father.name}`,
+      `${child.name} ${child.surname} drew first breath in the year of ${eng.time.year}. The ${fam.name} line lengthens.`,
+      [child.id, mother.id, father.id], [fam.id],
+    );
+  }
+}
+
+function cap(s: string) {
+  return s[0].toUpperCase() + s.slice(1);
 }

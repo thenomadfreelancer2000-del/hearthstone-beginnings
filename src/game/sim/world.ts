@@ -2,10 +2,11 @@ import { nanoid } from "nanoid";
 import { chance, makeRng, pick, pickN, rangeInt } from "./rng";
 import type {
   ResourceNode, Skills, Survivor, Tile, TileKind, Trait, Background,
-  LifeStage, Building,
+  LifeStage, Building, Family, ID,
 } from "../types";
 import {
   BACKGROUNDS, FIRST_NAMES_F, FIRST_NAMES_M, SURNAMES, TRAITS, BUILDINGS,
+  LIFE_STAGE_THRESHOLDS,
 } from "../data/content";
 
 export const MAP_W = 36;
@@ -17,7 +18,6 @@ interface GenOut {
   homesteadTile: { x: number; y: number };
 }
 
-// Simple noise: smoothed random fields
 function field(rng: () => number, w: number, h: number, scale = 5): number[][] {
   const lo: number[][] = [];
   const cw = Math.ceil(w / scale) + 1;
@@ -55,7 +55,6 @@ export function generateWorld(seed: number): GenOut {
   const moisture = field(rng, w, h, 7);
   const forestN = field(rng, w, h, 4);
 
-  // tile assignment
   for (let y = 0; y < h; y++) {
     for (let x = 0; x < w; x++) {
       const e = elevation[y][x];
@@ -71,7 +70,6 @@ export function generateWorld(seed: number): GenOut {
     }
   }
 
-  // Carve a clearing near center for the homestead
   const cx = Math.floor(w / 2);
   const cy = Math.floor(h / 2);
   for (let dy = -3; dy <= 3; dy++) {
@@ -83,7 +81,6 @@ export function generateWorld(seed: number): GenOut {
     }
   }
 
-  // A few ruin tiles for atmosphere
   for (let i = 0; i < 8; i++) {
     const rx = rangeInt(rng, 2, w - 3);
     const ry = rangeInt(rng, 2, h - 3);
@@ -92,7 +89,6 @@ export function generateWorld(seed: number): GenOut {
     if (t.kind === "grass" || t.kind === "dirt" || t.kind === "tall-grass") t.kind = "ruin";
   }
 
-  // Resource nodes from terrain
   for (const t of tiles) {
     if (t.kind === "forest" && chance(rng, 0.7)) {
       const n: ResourceNode = {
@@ -118,17 +114,16 @@ export function generateWorld(seed: number): GenOut {
     }
   }
 
-  // Place a default well marker near water if any close-by
   return { tiles, nodes, homesteadTile: { x: cx, y: cy } };
 }
 
-// ── Survivor creation ──────────────────────────────────────────
+// ── Survivor & Family creation ─────────────────────────────────
 export interface FounderInput {
   firstName: string;
   surname: string;
   gender: "m" | "f";
   background: Background;
-  traits: Trait[]; // exactly 3
+  traits: Trait[];
   values: ("Family" | "Freedom" | "Security" | "Status" | "Community")[];
 }
 
@@ -137,7 +132,8 @@ function emptySkills(): Skills {
 }
 
 function applyBackground(s: Skills, bg: Background): Skills {
-  const def = BACKGROUNDS.find(b => b.id === bg)!;
+  const def = BACKGROUNDS.find(b => b.id === bg);
+  if (!def) return s;
   const out = { ...s };
   for (const [k, v] of Object.entries(def.skills)) {
     (out as any)[k] = Math.max((out as any)[k], v);
@@ -145,16 +141,18 @@ function applyBackground(s: Skills, bg: Background): Skills {
   return out;
 }
 
-function stageFromAge(age: number): LifeStage {
-  if (age < 14) return "child";
-  if (age < 19) return "youth";
-  if (age < 55) return "adult";
+export function stageFromAge(age: number): LifeStage {
+  if (age < LIFE_STAGE_THRESHOLDS.teen) return "child";
+  if (age < LIFE_STAGE_THRESHOLDS.youth) return "teen";
+  if (age < LIFE_STAGE_THRESHOLDS.adult) return "youth";
+  if (age < LIFE_STAGE_THRESHOLDS.elder) return "adult";
   return "elder";
 }
 
 export function makeFounder(input: FounderInput, spawn: { x: number; y: number }): Survivor {
+  const id = nanoid(10);
   return {
-    id: nanoid(10),
+    id,
     name: input.firstName,
     surname: input.surname,
     age: 32,
@@ -162,6 +160,10 @@ export function makeFounder(input: FounderInput, spawn: { x: number; y: number }
     gender: input.gender,
     background: input.background,
     isFounder: true,
+    bornTick: 0,
+    bornYear: 1 - 32, // for chronicle context
+    deathTick: null,
+    deathYear: null,
     x: spawn.x, y: spawn.y,
     state: "idle",
     action: "Standing on the porch.",
@@ -173,26 +175,69 @@ export function makeFounder(input: FounderInput, spawn: { x: number; y: number }
     needs: { food: 80, water: 80, rest: 90, shelter: 70, belonging: 60, purpose: 80 },
     loyaltyToFounder: 100,
     memories: [],
+    familyId: "", // assigned after Family is created
     parentIds: [],
     childrenIds: [],
     spouseId: null,
+    marriedTick: null,
+    marriedYear: null,
+    generation: 0,
+    achievements: ["Founded the ranch"],
     factionId: null,
     politicalLean: 0,
   };
 }
 
-export function makeWanderer(rng: () => number, spawn: { x: number; y: number }): Survivor {
+export function makeFounderFamily(founder: Survivor, year: number): Family {
+  const fam: Family = {
+    id: nanoid(10),
+    name: founder.surname,
+    founderId: founder.id,
+    memberIds: [founder.id],
+    prestige: 20,
+    wealth: 0,
+    motto: null,
+    foundedYear: year,
+    extinctYear: null,
+    relations: {},
+  };
+  return fam;
+}
+
+export function makeWandererFamily(survivor: Survivor, year: number): Family {
+  return {
+    id: nanoid(10),
+    name: survivor.surname,
+    founderId: survivor.id,
+    memberIds: [survivor.id],
+    prestige: 5,
+    wealth: 0,
+    motto: null,
+    foundedYear: year,
+    extinctYear: null,
+    relations: {},
+  };
+}
+
+export function makeWanderer(
+  rng: () => number,
+  spawn: { x: number; y: number },
+  bornTick: number,
+  year: number,
+): Survivor {
   const gender = chance(rng, 0.5) ? "m" : "f";
   const name = pick(rng, gender === "m" ? FIRST_NAMES_M : FIRST_NAMES_F);
   const surname = pick(rng, SURNAMES);
-  const bg = pick(rng, BACKGROUNDS).id;
+  const bgList = BACKGROUNDS.filter(b => b.id !== "native-born");
+  const bg = pick(rng, bgList).id;
   const traits = pickN(rng, TRAITS, 2 + Math.floor(rng() * 2));
   const values = pickN(rng, ["Family", "Freedom", "Security", "Status", "Community"] as const, 2);
-  const age = rangeInt(rng, 17, 54);
+  const age = rangeInt(rng, 17, 44);
   return {
     id: nanoid(10),
     name, surname, age, stage: stageFromAge(age), gender, background: bg,
     isFounder: false,
+    bornTick, bornYear: year - age, deathTick: null, deathYear: null,
     x: spawn.x, y: spawn.y, state: "idle", action: "Just arrived. Looking around.",
     traits, values,
     occupation: "idle",
@@ -207,12 +252,79 @@ export function makeWanderer(rng: () => number, spawn: { x: number; y: number })
     },
     loyaltyToFounder: rangeInt(rng, 10, 60),
     memories: [],
+    familyId: "",
     parentIds: [], childrenIds: [], spouseId: null,
+    marriedTick: null, marriedYear: null,
+    generation: 0,
     factionId: null, politicalLean: rangeInt(rng, -30, 30),
   };
 }
 
-// Place the starting homestead building
+// Create a child from two parents, inheriting traits.
+export function makeChild(
+  rng: () => number,
+  parents: [Survivor, Survivor],
+  bornTick: number,
+  year: number,
+  familyId: ID,
+  surname: string,
+  generation: number,
+  spawn: { x: number; y: number },
+): Survivor {
+  const gender = chance(rng, 0.5) ? "m" : "f";
+  const name = pick(rng, gender === "m" ? FIRST_NAMES_M : FIRST_NAMES_F);
+
+  // Trait inheritance: pick a mix from both parents + small chance of a fresh trait
+  const pool = Array.from(new Set([...parents[0].traits, ...parents[1].traits]));
+  const inherited = pickN(rng, pool, Math.min(2, pool.length));
+  if (chance(rng, 0.35) && inherited.length < 3) {
+    const fresh = pick(rng, TRAITS);
+    if (!inherited.includes(fresh)) inherited.push(fresh);
+  }
+
+  // Value inheritance: pick one from each parent
+  const valSet = new Set<"Family" | "Freedom" | "Security" | "Status" | "Community">();
+  if (parents[0].values[0]) valSet.add(parents[0].values[0]);
+  if (parents[1].values[0]) valSet.add(parents[1].values[0]);
+  const values = Array.from(valSet).slice(0, 2);
+  if (values.length < 2) values.push("Family");
+
+  // Skill inheritance: average parent skills * 0.3 (start lower than parents)
+  const skills = emptySkills();
+  (Object.keys(skills) as (keyof Skills)[]).forEach((k) => {
+    const avg = (parents[0].skills[k] + parents[1].skills[k]) / 2;
+    skills[k] = Math.max(1, avg * 0.3 + rng() * 0.5);
+  });
+
+  return {
+    id: nanoid(10),
+    name, surname,
+    age: 0,
+    stage: "child",
+    gender,
+    background: "native-born",
+    isFounder: false,
+    bornTick, bornYear: year, deathTick: null, deathYear: null,
+    x: spawn.x, y: spawn.y, state: "idle", action: "A first cry beneath the eaves.",
+    traits: inherited,
+    values: values as Survivor["values"],
+    occupation: "idle",
+    skills,
+    health: rangeInt(rng, 75, 95),
+    mood: 40,
+    needs: { food: 80, water: 80, rest: 90, shelter: 70, belonging: 80, purpose: 40 },
+    loyaltyToFounder: 60,
+    memories: [],
+    familyId,
+    parentIds: [parents[0].id, parents[1].id],
+    childrenIds: [],
+    spouseId: null,
+    marriedTick: null, marriedYear: null,
+    generation,
+    factionId: null, politicalLean: 0,
+  };
+}
+
 export function makeHomesteadBuilding(spawn: { x: number; y: number }): Building {
   const def = BUILDINGS.homestead;
   return {

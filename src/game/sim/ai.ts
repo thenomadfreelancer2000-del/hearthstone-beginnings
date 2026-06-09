@@ -2,7 +2,7 @@ import type {
   Building, Relationship, ResourceKind, ResourceNode, Survivor, Tile,
 } from "../types";
 
-export const TICKS_PER_DAY = 240; // 4 hour-blocks of 60 ticks roughly
+export const TICKS_PER_DAY = 240;
 export const DAYS_PER_SEASON = 12;
 export const SEASONS: ("spring" | "summer" | "autumn" | "winter")[] = [
   "spring", "summer", "autumn", "winter",
@@ -27,7 +27,7 @@ function moveToward(s: Survivor, dt: number) {
   const dx = s.targetX - s.x;
   const dy = s.targetY - s.y;
   const d = Math.sqrt(dx * dx + dy * dy);
-  const speed = 0.04 * dt; // tiles per tick
+  const speed = 0.04 * dt;
   if (d <= speed) {
     s.x = s.targetX;
     s.y = s.targetY;
@@ -121,30 +121,30 @@ function setTarget(s: Survivor, x: number, y: number) {
   s.state = "moving";
 }
 
-// ── Needs decay (per tick) ──────────────────────────────────────
+// ── Needs decay ──────────────────────────────────────────────────
 export function decayNeeds(s: Survivor, dt: number) {
   const k = dt / TICKS_PER_DAY;
-  s.needs.food = Math.max(0, s.needs.food - 18 * k);
-  s.needs.water = Math.max(0, s.needs.water - 24 * k);
+  // Children consume less, elders more
+  const ageMod = s.stage === "child" ? 0.6 : s.stage === "elder" ? 1.15 : 1;
+  s.needs.food = Math.max(0, s.needs.food - 18 * k * ageMod);
+  s.needs.water = Math.max(0, s.needs.water - 24 * k * ageMod);
   s.needs.rest = Math.max(0, s.needs.rest - 12 * k);
   s.needs.shelter = Math.max(0, s.needs.shelter - 6 * k);
   s.needs.belonging = Math.max(0, s.needs.belonging - 5 * k);
   s.needs.purpose = Math.max(0, s.needs.purpose - 4 * k);
 
-  // Health bleeds when needs are critical
   if (s.needs.food < 10 || s.needs.water < 10) {
     s.health = Math.max(0, s.health - 8 * k);
   } else if (s.health < 100 && s.needs.food > 50 && s.needs.water > 50 && s.needs.rest > 40) {
     s.health = Math.min(100, s.health + 4 * k);
   }
 
-  // Mood drifts toward composite
   const want = (s.needs.food + s.needs.water + s.needs.rest + s.needs.belonging + s.needs.purpose) / 5 - 40;
   s.mood = s.mood + (want - s.mood) * 0.02 * k * TICKS_PER_DAY;
   s.mood = Math.max(-100, Math.min(100, s.mood));
 }
 
-// ── Per-survivor AI step ────────────────────────────────────────
+// ── Per-survivor AI ──────────────────────────────────────────────
 export interface SimDeps {
   buildings: Building[];
   nodes: ResourceNode[];
@@ -161,13 +161,52 @@ const CARRY_CAP = 12;
 export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
   if (s.health <= 0) return;
 
-  // While moving — keep moving until at target
+  // Children just follow parents / wander, no labor
+  if (s.stage === "child" || s.stage === "teen") {
+    if (s.state === "moving") { moveToward(s, dt); return; }
+    if (s.needs.water < 28) {
+      const w = nearestWater(s, deps.tiles, deps.mapW);
+      if (w) {
+        if (dist(s.x, s.y, w.x, w.y) < 1.2) {
+          s.needs.water = Math.min(100, s.needs.water + 60);
+          s.action = "Drinking.";
+        } else { setTarget(s, w.x, w.y); s.action = "Going for water."; }
+        return;
+      }
+    }
+    if (s.needs.food < 30 && deps.resources.food > 0) {
+      const sp = nearestStockpile(s, deps.buildings);
+      if (sp) {
+        const cx = sp.x + sp.w / 2, cy = sp.y + sp.h / 2;
+        if (dist(s.x, s.y, cx, cy) < 1.5) {
+          const eat = Math.min(deps.resources.food, 3);
+          deps.resources.food -= eat;
+          s.needs.food = Math.min(100, s.needs.food + eat * 12);
+          s.action = "Eating beside the elders.";
+        } else { setTarget(s, cx, cy); s.action = "Going to eat."; }
+        return;
+      }
+    }
+    // follow a parent if available
+    const parent = deps.survivors.find(p => s.parentIds.includes(p.id) && p.health > 0);
+    if (parent && dist(s.x, s.y, parent.x, parent.y) > 3) {
+      setTarget(s, parent.x + (Math.random() - 0.5), parent.y + (Math.random() - 0.5));
+      s.action = `Following ${parent.name}.`;
+      return;
+    }
+    s.action = s.stage === "child" ? "Playing in the dirt." : "Learning the work.";
+    s.state = "idle";
+    // skill drift (slow learning)
+    s.skills.forage = Math.min(10, s.skills.forage + 0.0004 * dt);
+    s.skills.build = Math.min(10, s.skills.build + 0.0003 * dt);
+    return;
+  }
+
   if (s.state === "moving") {
     moveToward(s, dt);
     return;
   }
 
-  // Urgent need overrides
   if (s.needs.water < 28) {
     const w = nearestWater(s, deps.tiles, deps.mapW);
     if (w) {
@@ -216,7 +255,6 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
       }
       return;
     } else {
-      // sleep where they stand
       s.needs.rest = Math.min(100, s.needs.rest + 2);
       s.state = "resting";
       s.action = "Sleeping on the ground.";
@@ -224,7 +262,6 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
     }
   }
 
-  // Carrying? Drop at stockpile.
   if (s.carrying && s.carrying.amount > 0) {
     const sp = nearestStockpile(s, deps.buildings);
     if (sp) {
@@ -240,13 +277,11 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
       }
       return;
     } else {
-      // no stockpile yet — drop into global pool anyway (homestead implicitly)
       deps.resources[s.carrying.resource] += s.carrying.amount;
       s.carrying = null;
     }
   }
 
-  // Occupation behavior
   if (s.occupation === "builder") {
     const b = nearestUnfinished(s, deps.buildings);
     if (b) {
@@ -266,108 +301,166 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
       }
       return;
     }
-    // nothing to build — fall through to forage logic below
   }
 
   {
-    {
-      const wants: ResourceKind =
-        s.occupation === "woodcutter" ? "wood" :
-        s.occupation === "miner" ? "stone" :
-        s.occupation === "farmer" ? "food" :
-        s.occupation === "forager" ? "food" : "wood";
-      const node = nearestNode(s, deps.nodes, wants);
-      if (node && node.amount > 0) {
-        if (dist(s.x, s.y, node.x, node.y) < 1.3) {
-          const skill =
-            wants === "wood" ? s.skills.cut :
-            wants === "stone" ? s.skills.mine :
-            wants === "food" ? s.skills.forage :
-            1;
-          const yieldAmt = Math.min(node.amount, Math.max(1, Math.floor((1 + skill * 0.4) * (dt / 24))));
-          node.amount -= yieldAmt;
-          s.carrying = {
-            resource: wants,
-            amount: (s.carrying?.amount ?? 0) + yieldAmt,
-          };
-          // skill grows
-          if (wants === "wood") s.skills.cut = Math.min(10, s.skills.cut + 0.0015 * dt);
-          else if (wants === "stone") s.skills.mine = Math.min(10, s.skills.mine + 0.0015 * dt);
-          else s.skills.forage = Math.min(10, s.skills.forage + 0.0015 * dt);
-          s.state = "working";
-          s.action = `Working at ${node.kind}.`;
-          if ((s.carrying?.amount ?? 0) >= CARRY_CAP) {
-            const sp = nearestStockpile(s, deps.buildings);
-            if (sp) setTarget(s, sp.x + sp.w / 2, sp.y + sp.h / 2);
-          }
-        } else {
-          setTarget(s, node.x, node.y);
-          s.action = `Going to ${node.kind}.`;
+    const wants: ResourceKind =
+      s.occupation === "woodcutter" ? "wood" :
+      s.occupation === "miner" ? "stone" :
+      s.occupation === "farmer" ? "food" :
+      s.occupation === "forager" ? "food" : "wood";
+    const node = nearestNode(s, deps.nodes, wants);
+    if (node && node.amount > 0) {
+      if (dist(s.x, s.y, node.x, node.y) < 1.3) {
+        const skill =
+          wants === "wood" ? s.skills.cut :
+          wants === "stone" ? s.skills.mine :
+          wants === "food" ? s.skills.forage :
+          1;
+        const yieldAmt = Math.min(node.amount, Math.max(1, Math.floor((1 + skill * 0.4) * (dt / 24))));
+        node.amount -= yieldAmt;
+        s.carrying = {
+          resource: wants,
+          amount: (s.carrying?.amount ?? 0) + yieldAmt,
+        };
+        if (wants === "wood") s.skills.cut = Math.min(10, s.skills.cut + 0.0015 * dt);
+        else if (wants === "stone") s.skills.mine = Math.min(10, s.skills.mine + 0.0015 * dt);
+        else s.skills.forage = Math.min(10, s.skills.forage + 0.0015 * dt);
+        s.state = "working";
+        s.action = `Working at ${node.kind}.`;
+        if ((s.carrying?.amount ?? 0) >= CARRY_CAP) {
+          const sp = nearestStockpile(s, deps.buildings);
+          if (sp) setTarget(s, sp.x + sp.w / 2, sp.y + sp.h / 2);
         }
-        return;
+      } else {
+        setTarget(s, node.x, node.y);
+        s.action = `Going to ${node.kind}.`;
       }
-      // socialize when nothing else to do and there's a campfire
-      const fire = nearestCampfire(s, deps.buildings);
-      if (fire && s.needs.belonging < 70) {
-        const cx = fire.x + fire.w / 2, cy = fire.y + fire.h / 2;
-        if (dist(s.x, s.y, cx, cy) < 1.4) {
-          s.needs.belonging = Math.min(100, s.needs.belonging + 0.6);
-          s.needs.purpose = Math.min(100, s.needs.purpose + 0.2);
-          s.state = "socializing";
-          s.action = "Sitting by the fire.";
-          // small relationship pulse
-          for (const o of deps.survivors) {
-            if (o.id === s.id) continue;
-            if (dist(s.x, s.y, o.x, o.y) < 2) {
-              touchRelationship(deps.relationships, s.id, o.id, +0.02 * dt, +0.005 * dt);
-            }
-          }
-        } else {
-          setTarget(s, cx, cy);
-          s.action = "Wandering to the fire.";
-        }
-        return;
-      }
-      // truly idle: drift
-      s.action = "Idling.";
-      s.state = "idle";
       return;
     }
+    const fire = nearestCampfire(s, deps.buildings);
+    if (fire && s.needs.belonging < 70) {
+      const cx = fire.x + fire.w / 2, cy = fire.y + fire.h / 2;
+      if (dist(s.x, s.y, cx, cy) < 1.4) {
+        s.needs.belonging = Math.min(100, s.needs.belonging + 0.6);
+        s.needs.purpose = Math.min(100, s.needs.purpose + 0.2);
+        s.state = "socializing";
+        s.action = "Sitting by the fire.";
+        for (const o of deps.survivors) {
+          if (o.id === s.id) continue;
+          if (o.health <= 0) continue;
+          if (dist(s.x, s.y, o.x, o.y) < 2) {
+            // friendship + trust drift
+            touchRelationship(deps.relationships, s.id, o.id, {
+              affection: +0.02 * dt,
+              trust: +0.005 * dt,
+              friendship: +0.025 * dt,
+              respect: +0.005 * dt,
+            });
+            // attraction only between fertile adults of opposite gender, both single
+            const bothAdults =
+              (s.stage === "adult" || s.stage === "youth") &&
+              (o.stage === "adult" || o.stage === "youth");
+            const oppositeGender = s.gender !== o.gender;
+            const bothSingle = !s.spouseId && !o.spouseId;
+            const notKin = !s.parentIds.includes(o.id) && !o.parentIds.includes(s.id)
+              && !(s.parentIds.length > 0 && o.parentIds.length > 0
+                   && s.parentIds.some(p => o.parentIds.includes(p)));
+            if (bothAdults && oppositeGender && bothSingle && notKin) {
+              touchRelationship(deps.relationships, s.id, o.id, {
+                attraction: +0.04 * dt,
+              });
+            }
+          }
+        }
+      } else {
+        setTarget(s, cx, cy);
+        s.action = "Wandering to the fire.";
+      }
+      return;
+    }
+    s.action = "Idling.";
+    s.state = "idle";
+    return;
   }
 }
 
 function getBuildEffort(b: Building): number {
-  // recovery for percentage; we store effortRemaining and need original
-  // we approximate with current builtProgress + remaining. Avoid div by 0.
   if (b.builtProgress >= 1) return 1;
   if (b.effortRemaining <= 0) return 1;
   return b.effortRemaining / (1 - b.builtProgress);
 }
 
 // ── Relationships ───────────────────────────────────────────────
-export function touchRelationship(
-  rels: Relationship[],
-  a: string,
-  b: string,
-  dAffection: number,
-  dTrust: number,
-) {
-  let r = findRelationship(rels, a, b);
-  if (!r) {
-    r = { a, b, affection: 0, trust: 0, tag: "stranger", interactions: 0 };
-    rels.push(r);
-  }
-  r.affection = clamp(r.affection + dAffection, -100, 100);
-  r.trust = clamp(r.trust + dTrust, -100, 100);
-  r.interactions += 1;
-  // tag re-evaluated
-  if (r.affection > 60 && r.trust > 40) r.tag = "close-friend";
-  else if (r.affection > 25) r.tag = "friend";
-  else if (r.affection < -40) r.tag = "enemy";
-  else if (r.affection < -15) r.tag = "rival";
-  else if (r.interactions > 4) r.tag = "acquaintance";
+export interface RelationshipDelta {
+  affection?: number;
+  trust?: number;
+  respect?: number;
+  attraction?: number;
+  friendship?: number;
+  rivalry?: number;
 }
 
 function clamp(v: number, lo: number, hi: number) {
   return Math.max(lo, Math.min(hi, v));
+}
+
+export function ensureRelationship(rels: Relationship[], a: string, b: string): Relationship {
+  let r = findRelationship(rels, a, b);
+  if (!r) {
+    r = {
+      a, b,
+      affection: 0, trust: 0, respect: 0,
+      attraction: 0, friendship: 0, rivalry: 0,
+      tag: "stranger", interactions: 0, marriedTick: null,
+    };
+    rels.push(r);
+  }
+  return r;
+}
+
+export function touchRelationship(
+  rels: Relationship[],
+  a: string,
+  b: string,
+  deltaOrAffection: number | RelationshipDelta,
+  dTrust = 0,
+) {
+  const r = ensureRelationship(rels, a, b);
+  const d: RelationshipDelta = typeof deltaOrAffection === "number"
+    ? { affection: deltaOrAffection, trust: dTrust }
+    : deltaOrAffection;
+
+  if (d.affection) r.affection = clamp(r.affection + d.affection, -100, 100);
+  if (d.trust)     r.trust     = clamp(r.trust + d.trust, -100, 100);
+  if (d.respect)   r.respect   = clamp(r.respect + d.respect, -100, 100);
+  if (d.attraction)r.attraction= clamp(r.attraction + d.attraction, -100, 100);
+  if (d.friendship)r.friendship= clamp(r.friendship + d.friendship, -100, 100);
+  if (d.rivalry)   r.rivalry   = clamp(r.rivalry + d.rivalry, 0, 100);
+  r.interactions += 1;
+
+  // Tag re-evaluated, respecting marriage/kin
+  if (r.tag !== "spouse" && r.tag !== "kin") {
+    if (r.affection > 60 && r.trust > 40) r.tag = "close-friend";
+    else if (r.friendship > 30 || r.affection > 25) r.tag = "friend";
+    else if (r.rivalry > 40 || r.affection < -40) r.tag = "enemy";
+    else if (r.affection < -15) r.tag = "rival";
+    else if (r.interactions > 4) r.tag = "acquaintance";
+  }
+}
+
+export function markAsSpouses(rels: Relationship[], a: string, b: string, tick: number) {
+  const r = ensureRelationship(rels, a, b);
+  r.tag = "spouse";
+  r.marriedTick = tick;
+  r.affection = Math.max(r.affection, 70);
+  r.trust = Math.max(r.trust, 60);
+  r.respect = Math.max(r.respect, 40);
+}
+
+export function markAsKin(rels: Relationship[], a: string, b: string) {
+  const r = ensureRelationship(rels, a, b);
+  r.tag = "kin";
+  r.affection = Math.max(r.affection, 50);
+  r.trust = Math.max(r.trust, 40);
 }

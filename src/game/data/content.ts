@@ -3,10 +3,12 @@ import type { Background, BuildingDef, BuildingKind, Trait } from "../types";
 export const FIRST_NAMES_M = [
   "Eli", "Jonah", "Caleb", "Marcus", "Silas", "Owen", "Wyatt", "Bishop",
   "August", "Cyrus", "Hollis", "Rhett", "Asa", "Levi", "Boone", "Tobias",
+  "Ezra", "Theo", "Amos", "Reuben", "Isaac", "Jude", "Finn", "Roland",
 ];
 export const FIRST_NAMES_F = [
   "Hattie", "June", "Mae", "Cora", "Wren", "Sage", "Eleanor", "Maren",
   "Ruth", "Tess", "Imogen", "Annika", "Della", "Beatrix", "Iris", "Opal",
+  "Linnea", "Clemmie", "Edith", "Marigold", "Astrid", "Nell", "Vera", "Lula",
 ];
 export const SURNAMES = [
   "Hollow", "Greer", "Vance", "Marrow", "Ashby", "Crane", "Whitlock",
@@ -41,6 +43,7 @@ export const BACKGROUNDS: { id: Background; name: string; blurb: string; skills:
   { id: "farmer", name: "Farmer", blurb: "Reads weather like scripture.", skills: { farm: 6, forage: 3 } },
   { id: "drifter", name: "Drifter", blurb: "Has nothing and almost likes it that way.", skills: { forage: 4, cut: 2, mine: 2 } },
   { id: "criminal", name: "Criminal", blurb: "Survives by the angles others won't see.", skills: { forage: 3, lead: 2, mine: 2 } },
+  { id: "native-born", name: "Born on the Ranch", blurb: "Knows no other world but this one.", skills: { farm: 2, build: 2, forage: 2 } },
 ];
 
 export const BUILDINGS: Record<BuildingKind, BuildingDef> = {
@@ -111,3 +114,17 @@ export const CHRONICLE_OPENERS = [
   "It is told that",
   "The chronicle marks",
 ];
+
+// ── Lifecycle thresholds ─────────────────────────────────────────
+export const LIFE_STAGE_THRESHOLDS = {
+  child: 0,
+  teen: 13,
+  youth: 17,
+  adult: 21,
+  elder: 60,
+} as const;
+
+export const COMING_OF_AGE = LIFE_STAGE_THRESHOLDS.adult;
+export const FERTILE_MIN = 19;
+export const FERTILE_MAX = 48;
+export const NATURAL_DEATH_AGE = 70;
