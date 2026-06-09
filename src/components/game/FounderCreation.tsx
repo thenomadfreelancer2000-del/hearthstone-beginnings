@@ -151,14 +151,20 @@ export function FounderCreation() {
               transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
               className="pt-2 sm:pt-6"
             >
-              <p className="ranch-label mb-3 text-[9px] sm:text-[10px]">{t.eyebrow}</p>
-              <h1 className="ranch-display text-3xl sm:text-5xl md:text-6xl leading-[1.05] mb-3 sm:mb-4">
+              <p
+                className="ranch-label mb-3 text-[9px] sm:text-[10px]"
+                style={{ letterSpacing: "0.2em" }}
+              >
+                {t.eyebrow}
+              </p>
+              <h1 className="ranch-display text-[26px] sm:text-5xl md:text-6xl leading-[1.05] mb-2 sm:mb-4">
                 {t.title}
               </h1>
-              <p className="ranch-display italic text-dust-light text-base sm:text-lg max-w-2xl">
+              <p className="ranch-display italic text-dust-light text-sm sm:text-lg max-w-2xl leading-snug">
                 {t.sub}
               </p>
-              <div className="divider-amber my-6 sm:my-8" />
+              <div className="divider-amber my-5 sm:my-8" />
+
 
               {step === 1 && (
                 <StepIdentity
@@ -192,7 +198,10 @@ export function FounderCreation() {
       </main>
 
       {/* Sticky footer */}
-      <footer className="fixed bottom-0 inset-x-0 px-4 sm:px-8 py-3 sm:py-5 bg-gradient-to-t from-coal via-coal/95 to-transparent">
+      <footer
+        className="fixed bottom-0 inset-x-0 px-4 sm:px-8 pt-3 sm:pt-5 bg-coal border-t border-amber/15"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)" }}
+      >
         <div className="max-w-3xl mx-auto w-full flex items-center justify-between gap-3">
           <button onClick={back} className="btn-ranch flex-1 sm:flex-none">
             {step === 1 ? "Reconsider" : "Back"}
