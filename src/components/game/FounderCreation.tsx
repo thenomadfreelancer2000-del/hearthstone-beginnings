@@ -198,7 +198,10 @@ export function FounderCreation() {
       </main>
 
       {/* Sticky footer */}
-      <footer className="fixed bottom-0 inset-x-0 px-4 sm:px-8 py-3 sm:py-5 bg-gradient-to-t from-coal via-coal/95 to-transparent">
+      <footer
+        className="fixed bottom-0 inset-x-0 px-4 sm:px-8 pt-3 sm:pt-5 bg-coal border-t border-amber/15"
+        style={{ paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)" }}
+      >
         <div className="max-w-3xl mx-auto w-full flex items-center justify-between gap-3">
           <button onClick={back} className="btn-ranch flex-1 sm:flex-none">
             {step === 1 ? "Reconsider" : "Back"}
