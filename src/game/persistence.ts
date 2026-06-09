@@ -1,6 +1,7 @@
 import type { SaveGame } from "./types";
 
-const KEY = "the-ranch-save-v1";
+const KEY = "the-ranch-save-v2";
+const LEGACY_KEY_V1 = "the-ranch-save-v1";
 
 export function saveToLocal(save: SaveGame) {
   try {
@@ -16,7 +17,7 @@ export function loadFromLocal(): SaveGame | null {
     const raw = localStorage.getItem(KEY);
     if (!raw) return null;
     const data = JSON.parse(raw) as SaveGame;
-    if (data.version !== 1) return null;
+    if (data.version !== 2) return null;
     return data;
   } catch {
     return null;
@@ -34,6 +35,7 @@ export function hasSave(): boolean {
 export function deleteSave() {
   try {
     localStorage.removeItem(KEY);
+    localStorage.removeItem(LEGACY_KEY_V1);
   } catch {
     /* ignore */
   }
