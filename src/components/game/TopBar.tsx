@@ -1,10 +1,16 @@
 import { useGame } from "@/game/store";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const SEASON_LABEL: Record<string, string> = {
   spring: "Spring", summer: "Summer", autumn: "Autumn", winter: "Winter",
 };
 
-export function TopBar() {
+interface Props {
+  onToggleDock?: () => void;
+  dockOpen?: boolean;
+}
+
+export function TopBar({ onToggleDock, dockOpen }: Props) {
   const ranchName = useGame((s) => s.ranchName);
   const time = useGame((s) => s.time);
   const speed = useGame((s) => s.speed);
@@ -16,8 +22,56 @@ export function TopBar() {
   const setOverlay = useGame((s) => s.setOverlay);
   const survivors = useGame((s) => s.survivors);
   const currentLeaderId = useGame((s) => s.currentLeaderId);
+  const isMobile = useIsMobile();
 
   const leader = survivors.find(s => s.id === currentLeaderId);
+
+  if (isMobile) {
+    return (
+      <header className="parchment-panel border-b border-amber/30 px-2 py-1.5 z-20 flex flex-col gap-1">
+        <div className="flex items-center gap-2">
+          <div className="flex flex-col flex-1 min-w-0">
+            <span className="ranch-display text-sm leading-none truncate">{ranchName}</span>
+            <span className="ranch-data text-[9px] text-dust">
+              Y{time.year} · {SEASON_LABEL[time.season]} · D{time.day} · {stats.dynastyName || "—"}
+            </span>
+          </div>
+          <div className="flex border border-amber/30">
+            {[0, 1, 2, 3].map((s) => (
+              <button
+                key={s}
+                onClick={() => setSpeed(s as 0 | 1 | 2 | 3)}
+                className={`px-1.5 py-1 ranch-label text-[9px] ${speed === s ? "bg-amber text-ink" : "text-dust"}`}
+              >
+                {s === 0 ? "❚❚" : `${s === 3 ? 4 : s}×`}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={onToggleDock}
+            className="btn-ranch btn-ranch-ghost text-[10px] px-2 py-1"
+            aria-label="Menu"
+          >
+            {dockOpen ? "Close" : "Menu"}
+          </button>
+        </div>
+        <div className="flex items-center gap-2 ranch-data text-[10px] overflow-x-auto scroll-amber">
+          <Res label="W" v={resources.wood} />
+          <Res label="St" v={resources.stone} />
+          <Res label="F" v={resources.food} />
+          <Res label="Wt" v={resources.water} />
+          <Res label="Fi" v={resources.fiber} />
+          <Res label="T" v={resources.tools} />
+          <span className="ml-auto text-dust">
+            <span className="text-amber">{stats.population}</span> souls ·{" "}
+            <span className={stats.morale >= 0 ? "text-success" : "text-danger"}>
+              {Math.round(stats.morale)}
+            </span>
+          </span>
+        </div>
+      </header>
+    );
+  }
 
   return (
     <header className="parchment-panel border-b border-amber/30 px-4 py-2 flex items-center gap-4 z-20 flex-wrap">
@@ -90,7 +144,7 @@ export function TopBar() {
 
 function Res({ label, v }: { label: string; v: number }) {
   return (
-    <span title={label} className="inline-flex items-baseline gap-1">
+    <span title={label} className="inline-flex items-baseline gap-1 whitespace-nowrap">
       <span className="ranch-label text-[9px]">{label.slice(0, 3)}</span>
       <span className="text-parchment">{Math.floor(v)}</span>
     </span>
