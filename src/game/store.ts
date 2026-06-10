@@ -269,6 +269,7 @@ export const useGame = create<GameState>((set, get) => ({
   tickReal: (deltaMs) => {
     const st = get();
     if (st.speed === 0 || st.screen !== "game") return;
+    if (st.pendingArrival) return; // pause while the player decides
     const tps = 12 * (st.speed === 1 ? 1 : st.speed === 2 ? 2 : 4);
     const n = Math.max(1, Math.floor((deltaMs / 1000) * tps));
 
@@ -301,21 +302,44 @@ export const useGame = create<GameState>((set, get) => ({
       seed: st.seed,
     };
 
-    const rng = makeRng(eng.seed ^ Math.floor(eng.time.tick / 240));
+    const prevTick = st.time.tick;
+    advance(eng, n);
+    const newTick = eng.time.tick;
 
-    advance(eng, n, {
-      onArrival: () => {
+    // Notifications for new chronicle entries
+    let lastId = st.lastChronicleId;
+    if (eng.chronicle.length > 0) {
+      const idxLast = lastId ? eng.chronicle.findIndex(c => c.id === lastId) : eng.chronicle.length;
+      const fresh = idxLast === -1 ? eng.chronicle.slice(0, 5) : eng.chronicle.slice(0, idxLast);
+      for (let i = fresh.length - 1; i >= 0; i--) {
+        const c = fresh[i];
+        notifyChronicle(c);
+      }
+      lastId = eng.chronicle[0]?.id ?? lastId;
+    }
+
+    // Arrival roll — checked on cadence ticks crossed during this advance
+    let pendingArrival: ArrivalEvent | null = st.pendingArrival;
+    if (!pendingArrival) {
+      const crossed = Math.floor(newTick / ARRIVAL_CHECK_TICKS) - Math.floor(prevTick / ARRIVAL_CHECK_TICKS);
+      if (crossed > 0) {
+        const rng = makeRng(eng.seed ^ Math.floor(newTick / ARRIVAL_CHECK_TICKS));
         const h = eng.buildings.find(b => b.kind === "homestead");
-        if (!h) return null;
-        const sx = h.x + Math.floor(rng() * h.w);
-        const sy = h.y + Math.floor(rng() * h.h);
-        const wanderer = makeWanderer(rng, { x: sx, y: sy }, eng.time.tick, eng.time.year);
-        const wf = makeWandererFamily(wanderer, eng.time.year);
-        wanderer.familyId = wf.id;
-        eng.families.push(wf);
-        return wanderer;
-      },
-    });
+        const alive = eng.survivors.filter(s => s.health > 0).length;
+        // base probability per cadence: lower than before, capped by pop
+        const reputationMod = st.reputation * 0.002;
+        const popMod = -Math.min(0.35, alive * 0.025);
+        const moodMod = eng.stats.morale > 0 ? 0.05 : -0.05;
+        const p = Math.max(0.05, 0.35 + reputationMod + popMod + moodMod);
+        if (h && Math.random() < p) {
+          const around = { x: h.x + h.w / 2, y: h.y + h.h / 2 };
+          pendingArrival = generateArrival(rng, newTick, eng.time.year, around);
+          toast(pendingArrival.title, {
+            description: "Strangers at the gate — decide their fate.",
+          });
+        }
+      }
+    }
 
     set({
       time: eng.time,
@@ -328,6 +352,75 @@ export const useGame = create<GameState>((set, get) => ({
       currentLeaderId: eng.currentLeaderId,
       chronicle: eng.chronicle,
       stats: eng.stats,
+      pendingArrival,
+      lastChronicleId: lastId,
+    });
+  },
+
+  acceptArrival: () => {
+    const st = get();
+    const ev = st.pendingArrival;
+    if (!ev) return;
+    const newResources = { ...st.resources };
+    for (const [r, amt] of Object.entries(ev.gifts)) {
+      (newResources as any)[r] = ((newResources as any)[r] ?? 0) + (amt ?? 0);
+    }
+    const newChronicle: ChronicleEntry = {
+      id: nanoid(8),
+      tick: st.time.tick,
+      year: st.time.year, season: st.time.season, day: st.time.day,
+      category: "arrival",
+      title: `${ev.title} — welcomed in`,
+      body: `${ev.survivors.length} new soul${ev.survivors.length === 1 ? "" : "s"} joined the ranch. ${ev.blurb}`,
+      involvedIds: ev.survivors.map(s => s.id),
+      involvedFamilyIds: [ev.family.id],
+    };
+    toast.success(`Welcomed ${ev.survivors.length} to the ranch`);
+    set({
+      survivors: [...st.survivors, ...ev.survivors],
+      families: [...st.families, ev.family],
+      resources: newResources,
+      chronicle: [newChronicle, ...st.chronicle],
+      pendingArrival: null,
+      reputation: Math.min(100, st.reputation + 4),
+      lastChronicleId: newChronicle.id,
+    });
+  },
+
+  rejectArrival: () => {
+    const st = get();
+    const ev = st.pendingArrival;
+    if (!ev) return;
+    const newChronicle: ChronicleEntry = {
+      id: nanoid(8),
+      tick: st.time.tick,
+      year: st.time.year, season: st.time.season, day: st.time.day,
+      category: "departure",
+      title: `${ev.title} — turned away`,
+      body: `The Founder sent them on. The road that took them away takes their story with it.`,
+      involvedFamilyIds: [],
+    };
+    toast.warning(`Sent ${ev.survivors.length} away`);
+    set({
+      chronicle: [newChronicle, ...st.chronicle],
+      pendingArrival: null,
+      reputation: Math.max(-100, st.reputation - 3),
+      lastChronicleId: newChronicle.id,
     });
   },
 }));
+
+function notifyChronicle(c: ChronicleEntry) {
+  switch (c.category) {
+    case "birth": toast.success(c.title); break;
+    case "marriage": toast.success(c.title); break;
+    case "death": toast.error(c.title); break;
+    case "construction": toast(c.title, { description: "Construction complete." }); break;
+    case "succession": toast(c.title, { description: "A new hand on the porch." }); break;
+    case "coming-of-age": toast(c.title); break;
+    case "arrival": toast(c.title); break;
+    case "season": /* quiet */ break;
+    default: break;
+  }
+}
+
