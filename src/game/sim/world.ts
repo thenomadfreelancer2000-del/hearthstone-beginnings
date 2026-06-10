@@ -400,7 +400,7 @@ export function generateArrival(
   const gifts: Partial<Record<ResourceKind, number>> = {};
 
   if (kind === "lone") {
-    const a = pushAdult(0);
+    pushAdult(0);
     gifts.food = 4 + Math.floor(rng() * 6);
   } else if (kind === "couple") {
     const a = pushAdult(0, "m");
@@ -433,14 +433,14 @@ export function generateArrival(
     gifts.wood = 3;
     gifts.tools = chance(rng, 0.4) ? 1 : 0;
   } else if (kind === "injured") {
-    const a = pushAdult(0);
+    pushAdult(0);
     a.health = 20 + Math.floor(rng() * 20);
     a.needs.food = 15; a.needs.water = 15;
     gifts.food = 1;
   } else { // refugees
     const n = 3 + Math.floor(rng() * 3);
     for (let i = 0; i < n; i++) {
-      const a = pushAdult(i);
+      pushAdult(i);
       a.health = Math.max(30, a.health - 25);
       a.needs.food = 20; a.needs.water = 20;
       a.mood = -20;
