@@ -52,6 +52,11 @@ interface GameState {
   selection: Selection;
   buildPlacement: BuildPlacement;
 
+  // Arrival event (transient — pauses the simulation while open)
+  pendingArrival: ArrivalEvent | null;
+  reputation: number; // -100..100, affects future arrivals
+  lastChronicleId: ID | null;
+
   // actions
   setScreen: (s: Screen) => void;
   setOverlay: (o: Overlay) => void;
@@ -69,10 +74,12 @@ interface GameState {
   resumeFromSave: () => boolean;
   save: () => boolean;
   tickReal: (deltaMs: number) => void;
+  acceptArrival: () => void;
+  rejectArrival: () => void;
 }
 
 const emptyResources = (): Record<ResourceKind, number> => ({
-  wood: 12, stone: 6, food: 30, water: 30, fiber: 6, tools: 1,
+  wood: 18, stone: 8, food: 70, water: 60, fiber: 8, tools: 1,
 });
 
 const emptyStats = (year: number, dynasty: string): SettlementStats => ({
@@ -80,6 +87,10 @@ const emptyStats = (year: number, dynasty: string): SettlementStats => ({
   foundedYear: year, generations: 0, dynastyName: dynasty,
   totalBorn: 0, totalDied: 0,
 });
+
+// arrivals roughly every ~6 game days at 1x speed
+const ARRIVAL_CHECK_TICKS = 240 * 3; // every 3 days
+
 
 export const useGame = create<GameState>((set, get) => ({
   screen: "menu",
