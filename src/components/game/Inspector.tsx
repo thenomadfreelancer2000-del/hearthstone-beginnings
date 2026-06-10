@@ -23,7 +23,7 @@ export function Inspector() {
 
   if (sel.kind === "none") {
     return (
-      <aside className="parchment-panel w-[340px] p-4 ranch-handwritten text-sm text-dust border-l border-amber/20">
+      <aside className="parchment-panel w-full sm:w-[340px] p-4 ranch-handwritten text-sm text-dust border-l border-amber/20">
         <p className="ranch-label mb-2">The Ranch</p>
         <p>Click any soul, structure, or tile to read its story.</p>
         <div className="divider-amber my-4" />
