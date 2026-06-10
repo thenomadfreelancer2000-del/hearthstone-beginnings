@@ -120,6 +120,20 @@ export function advance(eng: Engine, n: number, opts?: { onArrival?: (s: Survivo
       tickSurvivor(s, dt, deps);
     }
 
+    // Construction completion notifications
+    for (const b of eng.buildings) {
+      if (b.builtProgress >= 1 && b.completedYear == null) {
+        b.completedYear = eng.time.year;
+        if (b.kind !== "homestead") {
+          addChronicle(
+            eng, "construction",
+            `New ${b.kind} stands on the ranch`,
+            `The frame held, the dust settled, and another shape on the horizon is theirs.`,
+          );
+        }
+      }
+    }
+
     if (eng.time.tick % TICKS_PER_DAY === 0) {
       dailyTick(eng, opts);
     }
