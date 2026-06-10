@@ -108,6 +108,9 @@ export const useGame = create<GameState>((set, get) => ({
   stats: emptyStats(1, ""),
   selection: { kind: "none" },
   buildPlacement: null,
+  pendingArrival: null,
+  reputation: 0,
+  lastChronicleId: null,
 
   setScreen: (s) => set({ screen: s }),
   setOverlay: (o) => set({ overlay: o }),
