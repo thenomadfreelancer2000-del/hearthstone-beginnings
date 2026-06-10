@@ -1,13 +1,14 @@
 import { create } from "zustand";
 import { nanoid } from "nanoid";
+import { toast } from "sonner";
 import type {
-  Building, BuildingKind, ChronicleEntry, Family, GameSpeed, GameTime, ID,
+  ArrivalEvent, Building, BuildingKind, ChronicleEntry, Family, GameSpeed, GameTime, ID,
   Relationship, ResourceKind, ResourceNode, SaveGame, SettlementStats,
   Survivor, Tile,
 } from "./types";
 import {
   MAP_W, MAP_H, generateWorld, makeFounder, makeHomesteadBuilding,
-  makeFounderFamily, makeWanderer, makeWandererFamily, type FounderInput,
+  makeFounderFamily, generateArrival, type FounderInput,
 } from "./sim/world";
 import { advance, type Engine } from "./sim/engine";
 import { BUILDINGS } from "./data/content";
