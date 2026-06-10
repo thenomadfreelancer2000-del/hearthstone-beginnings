@@ -332,7 +332,8 @@ export function makeHomesteadBuilding(spawn: { x: number; y: number }): Building
     kind: "homestead",
     x: spawn.x - 1, y: spawn.y - 1,
     w: def.size.w, h: def.size.h,
-    builtProgress: 1, effortRemaining: 0,
+    builtProgress: 1, effortRemaining: 0, buildEffortTotal: 0,
+    completedYear: 1,
     occupantIds: [], stored: {},
   };
 }
