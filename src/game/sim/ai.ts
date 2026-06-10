@@ -282,15 +282,19 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
     }
   }
 
-  if (s.occupation === "builder") {
+  // Construction: builders prioritise it; any idle adult or the leader pitches in.
+  const helpsBuild =
+    s.occupation === "builder" || s.occupation === "idle" || s.occupation === "leader";
+  if (helpsBuild) {
     const b = nearestUnfinished(s, deps.buildings);
     if (b) {
       const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
-      if (dist(s.x, s.y, cx, cy) < 1.3) {
-        const work = (1 + s.skills.build * 0.18) * (dt / 30);
+      if (dist(s.x, s.y, cx, cy) < 1.6) {
+        const isBuilder = s.occupation === "builder";
+        const work = (1 + s.skills.build * 0.22) * (dt / 24) * (isBuilder ? 1 : 0.7);
         b.effortRemaining = Math.max(0, b.effortRemaining - work);
-        const def = (1 - b.effortRemaining / Math.max(1, getBuildEffort(b)));
-        b.builtProgress = Math.max(b.builtProgress, def);
+        const total = b.buildEffortTotal || Math.max(1, b.effortRemaining + work);
+        b.builtProgress = Math.max(b.builtProgress, 1 - b.effortRemaining / total);
         if (b.effortRemaining <= 0) b.builtProgress = 1;
         s.skills.build = Math.min(10, s.skills.build + 0.002 * dt);
         s.state = "working";
