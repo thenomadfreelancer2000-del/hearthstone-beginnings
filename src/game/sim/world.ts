@@ -1,7 +1,7 @@
 import { nanoid } from "nanoid";
 import { chance, makeRng, pick, pickN, rangeInt } from "./rng";
 import type {
-  ResourceNode, Skills, Survivor, Tile, TileKind, Trait, Background,
+  ResourceKind, ResourceNode, Skills, Survivor, Tile, TileKind, Trait, Background,
   LifeStage, Building, Family, ID,
 } from "../types";
 import {
