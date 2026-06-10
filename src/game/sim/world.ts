@@ -337,3 +337,125 @@ export function makeHomesteadBuilding(spawn: { x: number; y: number }): Building
     occupantIds: [], stored: {},
   };
 }
+
+// ── Arrival event generator ─────────────────────────────────────
+import type { ArrivalEvent, ArrivalKind, ResourceKind } from "../types";
+
+const ARRIVAL_KINDS: { kind: ArrivalKind; weight: number; title: string; blurb: string }[] = [
+  { kind: "lone", weight: 30, title: "A lone traveler", blurb: "One figure on the road, a single bag and a careful look." },
+  { kind: "couple", weight: 18, title: "A weary couple", blurb: "Two who clearly came together, and intend to stay together." },
+  { kind: "parent-child", weight: 14, title: "A parent and child", blurb: "An adult with a small one in tow. They ask for a roof more than a wage." },
+  { kind: "small-family", weight: 12, title: "A small family", blurb: "Three souls bound by blood and a shared horizon." },
+  { kind: "travelers", weight: 14, title: "A group of travelers", blurb: "Strangers who fell in along the road and would rather not split now." },
+  { kind: "injured", weight: 7, title: "An injured survivor", blurb: "Limping, fevered, asking only for water and a wall." },
+  { kind: "refugees", weight: 5, title: "A refugee group", blurb: "Hollow-eyed, carrying what's left of somewhere worse." },
+];
+
+function pickArrivalKind(rng: () => number): ArrivalKind {
+  const total = ARRIVAL_KINDS.reduce((a, k) => a + k.weight, 0);
+  let r = rng() * total;
+  for (const k of ARRIVAL_KINDS) { r -= k.weight; if (r <= 0) return k.kind; }
+  return "lone";
+}
+
+function spawnAround(rng: () => number, around: { x: number; y: number }, i: number) {
+  return { x: around.x + (rng() - 0.5) * 2 + i * 0.4, y: around.y + (rng() - 0.5) * 2 };
+}
+
+export function generateArrival(
+  rng: () => number,
+  bornTick: number,
+  year: number,
+  around: { x: number; y: number },
+): ArrivalEvent {
+  const kind = pickArrivalKind(rng);
+  const meta = ARRIVAL_KINDS.find(k => k.kind === kind)!;
+  const survivors: Survivor[] = [];
+  const family = makeWandererFamily({ ...makeWanderer(rng, around, bornTick, year) }, year);
+  // shared surname for households
+  const sharedSurname = pick(rng, SURNAMES);
+
+  const pushAdult = (i: number, gender?: "m" | "f") => {
+    const s = makeWanderer(rng, spawnAround(rng, around, i), bornTick, year);
+    if (gender) s.gender = gender;
+    s.surname = sharedSurname;
+    s.familyId = family.id;
+    survivors.push(s);
+    if (!family.memberIds.includes(s.id)) family.memberIds.push(s.id);
+    return s;
+  };
+  const pushChild = (i: number, parents: [Survivor, Survivor]) => {
+    const c = makeChild(rng, parents, bornTick, year, family.id, sharedSurname, 1, spawnAround(rng, around, i));
+    c.age = 4 + Math.floor(rng() * 9);
+    c.stage = stageFromAge(c.age);
+    survivors.push(c);
+    family.memberIds.push(c.id);
+    parents[0].childrenIds.push(c.id);
+    parents[1].childrenIds.push(c.id);
+    return c;
+  };
+
+  const gifts: Partial<Record<ResourceKind, number>> = {};
+
+  if (kind === "lone") {
+    const a = pushAdult(0);
+    gifts.food = 4 + Math.floor(rng() * 6);
+  } else if (kind === "couple") {
+    const a = pushAdult(0, "m");
+    const b = pushAdult(1, "f");
+    a.spouseId = b.id; b.spouseId = a.id;
+    a.marriedTick = bornTick; b.marriedTick = bornTick;
+    a.marriedYear = year; b.marriedYear = year;
+    gifts.food = 8 + Math.floor(rng() * 6);
+    gifts.fiber = 2 + Math.floor(rng() * 3);
+  } else if (kind === "parent-child") {
+    const p = pushAdult(0);
+    const ghost = pushAdult(1, p.gender === "m" ? "f" : "m");
+    ghost.health = 0; ghost.deathTick = bornTick - 100;
+    ghost.deathYear = year - 1;
+    p.spouseId = ghost.id;
+    pushChild(2, [p, ghost]);
+    gifts.food = 6;
+  } else if (kind === "small-family") {
+    const a = pushAdult(0, "m");
+    const b = pushAdult(1, "f");
+    a.spouseId = b.id; b.spouseId = a.id;
+    pushChild(2, [a, b]);
+    if (chance(rng, 0.5)) pushChild(3, [a, b]);
+    gifts.food = 10 + Math.floor(rng() * 8);
+    gifts.wood = 4;
+  } else if (kind === "travelers") {
+    const n = 2 + Math.floor(rng() * 3);
+    for (let i = 0; i < n; i++) pushAdult(i);
+    gifts.food = 6 + n * 2;
+    gifts.wood = 3;
+    gifts.tools = chance(rng, 0.4) ? 1 : 0;
+  } else if (kind === "injured") {
+    const a = pushAdult(0);
+    a.health = 20 + Math.floor(rng() * 20);
+    a.needs.food = 15; a.needs.water = 15;
+    gifts.food = 1;
+  } else { // refugees
+    const n = 3 + Math.floor(rng() * 3);
+    for (let i = 0; i < n; i++) {
+      const a = pushAdult(i);
+      a.health = Math.max(30, a.health - 25);
+      a.needs.food = 20; a.needs.water = 20;
+      a.mood = -20;
+    }
+  }
+
+  // Reassign family.founderId to first survivor
+  if (survivors.length > 0) family.founderId = survivors[0].id;
+
+  return {
+    id: nanoid(8),
+    kind,
+    title: meta.title,
+    blurb: meta.blurb,
+    survivors,
+    family,
+    gifts,
+    arrivedTick: bornTick,
+  };
+}
