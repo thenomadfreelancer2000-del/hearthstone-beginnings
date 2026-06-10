@@ -371,7 +371,9 @@ export function generateArrival(
   const kind = pickArrivalKind(rng);
   const meta = ARRIVAL_KINDS.find(k => k.kind === kind)!;
   const survivors: Survivor[] = [];
-  const family = makeWandererFamily({ ...makeWanderer(rng, around, bornTick, year) }, year);
+  const stub = makeWanderer(rng, around, bornTick, year);
+  const family = makeWandererFamily(stub, year);
+  family.memberIds = []; // clear stub; we add real survivors below
   // shared surname for households
   const sharedSurname = pick(rng, SURNAMES);
 
