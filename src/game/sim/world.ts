@@ -339,7 +339,8 @@ export function makeHomesteadBuilding(spawn: { x: number; y: number }): Building
 }
 
 // ── Arrival event generator ─────────────────────────────────────
-import type { ArrivalEvent, ArrivalKind, ResourceKind } from "../types";
+import type { ArrivalEvent, ArrivalKind } from "../types";
+
 
 const ARRIVAL_KINDS: { kind: ArrivalKind; weight: number; title: string; blurb: string }[] = [
   { kind: "lone", weight: 30, title: "A lone traveler", blurb: "One figure on the road, a single bag and a careful look." },
