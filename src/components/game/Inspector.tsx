@@ -46,7 +46,7 @@ export function Inspector() {
     const isDead = s.health <= 0;
 
     return (
-      <aside className="parchment-panel w-[340px] p-4 border-l border-amber/20 overflow-auto scroll-amber">
+      <aside className="parchment-panel w-full sm:w-[340px] p-4 border-l border-amber/20 overflow-auto scroll-amber">
         <button onClick={clearSelection} className="ranch-label hover:text-amber">← Deselect</button>
         <h3 className="ranch-display text-2xl mt-3 leading-tight">
           {s.name} <span className="text-amber">{s.surname}</span>
@@ -188,7 +188,7 @@ export function Inspector() {
     if (!b) return null;
     const def = BUILDINGS[b.kind];
     return (
-      <aside className="parchment-panel w-[340px] p-4 border-l border-amber/20">
+      <aside className="parchment-panel w-full sm:w-[340px] p-4 border-l border-amber/20">
         <button onClick={clearSelection} className="ranch-label hover:text-amber">← Deselect</button>
         <h3 className="ranch-display text-2xl mt-3">{def.name}</h3>
         <p className="ranch-handwritten text-sm">{def.blurb}</p>
