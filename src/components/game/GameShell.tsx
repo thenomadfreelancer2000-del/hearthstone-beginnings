@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Toaster } from "sonner";
 import { TopBar } from "./TopBar";
 import { MapView } from "./MapView";
@@ -18,16 +18,13 @@ export function GameShell() {
   const [dockOpen, setDockOpen] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(false);
 
-  // On mobile, auto-open the inspector when a selection is made
-  const showInspector = isMobile
-    ? selection.kind !== "none" && inspectorOpen !== false
-    : true;
+  // Auto-open inspector when something is selected on mobile.
+  useEffect(() => {
+    if (isMobile && selection.kind !== "none") setInspectorOpen(true);
+  }, [isMobile, selection.kind, selection.kind === "survivor" ? selection.id : selection.kind === "building" ? selection.id : ""]);
 
-  // Auto-open inspector when something is newly selected on mobile
-  if (isMobile && selection.kind !== "none" && !inspectorOpen) {
-    // hack: open on next render via state set
-    setTimeout(() => setInspectorOpen(true), 0);
-  }
+  const showInspector = isMobile ? selection.kind !== "none" && inspectorOpen : true;
+
 
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden">
