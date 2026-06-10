@@ -11,13 +11,13 @@ export function BottomDock() {
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-4 py-2 ranch-label text-[11px] ${tab === t ? "text-amber border-b-2 border-amber" : "text-dust hover:text-parchment"}`}
+            className={`px-3 sm:px-4 py-2 ranch-label text-[11px] ${tab === t ? "text-amber border-b-2 border-amber" : "text-dust hover:text-parchment"}`}
           >
             {t}
           </button>
         ))}
       </div>
-      <div className="p-3 max-h-[200px] overflow-auto scroll-amber">
+      <div className="p-2 sm:p-3 max-h-[45vh] sm:max-h-[200px] overflow-auto scroll-amber">
         {tab === "build" && <BuildMenu />}
         {tab === "people" && <PeopleList />}
         {tab === "chronicle" && <ChronicleList />}
