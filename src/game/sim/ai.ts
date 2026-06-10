@@ -125,16 +125,16 @@ function setTarget(s: Survivor, x: number, y: number) {
 export function decayNeeds(s: Survivor, dt: number) {
   const k = dt / TICKS_PER_DAY;
   // Children consume less, elders more
-  const ageMod = s.stage === "child" ? 0.6 : s.stage === "elder" ? 1.15 : 1;
-  s.needs.food = Math.max(0, s.needs.food - 18 * k * ageMod);
-  s.needs.water = Math.max(0, s.needs.water - 24 * k * ageMod);
-  s.needs.rest = Math.max(0, s.needs.rest - 12 * k);
+  const ageMod = s.stage === "child" ? 0.55 : s.stage === "elder" ? 1.1 : 1;
+  s.needs.food = Math.max(0, s.needs.food - 13 * k * ageMod);
+  s.needs.water = Math.max(0, s.needs.water - 18 * k * ageMod);
+  s.needs.rest = Math.max(0, s.needs.rest - 11 * k);
   s.needs.shelter = Math.max(0, s.needs.shelter - 6 * k);
   s.needs.belonging = Math.max(0, s.needs.belonging - 5 * k);
   s.needs.purpose = Math.max(0, s.needs.purpose - 4 * k);
 
   if (s.needs.food < 10 || s.needs.water < 10) {
-    s.health = Math.max(0, s.health - 8 * k);
+    s.health = Math.max(0, s.health - 6 * k);
   } else if (s.health < 100 && s.needs.food > 50 && s.needs.water > 50 && s.needs.rest > 40) {
     s.health = Math.min(100, s.health + 4 * k);
   }
@@ -282,15 +282,19 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
     }
   }
 
-  if (s.occupation === "builder") {
+  // Construction: builders prioritise it; any idle adult or the leader pitches in.
+  const helpsBuild =
+    s.occupation === "builder" || s.occupation === "idle" || s.occupation === "leader";
+  if (helpsBuild) {
     const b = nearestUnfinished(s, deps.buildings);
     if (b) {
       const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
-      if (dist(s.x, s.y, cx, cy) < 1.3) {
-        const work = (1 + s.skills.build * 0.18) * (dt / 30);
+      if (dist(s.x, s.y, cx, cy) < 1.6) {
+        const isBuilder = s.occupation === "builder";
+        const work = (1 + s.skills.build * 0.22) * (dt / 24) * (isBuilder ? 1 : 0.7);
         b.effortRemaining = Math.max(0, b.effortRemaining - work);
-        const def = (1 - b.effortRemaining / Math.max(1, getBuildEffort(b)));
-        b.builtProgress = Math.max(b.builtProgress, def);
+        const total = b.buildEffortTotal || Math.max(1, b.effortRemaining + work);
+        b.builtProgress = Math.max(b.builtProgress, 1 - b.effortRemaining / total);
         if (b.effortRemaining <= 0) b.builtProgress = 1;
         s.skills.build = Math.min(10, s.skills.build + 0.002 * dt);
         s.state = "working";
@@ -304,13 +308,16 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
   }
 
   {
-    const wants: ResourceKind =
+    // Leaders do not chop wood themselves — they walk, talk, and tend the line.
+    const isLeader = s.occupation === "leader" || s.isFounder;
+    const wants: ResourceKind | null =
+      isLeader ? null :
       s.occupation === "woodcutter" ? "wood" :
       s.occupation === "miner" ? "stone" :
       s.occupation === "farmer" ? "food" :
       s.occupation === "forager" ? "food" : "wood";
-    const node = nearestNode(s, deps.nodes, wants);
-    if (node && node.amount > 0) {
+    const node = wants ? nearestNode(s, deps.nodes, wants) : null;
+    if (wants && node && node.amount > 0) {
       if (dist(s.x, s.y, node.x, node.y) < 1.3) {
         const skill =
           wants === "wood" ? s.skills.cut :
@@ -339,7 +346,7 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
       return;
     }
     const fire = nearestCampfire(s, deps.buildings);
-    if (fire && s.needs.belonging < 70) {
+    if (fire && (s.needs.belonging < 70 || isLeader)) {
       const cx = fire.x + fire.w / 2, cy = fire.y + fire.h / 2;
       if (dist(s.x, s.y, cx, cy) < 1.4) {
         s.needs.belonging = Math.min(100, s.needs.belonging + 0.6);

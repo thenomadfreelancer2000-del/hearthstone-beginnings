@@ -120,6 +120,20 @@ export function advance(eng: Engine, n: number, opts?: { onArrival?: (s: Survivo
       tickSurvivor(s, dt, deps);
     }
 
+    // Construction completion notifications
+    for (const b of eng.buildings) {
+      if (b.builtProgress >= 1 && b.completedYear == null) {
+        b.completedYear = eng.time.year;
+        if (b.kind !== "homestead") {
+          addChronicle(
+            eng, "construction",
+            `New ${b.kind} stands on the ranch`,
+            `The frame held, the dust settled, and another shape on the horizon is theirs.`,
+          );
+        }
+      }
+    }
+
     if (eng.time.tick % TICKS_PER_DAY === 0) {
       dailyTick(eng, opts);
     }
@@ -213,30 +227,8 @@ function dailyTick(eng: Engine, opts?: { onArrival?: (s: Survivor) => Survivor |
     }
   }
 
-  // Newcomer arrival — only after a homestead, scales with morale & pop
-  const homestead = eng.buildings.find(b => b.kind === "homestead");
-  if (homestead) {
-    const baseP = 0.18;
-    const moodMod = eng.stats.morale > 0 ? 0.08 : -0.05;
-    const popMod = -Math.min(0.12, eng.survivors.filter(s => s.health > 0).length * 0.012);
-    const p = baseP + moodMod + popMod;
-    if (chance(rng, p)) {
-      const sx = homestead.x - 2 + Math.floor(rng() * (homestead.w + 4));
-      const sy = homestead.y - 2 + Math.floor(rng() * (homestead.h + 4));
-      const candidate = opts?.onArrival
-        ? opts.onArrival({ x: sx, y: sy } as unknown as Survivor)
-        : null;
-      if (candidate) {
-        eng.survivors.push(candidate);
-        addChronicle(
-          eng, "arrival",
-          `${candidate.name} ${candidate.surname} arrives`,
-          `A ${candidate.background} walked in from the road with the dust still on them. They asked to stay.`,
-          [candidate.id], [candidate.familyId],
-        );
-      }
-    }
-  }
+  // Arrivals are now handled at the store layer via structured ArrivalEvents.
+  void opts;
 
   // First night chronicle if founder alone
   if (eng.time.tick === TICKS_PER_DAY && eng.survivors.length === 1) {

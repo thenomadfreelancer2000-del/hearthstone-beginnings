@@ -192,8 +192,26 @@ export interface Building {
   w: number; h: number;
   builtProgress: number;
   effortRemaining: number;
+  buildEffortTotal: number;
+  completedYear?: number | null;
   occupantIds: ID[];
   stored: Partial<Record<ResourceKind, number>>;
+}
+
+// ── Arrival events (transient, not persisted) ───────────────────
+export type ArrivalKind =
+  | "lone" | "couple" | "parent-child"
+  | "small-family" | "travelers" | "injured" | "refugees";
+
+export interface ArrivalEvent {
+  id: ID;
+  kind: ArrivalKind;
+  title: string;
+  blurb: string;
+  survivors: Survivor[];
+  family: Family;
+  gifts: Partial<Record<ResourceKind, number>>;
+  arrivedTick: number;
 }
 
 // ── Chronicle ────────────────────────────────────────────────────
