@@ -140,6 +140,8 @@ export const useGame = create<GameState>((set, get) => ({
       w: def.size.w, h: def.size.h,
       builtProgress: def.buildEffort === 0 ? 1 : 0,
       effortRemaining: def.buildEffort,
+      buildEffortTotal: def.buildEffort,
+      completedYear: def.buildEffort === 0 ? st.time.year : null,
       occupantIds: [],
       stored: {},
     };
