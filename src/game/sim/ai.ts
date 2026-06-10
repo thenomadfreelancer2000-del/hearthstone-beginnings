@@ -125,16 +125,16 @@ function setTarget(s: Survivor, x: number, y: number) {
 export function decayNeeds(s: Survivor, dt: number) {
   const k = dt / TICKS_PER_DAY;
   // Children consume less, elders more
-  const ageMod = s.stage === "child" ? 0.6 : s.stage === "elder" ? 1.15 : 1;
-  s.needs.food = Math.max(0, s.needs.food - 18 * k * ageMod);
-  s.needs.water = Math.max(0, s.needs.water - 24 * k * ageMod);
-  s.needs.rest = Math.max(0, s.needs.rest - 12 * k);
+  const ageMod = s.stage === "child" ? 0.55 : s.stage === "elder" ? 1.1 : 1;
+  s.needs.food = Math.max(0, s.needs.food - 13 * k * ageMod);
+  s.needs.water = Math.max(0, s.needs.water - 18 * k * ageMod);
+  s.needs.rest = Math.max(0, s.needs.rest - 11 * k);
   s.needs.shelter = Math.max(0, s.needs.shelter - 6 * k);
   s.needs.belonging = Math.max(0, s.needs.belonging - 5 * k);
   s.needs.purpose = Math.max(0, s.needs.purpose - 4 * k);
 
   if (s.needs.food < 10 || s.needs.water < 10) {
-    s.health = Math.max(0, s.health - 8 * k);
+    s.health = Math.max(0, s.health - 6 * k);
   } else if (s.health < 100 && s.needs.food > 50 && s.needs.water > 50 && s.needs.rest > 40) {
     s.health = Math.min(100, s.health + 4 * k);
   }
