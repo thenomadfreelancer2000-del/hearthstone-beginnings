@@ -188,22 +188,59 @@ export function Inspector() {
     const b = buildings.find((x) => x.id === sel.id);
     if (!b) return null;
     const def = BUILDINGS[b.kind];
+    const builder = b.assignedBuilderId ? survivors.find(s => s.id === b.assignedBuilderId) : null;
+    const openAssign = () => useGame.setState({ pendingBuildAssignment: b.id });
     return (
-      <aside className="parchment-panel w-full sm:w-[340px] p-4 border-l border-amber/20">
+      <aside className="parchment-panel w-full sm:w-[340px] p-4 border-l border-amber/20 overflow-auto scroll-amber">
         <button onClick={clearSelection} className="ranch-label hover:text-amber">← Deselect</button>
         <h3 className="ranch-display text-2xl mt-3">{def.name}</h3>
         <p className="ranch-handwritten text-sm">{def.blurb}</p>
         <div className="divider-amber my-3" />
-        <p className="ranch-data text-xs">
-          {b.builtProgress < 1 ? (
-            <>Under construction · {Math.round(b.builtProgress * 100)}% · Effort left {Math.ceil(b.effortRemaining)}</>
-          ) : (
-            <>Complete</>
-          )}
-        </p>
-        {def.housingCapacity > 0 && <p className="ranch-data text-xs mt-1">Houses up to {def.housingCapacity}</p>}
-        {def.storageCapacity > 0 && <p className="ranch-data text-xs mt-1">Storage capacity {def.storageCapacity}</p>}
-        {def.produces && <p className="ranch-data text-xs mt-1">Produces {def.produces.perDay} {def.produces.resource}/day</p>}
+        {b.builtProgress < 1 ? (
+          <>
+            <div className="flex justify-between ranch-label text-[10px] text-amber mb-1">
+              <span>Construction</span>
+              <span>{Math.round(b.builtProgress * 100)}%</span>
+            </div>
+            <div className="h-1.5 bg-coal border border-amber/20 mb-2">
+              <div className="h-full bg-amber" style={{ width: `${Math.round(b.builtProgress * 100)}%` }} />
+            </div>
+            <p className="ranch-data text-[10px] text-dust mb-3">
+              {Math.ceil(b.effortRemaining)} / {Math.max(1, b.buildEffortTotal)} effort remaining
+            </p>
+            <div className="ranch-label text-[10px] text-amber mb-1">Assigned builder</div>
+            {builder ? (
+              <button
+                onClick={() => selectSurvivor(builder.id)}
+                className="w-full text-left ranch-body text-parchment text-sm hover:text-amber mb-2"
+              >
+                {builder.isFounder && "★ "}{builder.name} {builder.surname}
+                <span className="ranch-data text-[10px] text-dust ml-2">
+                  Build {Math.round(builder.skills.build ?? 1)}
+                </span>
+              </button>
+            ) : (
+              <p className="ranch-handwritten text-xs text-dust-light mb-2">
+                No one assigned — anyone idle will pitch in.
+              </p>
+            )}
+            <button onClick={openAssign} className="btn-ranch btn-ranch-ghost w-full text-[10px]">
+              {builder ? "Reassign builder" : "Assign builder"}
+            </button>
+          </>
+        ) : (
+          <p className="ranch-data text-xs text-success">Complete · year {b.completedYear ?? "—"}</p>
+        )}
+        <div className="divider-amber my-3" />
+        <div className="ranch-data text-[10px] text-dust space-y-0.5">
+          <div>
+            <span className="ranch-label text-amber mr-1">Built from:</span>
+            {Object.entries(def.cost).map(([r, a]) => `${a} ${r}`).join(" · ") || "free"}
+          </div>
+          {def.housingCapacity > 0 && <div>Houses up to {def.housingCapacity}</div>}
+          {def.storageCapacity > 0 && <div>Storage capacity {def.storageCapacity}</div>}
+          {def.produces && <div>Produces {def.produces.perDay} {def.produces.resource}/day</div>}
+        </div>
       </aside>
     );
   }
