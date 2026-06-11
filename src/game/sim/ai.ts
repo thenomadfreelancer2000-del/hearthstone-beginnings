@@ -197,8 +197,8 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
     s.action = s.stage === "child" ? "Playing in the dirt." : "Learning the work.";
     s.state = "idle";
     // skill drift (slow learning)
-    s.skills.forage = Math.min(10, s.skills.forage + 0.0004 * dt);
-    s.skills.build = Math.min(10, s.skills.build + 0.0003 * dt);
+    s.skills.forage = Math.min(30, s.skills.forage + 0.0004 * dt);
+    s.skills.build = Math.min(30, s.skills.build + 0.0003 * dt);
     return;
   }
 
@@ -340,9 +340,9 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
           resource: wants,
           amount: (s.carrying?.amount ?? 0) + yieldAmt,
         };
-        if (wants === "wood") s.skills.cut = Math.min(10, s.skills.cut + 0.0015 * dt);
-        else if (wants === "stone") s.skills.mine = Math.min(10, s.skills.mine + 0.0015 * dt);
-        else s.skills.forage = Math.min(10, s.skills.forage + 0.0015 * dt);
+        if (wants === "wood") s.skills.cut = Math.min(30, s.skills.cut + 0.0015 * dt);
+        else if (wants === "stone") s.skills.mine = Math.min(30, s.skills.mine + 0.0015 * dt);
+        else s.skills.forage = Math.min(30, s.skills.forage + 0.0015 * dt);
         s.state = "working";
         s.action = `Working at ${node.kind}.`;
         if ((s.carrying?.amount ?? 0) >= CARRY_CAP) {
