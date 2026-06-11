@@ -284,7 +284,7 @@ export const useGame = create<GameState>((set, get) => ({
       resources: save.resources,
       survivors: save.survivors.map(s => ({
         ...s,
-        skills: { social: 1, ...s.skills },
+        skills: { ...{ social: 1 }, ...s.skills, social: s.skills?.social ?? 1 },
       })),
       relationships: save.relationships,
       families: save.families,
