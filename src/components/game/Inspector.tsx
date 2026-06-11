@@ -118,6 +118,18 @@ export function Inspector() {
         <h4 className="ranch-label mt-5 mb-2">Values</h4>
         <p className="ranch-body text-sm">{s.values.join(" · ")}</p>
 
+        <h4 className="ranch-label mt-5 mb-2">Skills</h4>
+        <div className="grid grid-cols-2 gap-x-3 gap-y-1 ranch-data text-[10px]">
+          <SkillRow label="Building" v={s.skills.build} />
+          <SkillRow label="Farming" v={s.skills.farm} />
+          <SkillRow label="Gathering" v={s.skills.forage} />
+          <SkillRow label="Cutting" v={s.skills.cut} />
+          <SkillRow label="Mining" v={s.skills.mine} />
+          <SkillRow label="Medicine" v={s.skills.medic} />
+          <SkillRow label="Leadership" v={s.skills.lead} />
+          <SkillRow label="Social" v={s.skills.social ?? 1} />
+        </div>
+
         {s.achievements && s.achievements.length > 0 && (
           <>
             <h4 className="ranch-label mt-5 mb-2">Legacy</h4>
