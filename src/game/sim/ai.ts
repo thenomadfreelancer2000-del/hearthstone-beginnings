@@ -282,23 +282,33 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
     }
   }
 
-  // Construction: builders prioritise it; any idle adult or the leader pitches in.
+  // Construction priority:
+  //   1. If this survivor is the assigned builder of any unfinished building → go there.
+  //   2. Otherwise, builders / idle / leader / hauler / forager pitch in on the
+  //      nearest unfinished site so construction never stalls when there's free labor.
+  const assigned = deps.buildings.find(b => b.builtProgress < 1 && b.assignedBuilderId === s.id);
   const helpsBuild =
-    s.occupation === "builder" || s.occupation === "idle" || s.occupation === "leader";
+    !!assigned ||
+    s.occupation === "builder" || s.occupation === "idle" ||
+    s.occupation === "leader" || s.occupation === "hauler" ||
+    s.occupation === "forager" || s.isFounder;
   if (helpsBuild) {
-    const b = nearestUnfinished(s, deps.buildings);
+    const b = assigned ?? nearestUnfinished(s, deps.buildings);
     if (b) {
       const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
       if (dist(s.x, s.y, cx, cy) < 1.6) {
+        const isAssigned = assigned?.id === b.id;
         const isBuilder = s.occupation === "builder";
-        const work = (1 + s.skills.build * 0.22) * (dt / 24) * (isBuilder ? 1 : 0.7);
+        const skillMult = 1 + (s.skills.build ?? 1) * 0.18; // 0..~6.4x at skill 30
+        const roleMult = isAssigned ? 1.25 : isBuilder ? 1.0 : 0.7;
+        const work = skillMult * roleMult * (dt / 24);
         b.effortRemaining = Math.max(0, b.effortRemaining - work);
         const total = b.buildEffortTotal || Math.max(1, b.effortRemaining + work);
         b.builtProgress = Math.max(b.builtProgress, 1 - b.effortRemaining / total);
         if (b.effortRemaining <= 0) b.builtProgress = 1;
-        s.skills.build = Math.min(10, s.skills.build + 0.002 * dt);
+        s.skills.build = Math.min(30, (s.skills.build ?? 1) + 0.003 * dt);
         s.state = "working";
-        s.action = `Building the ${b.kind}.`;
+        s.action = isAssigned ? `Working their site — the ${b.kind}.` : `Lending hands at the ${b.kind}.`;
       } else {
         setTarget(s, cx, cy);
         s.action = `Walking to the ${b.kind} build site.`;
