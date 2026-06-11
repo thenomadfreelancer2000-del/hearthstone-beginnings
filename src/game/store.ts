@@ -114,6 +114,7 @@ export const useGame = create<GameState>((set, get) => ({
   selection: { kind: "none" },
   buildPlacement: null,
   pendingArrival: null,
+  pendingBuildAssignment: null,
   reputation: 0,
   lastChronicleId: null,
 
@@ -153,15 +154,17 @@ export const useGame = create<GameState>((set, get) => ({
     for (const [r, amt] of Object.entries(def.cost)) {
       (newResources as any)[r] -= amt ?? 0;
     }
+    const isInstant = def.buildEffort === 0;
     const b: Building = {
       id: nanoid(10),
       kind: bp.kind,
       x, y,
       w: def.size.w, h: def.size.h,
-      builtProgress: def.buildEffort === 0 ? 1 : 0,
+      builtProgress: isInstant ? 1 : 0,
       effortRemaining: def.buildEffort,
       buildEffortTotal: def.buildEffort,
-      completedYear: def.buildEffort === 0 ? st.time.year : null,
+      completedYear: isInstant ? st.time.year : null,
+      assignedBuilderId: null,
       occupantIds: [],
       stored: {},
     };
@@ -169,6 +172,8 @@ export const useGame = create<GameState>((set, get) => ({
       buildings: [...st.buildings, b],
       resources: newResources,
       buildPlacement: null,
+      // Open assignment modal only for buildings that actually need labor.
+      pendingBuildAssignment: isInstant ? null : b.id,
     });
     return true;
   },
