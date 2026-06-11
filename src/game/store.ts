@@ -275,9 +275,17 @@ export const useGame = create<GameState>((set, get) => ({
       speed: save.speed,
       tiles: save.tiles, mapW: save.mapW, mapH: save.mapH,
       nodes: save.resourceNodes,
-      buildings: save.buildings,
+      buildings: save.buildings.map(b => ({
+        assignedBuilderId: null,
+        ...b,
+        // Repair legacy saves missing buildEffortTotal so progress never stalls
+        buildEffortTotal: b.buildEffortTotal || Math.max(1, b.effortRemaining + (b.builtProgress > 0 ? 1 : 0)),
+      })),
       resources: save.resources,
-      survivors: save.survivors,
+      survivors: save.survivors.map(s => ({
+        ...s,
+        skills: { social: 1, ...s.skills },
+      })),
       relationships: save.relationships,
       families: save.families,
       founderId: save.founderId,
