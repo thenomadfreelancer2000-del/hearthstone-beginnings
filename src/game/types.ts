@@ -64,6 +64,7 @@ export interface Needs {
 export interface Skills {
   forage: number; cut: number; mine: number;
   build: number; farm: number; medic: number; lead: number;
+  social: number;
 }
 
 export interface Memory {
@@ -194,6 +195,7 @@ export interface Building {
   effortRemaining: number;
   buildEffortTotal: number;
   completedYear?: number | null;
+  assignedBuilderId?: ID | null;
   occupantIds: ID[];
   stored: Partial<Record<ResourceKind, number>>;
 }

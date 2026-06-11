@@ -54,6 +54,8 @@ interface GameState {
 
   // Arrival event (transient — pauses the simulation while open)
   pendingArrival: ArrivalEvent | null;
+  // Building awaiting builder assignment (transient)
+  pendingBuildAssignment: ID | null;
   reputation: number; // -100..100, affects future arrivals
   lastChronicleId: ID | null;
 
@@ -70,6 +72,9 @@ interface GameState {
   cancelBuild: () => void;
   placeBuilding: (x: number, y: number) => boolean;
   setOccupation: (id: string, occ: Survivor["occupation"]) => void;
+  assignBuilder: (buildingId: ID, survivorId: ID | null) => void;
+  autoAssignBuilder: (buildingId: ID) => void;
+  closeBuildAssignment: () => void;
   newGame: (ranchName: string, founderInput: FounderInput) => void;
   resumeFromSave: () => boolean;
   save: () => boolean;
@@ -109,6 +114,7 @@ export const useGame = create<GameState>((set, get) => ({
   selection: { kind: "none" },
   buildPlacement: null,
   pendingArrival: null,
+  pendingBuildAssignment: null,
   reputation: 0,
   lastChronicleId: null,
 
@@ -148,15 +154,17 @@ export const useGame = create<GameState>((set, get) => ({
     for (const [r, amt] of Object.entries(def.cost)) {
       (newResources as any)[r] -= amt ?? 0;
     }
+    const isInstant = def.buildEffort === 0;
     const b: Building = {
       id: nanoid(10),
       kind: bp.kind,
       x, y,
       w: def.size.w, h: def.size.h,
-      builtProgress: def.buildEffort === 0 ? 1 : 0,
+      builtProgress: isInstant ? 1 : 0,
       effortRemaining: def.buildEffort,
       buildEffortTotal: def.buildEffort,
-      completedYear: def.buildEffort === 0 ? st.time.year : null,
+      completedYear: isInstant ? st.time.year : null,
+      assignedBuilderId: null,
       occupantIds: [],
       stored: {},
     };
@@ -164,6 +172,8 @@ export const useGame = create<GameState>((set, get) => ({
       buildings: [...st.buildings, b],
       resources: newResources,
       buildPlacement: null,
+      // Open assignment modal only for buildings that actually need labor.
+      pendingBuildAssignment: isInstant ? null : b.id,
     });
     return true;
   },
@@ -174,6 +184,45 @@ export const useGame = create<GameState>((set, get) => ({
       survivors: st.survivors.map(s => s.id === id ? { ...s, occupation: occ } : s),
     });
   },
+
+  assignBuilder: (buildingId, survivorId) => {
+    const st = get();
+    set({
+      buildings: st.buildings.map(b =>
+        b.id === buildingId ? { ...b, assignedBuilderId: survivorId } : b
+      ),
+      pendingBuildAssignment: st.pendingBuildAssignment === buildingId ? null : st.pendingBuildAssignment,
+    });
+  },
+
+  autoAssignBuilder: (buildingId) => {
+    const st = get();
+    const b = st.buildings.find(x => x.id === buildingId);
+    if (!b) return;
+    const candidates = st.survivors.filter(s =>
+      s.health > 0 && (s.stage === "adult" || s.stage === "youth" || s.stage === "elder" || s.isFounder)
+    );
+    // Pick highest build skill; ties broken by closer to site, then non-leader preference.
+    candidates.sort((a, b2) => {
+      const sa = a.skills.build ?? 1;
+      const sb = b2.skills.build ?? 1;
+      if (sa !== sb) return sb - sa;
+      const da = Math.hypot(a.x - (b.x + b.w/2), a.y - (b.y + b.h/2));
+      const db = Math.hypot(b2.x - (b.x + b.w/2), b2.y - (b.y + b.h/2));
+      return da - db;
+    });
+    const pick = candidates[0];
+    set({
+      buildings: st.buildings.map(x =>
+        x.id === buildingId ? { ...x, assignedBuilderId: pick?.id ?? null } : x
+      ),
+      pendingBuildAssignment: st.pendingBuildAssignment === buildingId ? null : st.pendingBuildAssignment,
+    });
+  },
+
+  closeBuildAssignment: () => set({ pendingBuildAssignment: null }),
+
+
 
   newGame: (ranchName, founderInput) => {
     const seed = Math.floor(Math.random() * 0xffffffff);
@@ -226,9 +275,17 @@ export const useGame = create<GameState>((set, get) => ({
       speed: save.speed,
       tiles: save.tiles, mapW: save.mapW, mapH: save.mapH,
       nodes: save.resourceNodes,
-      buildings: save.buildings,
+      buildings: save.buildings.map(b => ({
+        assignedBuilderId: null,
+        ...b,
+        // Repair legacy saves missing buildEffortTotal so progress never stalls
+        buildEffortTotal: b.buildEffortTotal || Math.max(1, b.effortRemaining + (b.builtProgress > 0 ? 1 : 0)),
+      })),
       resources: save.resources,
-      survivors: save.survivors,
+      survivors: save.survivors.map(s => ({
+        ...s,
+        skills: { ...{ social: 1 }, ...s.skills, social: s.skills?.social ?? 1 },
+      })),
       relationships: save.relationships,
       families: save.families,
       founderId: save.founderId,
@@ -330,7 +387,7 @@ export const useGame = create<GameState>((set, get) => ({
         const reputationMod = st.reputation * 0.002;
         const popMod = -Math.min(0.35, alive * 0.025);
         const moodMod = eng.stats.morale > 0 ? 0.05 : -0.05;
-        const p = Math.max(0.05, 0.35 + reputationMod + popMod + moodMod);
+        const p = Math.max(0.05, 0.315 + reputationMod + popMod + moodMod);
         if (h && Math.random() < p) {
           const around = { x: h.x + h.w / 2, y: h.y + h.h / 2 };
           pendingArrival = generateArrival(rng, newTick, eng.time.year, around);

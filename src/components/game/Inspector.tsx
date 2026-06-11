@@ -1,5 +1,6 @@
 import { useGame } from "@/game/store";
 import { BUILDINGS } from "@/game/data/content";
+import { opinionLabel, opinionScore } from "@/game/sim/ai";
 import type { Occupation, Relationship, Survivor } from "@/game/types";
 
 const OCCUPATIONS: Occupation[] = [
@@ -117,6 +118,18 @@ export function Inspector() {
         <h4 className="ranch-label mt-5 mb-2">Values</h4>
         <p className="ranch-body text-sm">{s.values.join(" · ")}</p>
 
+        <h4 className="ranch-label mt-5 mb-2">Skills</h4>
+        <div className="grid grid-cols-2 gap-x-3 gap-y-1 ranch-data text-[10px]">
+          <SkillRow label="Building" v={s.skills.build} />
+          <SkillRow label="Farming" v={s.skills.farm} />
+          <SkillRow label="Gathering" v={s.skills.forage} />
+          <SkillRow label="Cutting" v={s.skills.cut} />
+          <SkillRow label="Mining" v={s.skills.mine} />
+          <SkillRow label="Medicine" v={s.skills.medic} />
+          <SkillRow label="Leadership" v={s.skills.lead} />
+          <SkillRow label="Social" v={s.skills.social ?? 1} />
+        </div>
+
         {s.achievements && s.achievements.length > 0 && (
           <>
             <h4 className="ranch-label mt-5 mb-2">Legacy</h4>
@@ -147,7 +160,10 @@ export function Inspector() {
           <>
             <h4 className="ranch-label mt-5 mb-2">Relationships</h4>
             <div className="space-y-1.5">
-              {rels.slice(0, 10).map((r) => {
+              {[...rels]
+                .sort((a, b) => Math.abs(opinionScore(b)) - Math.abs(opinionScore(a)))
+                .slice(0, 24)
+                .map((r) => {
                 const otherId = r.a === s.id ? r.b : r.a;
                 const other = survivors.find(o => o.id === otherId);
                 if (!other) return null;
@@ -187,22 +203,59 @@ export function Inspector() {
     const b = buildings.find((x) => x.id === sel.id);
     if (!b) return null;
     const def = BUILDINGS[b.kind];
+    const builder = b.assignedBuilderId ? survivors.find(s => s.id === b.assignedBuilderId) : null;
+    const openAssign = () => useGame.setState({ pendingBuildAssignment: b.id });
     return (
-      <aside className="parchment-panel w-full sm:w-[340px] p-4 border-l border-amber/20">
+      <aside className="parchment-panel w-full sm:w-[340px] p-4 border-l border-amber/20 overflow-auto scroll-amber">
         <button onClick={clearSelection} className="ranch-label hover:text-amber">← Deselect</button>
         <h3 className="ranch-display text-2xl mt-3">{def.name}</h3>
         <p className="ranch-handwritten text-sm">{def.blurb}</p>
         <div className="divider-amber my-3" />
-        <p className="ranch-data text-xs">
-          {b.builtProgress < 1 ? (
-            <>Under construction · {Math.round(b.builtProgress * 100)}% · Effort left {Math.ceil(b.effortRemaining)}</>
-          ) : (
-            <>Complete</>
-          )}
-        </p>
-        {def.housingCapacity > 0 && <p className="ranch-data text-xs mt-1">Houses up to {def.housingCapacity}</p>}
-        {def.storageCapacity > 0 && <p className="ranch-data text-xs mt-1">Storage capacity {def.storageCapacity}</p>}
-        {def.produces && <p className="ranch-data text-xs mt-1">Produces {def.produces.perDay} {def.produces.resource}/day</p>}
+        {b.builtProgress < 1 ? (
+          <>
+            <div className="flex justify-between ranch-label text-[10px] text-amber mb-1">
+              <span>Construction</span>
+              <span>{Math.round(b.builtProgress * 100)}%</span>
+            </div>
+            <div className="h-1.5 bg-coal border border-amber/20 mb-2">
+              <div className="h-full bg-amber" style={{ width: `${Math.round(b.builtProgress * 100)}%` }} />
+            </div>
+            <p className="ranch-data text-[10px] text-dust mb-3">
+              {Math.ceil(b.effortRemaining)} / {Math.max(1, b.buildEffortTotal)} effort remaining
+            </p>
+            <div className="ranch-label text-[10px] text-amber mb-1">Assigned builder</div>
+            {builder ? (
+              <button
+                onClick={() => selectSurvivor(builder.id)}
+                className="w-full text-left ranch-body text-parchment text-sm hover:text-amber mb-2"
+              >
+                {builder.isFounder && "★ "}{builder.name} {builder.surname}
+                <span className="ranch-data text-[10px] text-dust ml-2">
+                  Build {Math.round(builder.skills.build ?? 1)}
+                </span>
+              </button>
+            ) : (
+              <p className="ranch-handwritten text-xs text-dust-light mb-2">
+                No one assigned — anyone idle will pitch in.
+              </p>
+            )}
+            <button onClick={openAssign} className="btn-ranch btn-ranch-ghost w-full text-[10px]">
+              {builder ? "Reassign builder" : "Assign builder"}
+            </button>
+          </>
+        ) : (
+          <p className="ranch-data text-xs text-success">Complete · year {b.completedYear ?? "—"}</p>
+        )}
+        <div className="divider-amber my-3" />
+        <div className="ranch-data text-[10px] text-dust space-y-0.5">
+          <div>
+            <span className="ranch-label text-amber mr-1">Built from:</span>
+            {Object.entries(def.cost).map(([r, a]) => `${a} ${r}`).join(" · ") || "free"}
+          </div>
+          {def.housingCapacity > 0 && <div>Houses up to {def.housingCapacity}</div>}
+          {def.storageCapacity > 0 && <div>Storage capacity {def.storageCapacity}</div>}
+          {def.produces && <div>Produces {def.produces.perDay} {def.produces.resource}/day</div>}
+        </div>
       </aside>
     );
   }
@@ -223,26 +276,45 @@ function KinRow({ label, who, onClick }: { label: string; who: Survivor; onClick
 }
 
 function RelRow({ r, other, onClick }: { r: Relationship; other: Survivor; onClick: () => void }) {
-  const tagColor = r.tag === "spouse" ? "text-family"
-    : r.tag === "kin" ? "text-amber-light"
-    : r.tag === "close-friend" ? "text-success"
-    : r.tag === "friend" ? "text-amber"
-    : r.tag === "rival" ? "text-warning"
-    : r.tag === "enemy" ? "text-danger"
-    : "text-dust";
+  const score = opinionScore(r);
+  const label = opinionLabel(score, r.tag);
+  const labelColor =
+    label === "Spouse" ? "text-family" :
+    label === "Kin" ? "text-amber-light" :
+    label === "Best Friend" ? "text-success" :
+    label === "Friend" ? "text-amber" :
+    label === "Acquaintance" ? "text-dust-light" :
+    label === "Neutral" ? "text-dust" :
+    label === "Dislikes" ? "text-warning" :
+    label === "Rival" ? "text-warning" :
+    "text-danger";
+  const scoreColor = score >= 40 ? "text-success" : score >= 10 ? "text-amber" : score > -10 ? "text-dust" : "text-danger";
   return (
     <button onClick={onClick} className="w-full text-left hover:bg-amber/5 px-1 py-0.5">
-      <div className="flex justify-between text-sm">
+      <div className="flex justify-between items-baseline text-sm">
         <span className="ranch-body text-parchment">{other.name} {other.surname}</span>
-        <span className={`ranch-label text-[10px] ${tagColor}`}>{r.tag}</span>
+        <span className={`ranch-label text-[10px] ${labelColor}`}>{label}</span>
       </div>
-      <div className="flex gap-2 ranch-data text-[9px] text-dust mt-0.5">
-        <span>aff {Math.round(r.affection)}</span>
-        <span>trust {Math.round(r.trust)}</span>
-        <span>resp {Math.round(r.respect)}</span>
+      <div className="flex justify-between gap-2 ranch-data text-[9px] text-dust mt-0.5">
+        <span>
+          <span className={scoreColor}>{score > 0 ? "+" : ""}{Math.round(score)}</span>
+          <span className="ml-2">trust {Math.round(r.trust)}</span>
+          <span className="ml-2">resp {Math.round(r.respect)}</span>
+        </span>
         {r.attraction > 10 && <span className="text-rust-light">♥ {Math.round(r.attraction)}</span>}
       </div>
     </button>
+  );
+}
+
+function SkillRow({ label, v }: { label: string; v: number }) {
+  const rounded = Math.round(v ?? 1);
+  const tier = rounded >= 20 ? "text-success" : rounded >= 10 ? "text-amber" : "text-dust-light";
+  return (
+    <div className="flex justify-between">
+      <span className="ranch-label text-dust">{label}</span>
+      <span className={tier}>{rounded}</span>
+    </div>
   );
 }
 
