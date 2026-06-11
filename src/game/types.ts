@@ -195,6 +195,7 @@ export interface Building {
   effortRemaining: number;
   buildEffortTotal: number;
   completedYear?: number | null;
+  assignedBuilderId?: ID | null;
   occupantIds: ID[];
   stored: Partial<Record<ResourceKind, number>>;
 }
