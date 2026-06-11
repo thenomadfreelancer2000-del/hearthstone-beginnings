@@ -54,6 +54,8 @@ interface GameState {
 
   // Arrival event (transient — pauses the simulation while open)
   pendingArrival: ArrivalEvent | null;
+  // Building awaiting builder assignment (transient)
+  pendingBuildAssignment: ID | null;
   reputation: number; // -100..100, affects future arrivals
   lastChronicleId: ID | null;
 
@@ -70,6 +72,9 @@ interface GameState {
   cancelBuild: () => void;
   placeBuilding: (x: number, y: number) => boolean;
   setOccupation: (id: string, occ: Survivor["occupation"]) => void;
+  assignBuilder: (buildingId: ID, survivorId: ID | null) => void;
+  autoAssignBuilder: (buildingId: ID) => void;
+  closeBuildAssignment: () => void;
   newGame: (ranchName: string, founderInput: FounderInput) => void;
   resumeFromSave: () => boolean;
   save: () => boolean;
