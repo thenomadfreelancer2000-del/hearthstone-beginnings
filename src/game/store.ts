@@ -379,7 +379,7 @@ export const useGame = create<GameState>((set, get) => ({
         const reputationMod = st.reputation * 0.002;
         const popMod = -Math.min(0.35, alive * 0.025);
         const moodMod = eng.stats.morale > 0 ? 0.05 : -0.05;
-        const p = Math.max(0.05, 0.35 + reputationMod + popMod + moodMod);
+        const p = Math.max(0.05, 0.315 + reputationMod + popMod + moodMod);
         if (h && Math.random() < p) {
           const around = { x: h.x + h.w / 2, y: h.y + h.h / 2 };
           pendingArrival = generateArrival(rng, newTick, eng.time.year, around);
