@@ -160,7 +160,10 @@ export function Inspector() {
           <>
             <h4 className="ranch-label mt-5 mb-2">Relationships</h4>
             <div className="space-y-1.5">
-              {rels.slice(0, 10).map((r) => {
+              {[...rels]
+                .sort((a, b) => Math.abs(opinionScore(b)) - Math.abs(opinionScore(a)))
+                .slice(0, 24)
+                .map((r) => {
                 const otherId = r.a === s.id ? r.b : r.a;
                 const other = survivors.find(o => o.id === otherId);
                 if (!other) return null;
