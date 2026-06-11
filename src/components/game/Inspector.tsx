@@ -273,26 +273,45 @@ function KinRow({ label, who, onClick }: { label: string; who: Survivor; onClick
 }
 
 function RelRow({ r, other, onClick }: { r: Relationship; other: Survivor; onClick: () => void }) {
-  const tagColor = r.tag === "spouse" ? "text-family"
-    : r.tag === "kin" ? "text-amber-light"
-    : r.tag === "close-friend" ? "text-success"
-    : r.tag === "friend" ? "text-amber"
-    : r.tag === "rival" ? "text-warning"
-    : r.tag === "enemy" ? "text-danger"
-    : "text-dust";
+  const score = opinionScore(r);
+  const label = opinionLabel(score, r.tag);
+  const labelColor =
+    label === "Spouse" ? "text-family" :
+    label === "Kin" ? "text-amber-light" :
+    label === "Best Friend" ? "text-success" :
+    label === "Friend" ? "text-amber" :
+    label === "Acquaintance" ? "text-dust-light" :
+    label === "Neutral" ? "text-dust" :
+    label === "Dislikes" ? "text-warning" :
+    label === "Rival" ? "text-warning" :
+    "text-danger";
+  const scoreColor = score >= 40 ? "text-success" : score >= 10 ? "text-amber" : score > -10 ? "text-dust" : "text-danger";
   return (
     <button onClick={onClick} className="w-full text-left hover:bg-amber/5 px-1 py-0.5">
-      <div className="flex justify-between text-sm">
+      <div className="flex justify-between items-baseline text-sm">
         <span className="ranch-body text-parchment">{other.name} {other.surname}</span>
-        <span className={`ranch-label text-[10px] ${tagColor}`}>{r.tag}</span>
+        <span className={`ranch-label text-[10px] ${labelColor}`}>{label}</span>
       </div>
-      <div className="flex gap-2 ranch-data text-[9px] text-dust mt-0.5">
-        <span>aff {Math.round(r.affection)}</span>
-        <span>trust {Math.round(r.trust)}</span>
-        <span>resp {Math.round(r.respect)}</span>
+      <div className="flex justify-between gap-2 ranch-data text-[9px] text-dust mt-0.5">
+        <span>
+          <span className={scoreColor}>{score > 0 ? "+" : ""}{Math.round(score)}</span>
+          <span className="ml-2">trust {Math.round(r.trust)}</span>
+          <span className="ml-2">resp {Math.round(r.respect)}</span>
+        </span>
         {r.attraction > 10 && <span className="text-rust-light">♥ {Math.round(r.attraction)}</span>}
       </div>
     </button>
+  );
+}
+
+function SkillRow({ label, v }: { label: string; v: number }) {
+  const rounded = Math.round(v ?? 1);
+  const tier = rounded >= 20 ? "text-success" : rounded >= 10 ? "text-amber" : "text-dust-light";
+  return (
+    <div className="flex justify-between">
+      <span className="ranch-label text-dust">{label}</span>
+      <span className={tier}>{rounded}</span>
+    </div>
   );
 }
 
