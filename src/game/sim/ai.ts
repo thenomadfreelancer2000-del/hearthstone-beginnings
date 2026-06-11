@@ -361,6 +361,7 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
       if (dist(s.x, s.y, cx, cy) < 1.4) {
         s.needs.belonging = Math.min(100, s.needs.belonging + 0.6);
         s.needs.purpose = Math.min(100, s.needs.purpose + 0.2);
+        s.skills.social = Math.min(30, (s.skills.social ?? 1) + 0.0015 * dt);
         s.state = "socializing";
         s.action = "Sitting by the fire.";
         for (const o of deps.survivors) {
