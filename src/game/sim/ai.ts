@@ -482,3 +482,23 @@ export function markAsKin(rels: Relationship[], a: string, b: string) {
   r.affection = Math.max(r.affection, 50);
   r.trust = Math.max(r.trust, 40);
 }
+
+// ── Opinion summary ──────────────────────────────────────────────
+// Combine affection + friendship + trust into a single -100..+100 score
+// and label it for the UI per the design spec.
+export function opinionScore(r: import("../types").Relationship): number {
+  const raw = r.affection * 0.55 + r.friendship * 0.25 + r.trust * 0.2 - r.rivalry * 0.3;
+  return Math.max(-100, Math.min(100, raw));
+}
+
+export function opinionLabel(score: number, tag?: import("../types").RelationshipTag): string {
+  if (tag === "spouse") return "Spouse";
+  if (tag === "kin") return "Kin";
+  if (score >= 75) return "Best Friend";
+  if (score >= 40) return "Friend";
+  if (score >= 10) return "Acquaintance";
+  if (score > -10) return "Neutral";
+  if (score > -40) return "Dislikes";
+  if (score > -75) return "Rival";
+  return "Enemy";
+}
