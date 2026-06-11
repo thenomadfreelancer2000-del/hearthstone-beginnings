@@ -185,6 +185,45 @@ export const useGame = create<GameState>((set, get) => ({
     });
   },
 
+  assignBuilder: (buildingId, survivorId) => {
+    const st = get();
+    set({
+      buildings: st.buildings.map(b =>
+        b.id === buildingId ? { ...b, assignedBuilderId: survivorId } : b
+      ),
+      pendingBuildAssignment: st.pendingBuildAssignment === buildingId ? null : st.pendingBuildAssignment,
+    });
+  },
+
+  autoAssignBuilder: (buildingId) => {
+    const st = get();
+    const b = st.buildings.find(x => x.id === buildingId);
+    if (!b) return;
+    const candidates = st.survivors.filter(s =>
+      s.health > 0 && (s.stage === "adult" || s.stage === "youth" || s.stage === "elder" || s.isFounder)
+    );
+    // Pick highest build skill; ties broken by closer to site, then non-leader preference.
+    candidates.sort((a, b2) => {
+      const sa = a.skills.build ?? 1;
+      const sb = b2.skills.build ?? 1;
+      if (sa !== sb) return sb - sa;
+      const da = Math.hypot(a.x - (b.x + b.w/2), a.y - (b.y + b.h/2));
+      const db = Math.hypot(b2.x - (b.x + b.w/2), b2.y - (b.y + b.h/2));
+      return da - db;
+    });
+    const pick = candidates[0];
+    set({
+      buildings: st.buildings.map(x =>
+        x.id === buildingId ? { ...x, assignedBuilderId: pick?.id ?? null } : x
+      ),
+      pendingBuildAssignment: st.pendingBuildAssignment === buildingId ? null : st.pendingBuildAssignment,
+    });
+  },
+
+  closeBuildAssignment: () => set({ pendingBuildAssignment: null }),
+
+
+
   newGame: (ranchName, founderInput) => {
     const seed = Math.floor(Math.random() * 0xffffffff);
     const { tiles, nodes, homesteadTile } = generateWorld(seed);
