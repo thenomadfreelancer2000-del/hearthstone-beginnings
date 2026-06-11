@@ -128,7 +128,7 @@ export interface FounderInput {
 }
 
 function emptySkills(): Skills {
-  return { forage: 1, cut: 1, mine: 1, build: 1, farm: 1, medic: 1, lead: 1 };
+  return { forage: 1, cut: 1, mine: 1, build: 1, farm: 1, medic: 1, lead: 1, social: 1 };
 }
 
 function applyBackground(s: Skills, bg: Background): Skills {
