@@ -7,7 +7,8 @@ export type ConstructionStatus =
   | "Under Construction"
   | "Completed";
 
-export const STALL_RECOVERY_TICKS = 180;
+export const STALL_RECOVERY_TICKS = 60;
+export const CONSTRUCTION_REACH = 2.25;
 
 const LABOR_STAGES = new Set(["youth", "adult", "elder"]);
 
@@ -148,21 +149,17 @@ export function recoverStalledConstruction(
     const cx = b.x + b.w / 2;
     const cy = b.y + b.h / 2;
     builder.workTarget = { kind: "building", id: b.id };
-    if (dist(builder.x, builder.y, cx, cy) > 1.6) {
+    if (dist(builder.x, builder.y, cx, cy) > CONSTRUCTION_REACH) {
       builder.targetX = cx;
       builder.targetY = cy;
       builder.state = "moving";
       builder.action = `Returning to the ${b.kind} build site.`;
-      if ((b.stalledTicks ?? 0) >= STALL_RECOVERY_TICKS * 2) {
-        const skillMult = 1 + (builder.skills.build ?? 1) * 0.08;
-        applyConstructionWork(b, skillMult * (1 / 48), tick);
-      }
       continue;
     }
 
     if ((b.stalledTicks ?? 0) >= STALL_RECOVERY_TICKS) {
-      const skillMult = 1 + (builder.skills.build ?? 1) * 0.16;
-      applyConstructionWork(b, skillMult * (1 / 24), tick);
+      const skillMult = 1 + (builder.skills.build ?? 1) * 0.18;
+      applyConstructionWork(b, skillMult * (1 / 16), tick);
       builder.state = "working";
       builder.action = `Recovering stalled work on the ${b.kind}.`;
     }
