@@ -1,6 +1,7 @@
 import type {
   Building, Relationship, ResourceKind, ResourceNode, Survivor, Tile,
 } from "../types";
+import { applyConstructionWork, hasConstructionResources, normalizeConstructionBuilding } from "./construction";
 
 export const TICKS_PER_DAY = 240;
 export const DAYS_PER_SEASON = 12;
@@ -150,6 +151,7 @@ export interface SimDeps {
   nodes: ResourceNode[];
   tiles: Tile[];
   mapW: number;
+  tick: number;
   resources: Record<ResourceKind, number>;
   survivors: Survivor[];
   relationships: Relationship[];
@@ -295,17 +297,21 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
   if (helpsBuild) {
     const b = assigned ?? nearestUnfinished(s, deps.buildings);
     if (b) {
+      normalizeConstructionBuilding(b);
       const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+      s.workTarget = { kind: "building", id: b.id };
+      if (!hasConstructionResources(b)) {
+        s.action = `Waiting on materials for the ${b.kind}.`;
+        s.state = "idle";
+        return;
+      }
       if (dist(s.x, s.y, cx, cy) < 1.6) {
         const isAssigned = assigned?.id === b.id;
         const isBuilder = s.occupation === "builder";
         const skillMult = 1 + (s.skills.build ?? 1) * 0.18; // 0..~6.4x at skill 30
         const roleMult = isAssigned ? 1.25 : isBuilder ? 1.0 : 0.7;
         const work = skillMult * roleMult * (dt / 24);
-        b.effortRemaining = Math.max(0, b.effortRemaining - work);
-        const total = b.buildEffortTotal || Math.max(1, b.effortRemaining + work);
-        b.builtProgress = Math.max(b.builtProgress, 1 - b.effortRemaining / total);
-        if (b.effortRemaining <= 0) b.builtProgress = 1;
+        applyConstructionWork(b, work, deps.tick);
         s.skills.build = Math.min(30, (s.skills.build ?? 1) + 0.003 * dt);
         s.state = "working";
         s.action = isAssigned ? `Working their site — the ${b.kind}.` : `Lending hands at the ${b.kind}.`;

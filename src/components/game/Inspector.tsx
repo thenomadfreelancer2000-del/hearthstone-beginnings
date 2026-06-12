@@ -1,6 +1,12 @@
 import { useGame } from "@/game/store";
 import { BUILDINGS } from "@/game/data/content";
 import { opinionLabel, opinionScore } from "@/game/sim/ai";
+import {
+  constructionEffortCompleted,
+  constructionStatus,
+  missingConstructionResources,
+  requiredConstructionResources,
+} from "@/game/sim/construction";
 import type { Occupation, Relationship, Survivor } from "@/game/types";
 
 const OCCUPATIONS: Occupation[] = [
@@ -204,6 +210,14 @@ export function Inspector() {
     if (!b) return null;
     const def = BUILDINGS[b.kind];
     const builder = b.assignedBuilderId ? survivors.find(s => s.id === b.assignedBuilderId) : null;
+    const debugBuilding = { ...b, resourcesDelivered: { ...(b.resourcesDelivered ?? {}) } };
+    const missing = missingConstructionResources(debugBuilding);
+    const required = requiredConstructionResources(debugBuilding);
+    const completedEffort = constructionEffortCompleted(debugBuilding);
+    const status = constructionStatus(debugBuilding, survivors);
+    const assignedTask = builder?.workTarget?.kind === "building" && builder.workTarget.id === b.id
+      ? builder.action
+      : builder?.action ?? "No active task";
     const openAssign = () => useGame.setState({ pendingBuildAssignment: b.id });
     return (
       <aside className="parchment-panel w-full sm:w-[340px] p-4 border-l border-amber/20 overflow-auto scroll-amber">
@@ -223,6 +237,22 @@ export function Inspector() {
             <p className="ranch-data text-[10px] text-dust mb-3">
               {Math.ceil(b.effortRemaining)} / {Math.max(1, b.buildEffortTotal)} effort remaining
             </p>
+            <div className="parchment-panel-warm corner-brackets p-3 mb-3">
+              <div className="flex justify-between ranch-label text-[10px] mb-2">
+                <span className="text-amber">Construction Status</span>
+                <span className={status === "Completed" ? "text-success" : status === "Waiting For Resources" ? "text-warning" : "text-parchment"}>
+                  {status}
+                </span>
+              </div>
+              <DebugRow label="Assigned Builder" value={builder ? `${builder.name} ${builder.surname}` : "Anyone available"} />
+              <DebugRow label="Current Task" value={assignedTask} />
+              <DebugRow label="Progress" value={`${Math.round(b.builtProgress * 100)}%`} />
+              <DebugRow label="Effort Completed" value={`${Math.floor(completedEffort)} / ${Math.max(1, b.buildEffortTotal)}`} />
+              <DebugRow label="Effort Required" value={`${Math.max(1, b.buildEffortTotal)}`} />
+              <DebugRow label="Resources Delivered" value={formatResourceList(debugBuilding.resourcesDelivered)} />
+              <DebugRow label="Resources Missing" value={formatResourceList(missing)} warn={Object.keys(missing).length > 0} />
+              <DebugRow label="Resources Required" value={formatResourceList(required)} />
+            </div>
             <div className="ranch-label text-[10px] text-amber mb-1">Assigned builder</div>
             {builder ? (
               <button
@@ -314,6 +344,21 @@ function SkillRow({ label, v }: { label: string; v: number }) {
     <div className="flex justify-between">
       <span className="ranch-label text-dust">{label}</span>
       <span className={tier}>{rounded}</span>
+    </div>
+  );
+}
+
+function formatResourceList(resources?: Partial<Record<string, number>>) {
+  const entries = Object.entries(resources ?? {}).filter(([, amount]) => (amount ?? 0) > 0);
+  if (entries.length === 0) return "None";
+  return entries.map(([resource, amount]) => `${Math.ceil(amount ?? 0)} ${resource}`).join(" · ");
+}
+
+function DebugRow({ label, value, warn }: { label: string; value: string; warn?: boolean }) {
+  return (
+    <div className="flex justify-between gap-3 ranch-data text-[9px] py-0.5 border-b border-amber/10 last:border-b-0">
+      <span className="text-dust shrink-0">{label}</span>
+      <span className={`text-right ${warn ? "text-warning" : "text-parchment"}`}>{value}</span>
     </div>
   );
 }

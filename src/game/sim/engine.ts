@@ -8,6 +8,7 @@ import {
   decayNeeds, tickSurvivor, touchRelationship, markAsSpouses, markAsKin,
   findRelationship,
 } from "./ai";
+import { normalizeConstructionBuilding, recoverStalledConstruction } from "./construction";
 import { CHRONICLE_OPENERS, FERTILE_MAX, FERTILE_MIN, NATURAL_DEATH_AGE } from "../data/content";
 import { makeRng, chance, pick } from "./rng";
 import { makeChild, stageFromAge } from "./world";
@@ -102,11 +103,18 @@ export function advance(eng: Engine, n: number, opts?: { onArrival?: (s: Survivo
   for (let i = 0; i < n; i++) {
     eng.time = nextTime(eng.time);
     const dt = 1;
+    const previousConstructionEffort = new Map(
+      eng.buildings.map(b => {
+        normalizeConstructionBuilding(b);
+        return [b.id, b.effortRemaining] as const;
+      }),
+    );
     const deps = {
       buildings: eng.buildings,
       nodes: eng.nodes,
       tiles: eng.tiles,
       mapW: eng.mapW,
+      tick: eng.time.tick,
       resources: eng.resources,
       survivors: eng.survivors,
       relationships: eng.relationships,
@@ -120,8 +128,11 @@ export function advance(eng: Engine, n: number, opts?: { onArrival?: (s: Survivo
       tickSurvivor(s, dt, deps);
     }
 
+    recoverStalledConstruction(eng.buildings, eng.survivors, eng.time.tick, previousConstructionEffort);
+
     // Construction completion notifications
     for (const b of eng.buildings) {
+      normalizeConstructionBuilding(b);
       if (b.builtProgress >= 1 && b.completedYear == null) {
         b.completedYear = eng.time.year;
         if (b.kind !== "homestead") {

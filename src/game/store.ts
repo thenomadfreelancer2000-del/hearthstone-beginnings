@@ -14,6 +14,7 @@ import { advance, type Engine } from "./sim/engine";
 import { BUILDINGS } from "./data/content";
 import { saveToLocal, loadFromLocal } from "./persistence";
 import { makeRng } from "./sim/rng";
+import { normalizeConstructionBuilding } from "./sim/construction";
 
 export type Screen = "menu" | "founder" | "game";
 export type Overlay = "tree" | "family" | "chronicle" | null;
@@ -155,6 +156,9 @@ export const useGame = create<GameState>((set, get) => ({
       (newResources as any)[r] -= amt ?? 0;
     }
     const isInstant = def.buildEffort === 0;
+    const resourcesDelivered = Object.fromEntries(
+      Object.entries(def.cost).map(([resource, amount]) => [resource, amount ?? 0]),
+    ) as Partial<Record<ResourceKind, number>>;
     const b: Building = {
       id: nanoid(10),
       kind: bp.kind,
@@ -165,6 +169,9 @@ export const useGame = create<GameState>((set, get) => ({
       buildEffortTotal: def.buildEffort,
       completedYear: isInstant ? st.time.year : null,
       assignedBuilderId: null,
+      resourcesDelivered,
+      lastWorkedTick: null,
+      stalledTicks: 0,
       occupantIds: [],
       stored: {},
     };
@@ -280,7 +287,10 @@ export const useGame = create<GameState>((set, get) => ({
         ...b,
         // Repair legacy saves missing buildEffortTotal so progress never stalls
         buildEffortTotal: b.buildEffortTotal || Math.max(1, b.effortRemaining + (b.builtProgress > 0 ? 1 : 0)),
-      })),
+      })).map(b => {
+        normalizeConstructionBuilding(b);
+        return b;
+      }),
       resources: save.resources,
       survivors: save.survivors.map(s => ({
         ...s,
@@ -334,7 +344,12 @@ export const useGame = create<GameState>((set, get) => ({
       time: { ...st.time },
       tiles: st.tiles, mapW: st.mapW, mapH: st.mapH,
       nodes: st.nodes.map(n => ({ ...n })),
-      buildings: st.buildings.map(b => ({ ...b, stored: { ...b.stored }, occupantIds: [...b.occupantIds] })),
+      buildings: st.buildings.map(b => ({
+        ...b,
+        stored: { ...b.stored },
+        occupantIds: [...b.occupantIds],
+        resourcesDelivered: { ...(b.resourcesDelivered ?? {}) },
+      })),
       resources: { ...st.resources },
       survivors: st.survivors.map(s => ({
         ...s,
