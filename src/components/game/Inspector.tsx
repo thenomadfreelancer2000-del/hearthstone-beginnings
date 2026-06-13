@@ -552,3 +552,136 @@ function FarmPanel({ b }: { b: Building }) {
     </div>
   );
 }
+
+function SurvivorHousingPanel({ s }: { s: Survivor }) {
+  const buildings = useGame((g) => g.buildings);
+  const survivors = useGame((g) => g.survivors);
+  const selectBuilding = useGame((g) => g.selectBuilding);
+  const home = s.homeId ? buildings.find(b => b.id === s.homeId) ?? null : null;
+  const occupants = home
+    ? survivors.filter(o => o.homeId === home.id && o.health > 0)
+    : [];
+  const report = computeHousingSatisfaction(s, home, occupants);
+  const labelColor =
+    report.label === "Comfortable" ? "text-success" :
+    report.label === "Adequate" ? "text-amber" :
+    report.label === "Acceptable" ? "text-dust-light" :
+    report.label === "Crowded" ? "text-warning" : "text-danger";
+  return (
+    <>
+      <h4 className="ranch-label mt-5 mb-2">Housing</h4>
+      <div className="parchment-panel-warm corner-brackets p-3">
+        {home ? (
+          <>
+            <button
+              onClick={() => selectBuilding(home.id)}
+              className="ranch-body text-sm text-parchment hover:text-amber w-full text-left"
+            >
+              {BUILDINGS_DATA[home.kind].name}
+              <span className="ranch-data text-[10px] text-dust ml-2">
+                Q{homeQuality(home)} · {occupants.length}/{homeCapacity(home)}
+              </span>
+            </button>
+            <div className="mt-2">
+              <div className="flex justify-between ranch-label text-[9px]">
+                <span>Satisfaction</span>
+                <span className={labelColor}>{report.label} · {Math.round(report.satisfaction)}</span>
+              </div>
+              <div className="h-1 bg-coal border border-amber/15 mt-0.5">
+                <div className="h-full bg-amber" style={{ width: `${report.satisfaction}%` }} />
+              </div>
+            </div>
+            <ul className="ranch-data text-[10px] text-dust mt-2 space-y-0.5">
+              {report.reasons.map((r, i) => <li key={i}>· {r}</li>)}
+            </ul>
+            {occupants.length > 1 && (
+              <div className="mt-2">
+                <div className="ranch-label text-[9px] text-amber mb-1">Household</div>
+                <ul className="ranch-handwritten text-xs text-dust-light">
+                  {occupants.filter(o => o.id !== s.id).map(o => (
+                    <li key={o.id}>· {o.name} {o.surname}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </>
+        ) : (
+          <p className="ranch-handwritten text-xs text-danger">Homeless — needs a place to sleep.</p>
+        )}
+      </div>
+    </>
+  );
+}
+
+function ResidentialPanel({ b }: { b: Building }) {
+  const survivors = useGame((g) => g.survivors);
+  const assignSurvivorToHome = useGame((g) => g.assignSurvivorToHome);
+  const setHomeReserved = useGame((g) => g.setHomeReserved);
+  const selectSurvivor = useGame((g) => g.selectSurvivor);
+  const occupants = survivors.filter(s => s.homeId === b.id && s.health > 0);
+  const cap = homeCapacity(b);
+  const q = homeQuality(b);
+  const homeless = survivors.filter(s => !s.homeId && s.health > 0);
+  return (
+    <div className="parchment-panel-warm corner-brackets p-3 mt-3">
+      <div className="flex justify-between items-baseline mb-1">
+        <span className="ranch-label text-[10px] text-amber">Housing</span>
+        <span className="ranch-data text-[10px] text-dust">Quality {q}/5</span>
+      </div>
+      <div className="flex justify-between ranch-label text-[9px]">
+        <span>Occupants</span>
+        <span className={occupants.length > cap ? "text-danger" : "text-amber"}>
+          {occupants.length} / {cap}
+        </span>
+      </div>
+      <div className="h-1 bg-coal border border-amber/15 my-1">
+        <div
+          className={`h-full ${occupants.length > cap ? "bg-danger" : "bg-amber"}`}
+          style={{ width: `${Math.min(100, (occupants.length / Math.max(1, cap)) * 100)}%` }}
+        />
+      </div>
+      {occupants.length > 0 ? (
+        <ul className="text-sm mt-2 space-y-0.5">
+          {occupants.map(o => (
+            <li key={o.id} className="flex justify-between items-baseline hover:bg-amber/5 px-1">
+              <button onClick={() => selectSurvivor(o.id)} className="ranch-body text-parchment hover:text-amber">
+                {o.name} {o.surname}
+              </button>
+              <button
+                onClick={() => assignSurvivorToHome(o.id, null)}
+                className="ranch-label text-[9px] text-dust hover:text-danger"
+                title="Remove from this home"
+              >
+                ✕
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="ranch-handwritten text-xs text-dust mt-1">Empty.</p>
+      )}
+      {homeless.length > 0 && occupants.length < cap && (
+        <div className="mt-3">
+          <div className="ranch-label text-[10px] text-amber mb-1">Assign homeless</div>
+          <select
+            className="w-full bg-coal border border-amber/30 text-parchment text-xs px-2 py-1"
+            defaultValue=""
+            onChange={(e) => { if (e.target.value) assignSurvivorToHome(e.target.value, b.id); e.currentTarget.value = ""; }}
+          >
+            <option value="">— Pick someone —</option>
+            {homeless.map(s => (
+              <option key={s.id} value={s.id}>{s.name} {s.surname} ({s.stage})</option>
+            ))}
+          </select>
+        </div>
+      )}
+      <button
+        onClick={() => setHomeReserved(b.id, !b.reserved)}
+        className={`btn-ranch w-full text-[10px] mt-2 ${b.reserved ? "btn-ranch-primary" : "btn-ranch-ghost"}`}
+      >
+        {b.reserved ? "Reserved · click to release" : "Reserve for future use"}
+      </button>
+    </div>
+  );
+}
+
