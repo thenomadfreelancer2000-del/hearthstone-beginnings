@@ -34,7 +34,7 @@ const BUILD_CATEGORIES: { id: string; label: string; kinds: import("@/game/types
   { id: "crafting", label: "Crafting",        kinds: ["workbench"] },
   { id: "storage",  label: "Storage",         kinds: ["stockpile"] },
   { id: "social",   label: "Social",          kinds: ["campfire"] },
-  { id: "defense",  label: "Defense",         kinds: ["fence"] },
+  { id: "defense",  label: "Defense",         kinds: ["fence", "palisade", "stone-wall", "gate", "watchtower", "guard-post"] },
 ];
 
 function BuildMenu() {
