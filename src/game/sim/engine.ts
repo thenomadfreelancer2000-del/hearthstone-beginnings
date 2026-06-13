@@ -468,6 +468,14 @@ function processBirths(eng: Engine, rng: () => number) {
       { x: spawnX, y: spawnY },
     );
     eng.survivors.push(child);
+    // Child inherits parent's home if there's space.
+    const parentHome = eng.buildings.find(b =>
+      b.id === (mother.homeId ?? father.homeId) && isResidential(b.kind)
+    );
+    if (parentHome && (parentHome.occupantIds?.length ?? 0) < homeCapacity(parentHome)) {
+      child.homeId = parentHome.id;
+      if (!parentHome.occupantIds.includes(child.id)) parentHome.occupantIds.push(child.id);
+    }
     addToFamily(fam, child);
     mother.childrenIds.push(child.id);
     father.childrenIds.push(child.id);
