@@ -167,7 +167,7 @@ export function MapView() {
               {b.kind === "farm-plot" && built && b.farm && (() => {
                 const crop = CROPS[b.farm.cropId as CropId] ?? CROPS.corn;
                 const growth = b.farm.stage === "mature" ? 1 : b.farm.stage === "growing" ? b.farm.growth : 0;
-                const dots: JSX.Element[] = [];
+                const dots: React.ReactElement[] = [];
                 for (let r = 0; r < 3; r++) {
                   for (let cc = 0; cc < 3; cc++) {
                     const dx = x + 6 + cc * ((w - 12) / 2);
