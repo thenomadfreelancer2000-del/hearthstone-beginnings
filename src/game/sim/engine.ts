@@ -6,7 +6,7 @@ import type {
 import {
   DAYS_PER_SEASON, SEASONS, TICKS_PER_DAY,
   decayNeeds, tickSurvivor, touchRelationship, markAsSpouses, markAsKin,
-  findRelationship, decayMemoriesDaily,
+  findRelationship, decayMemoriesDaily, opinionScore,
 } from "./ai";
 import { normalizeConstructionBuilding, recoverStalledConstruction } from "./construction";
 import { CHRONICLE_OPENERS, FERTILE_MAX, FERTILE_MIN, NATURAL_DEATH_AGE } from "../data/content";
