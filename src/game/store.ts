@@ -8,8 +8,10 @@ import type {
 } from "./types";
 import {
   MAP_W, MAP_H, generateWorld, makeFounder, makeHomesteadBuilding,
-  makeFounderFamily, generateArrival, type FounderInput,
+  makeFounderFamily, makeWanderer, makeWandererFamily, makeChild, stageFromAge,
+  generateArrival, type FounderInput,
 } from "./sim/world";
+
 import { advance, type Engine } from "./sim/engine";
 import { BUILDINGS } from "./data/content";
 import { saveToLocal, loadFromLocal } from "./persistence";
