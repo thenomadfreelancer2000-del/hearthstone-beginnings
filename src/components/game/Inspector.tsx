@@ -13,7 +13,7 @@ import { BUILDINGS as BUILDINGS_DATA } from "@/game/data/content";
 import type { Building, Occupation, Relationship, Survivor } from "@/game/types";
 
 const OCCUPATIONS: Occupation[] = [
-  "idle", "leader", "forager", "woodcutter", "miner", "farmer", "builder", "hauler",
+  "idle", "forager", "woodcutter", "miner", "farmer", "builder", "hauler",
 ];
 
 function cap(s: string) { return s[0].toUpperCase() + s.slice(1); }

@@ -78,13 +78,13 @@ export function GameShell() {
       <Toaster
         position="top-center"
         theme="dark"
-        offset={64}
-        mobileOffset={56}
+        offset={isMobile ? 64 : 96}
+        mobileOffset={64}
         toastOptions={{
           unstyled: true,
           classNames: {
             toast:
-              "parchment-panel corner-brackets w-auto max-w-[320px] mx-auto flex items-start gap-2 px-3 py-2 ranch-body text-parchment shadow-[0_8px_24px_rgba(0,0,0,0.5)]",
+              "parchment-panel corner-brackets w-[340px] max-w-[92vw] flex items-start gap-2 px-3 py-2 ranch-body text-parchment shadow-[0_8px_24px_rgba(0,0,0,0.5)]",
             title: "ranch-display text-[13px] leading-tight text-parchment",
             description: "ranch-handwritten text-[11px] text-dust-light mt-0.5",
             icon: "text-amber mt-0.5 scale-75",
