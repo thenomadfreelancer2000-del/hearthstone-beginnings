@@ -384,7 +384,7 @@ export const useGame = create<GameState>((set, get) => ({
       territory: {
         cx: homestead.x + homestead.w / 2,
         cy: homestead.y + homestead.h / 2,
-        radius: 0,
+        radius: 14,
       },
       borderMode: false,
     });
@@ -694,10 +694,10 @@ export function computeFoundingObjectives(st: GameState): FoundingObjective[] {
   const has = (kinds: BuildingKind[]) =>
     st.buildings.some(b => kinds.includes(b.kind) && b.builtProgress >= 1);
   return [
-    { id: "home",   label: "Build a home (Tent or Cabin)",        done: has(["tent", "cabin"]) },
-    { id: "water",  label: "Secure water (Well or Water Collector)", done: has(["well", "water-collector"]) },
+    { id: "home",   label: "Build a home (Tent or Cabin)",            done: has(["tent", "cabin"]) },
+    { id: "water",  label: "Secure water (Well or Water Collector)",  done: has(["well", "water-collector"]) },
     { id: "food",   label: "Secure food (Farm Plot or Foraging Camp)", done: has(["farm-plot", "foraging-camp"]) },
-    { id: "border", label: "Define the ranch border",              done: (st.territory?.radius ?? 0) > 0 },
+    { id: "fence",  label: "Build a fence to mark the ranch",         done: has(["fence"]) },
   ];
 }
 

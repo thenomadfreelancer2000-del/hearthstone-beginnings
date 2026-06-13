@@ -185,7 +185,7 @@ export interface Family {
 export type BuildingKind =
   | "homestead" | "tent" | "cabin" | "campfire" | "stockpile"
   | "workbench" | "well" | "watchtower" | "field" | "farm-plot"
-  | "water-collector" | "foraging-camp";
+  | "water-collector" | "foraging-camp" | "fence";
 
 export interface Territory {
   cx: number;     // center tile x (usually homestead center)
