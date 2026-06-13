@@ -72,6 +72,7 @@ export function GameShell() {
       {overlay === "tree" && <DynastyOverlay />}
       <ArrivalEvent />
       <AssignBuilderModal />
+      <FarmSetupModal />
       <Toaster
         position={isMobile ? "top-center" : "bottom-right"}
         toastOptions={{
