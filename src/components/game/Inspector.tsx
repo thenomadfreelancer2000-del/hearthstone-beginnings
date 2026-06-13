@@ -109,6 +109,10 @@ export function Inspector() {
         {/* Housing */}
         {!isDead && <SurvivorHousingPanel s={s} />}
 
+        {/* Education — for children/teens */}
+        {!isDead && (s.stage === "child" || s.stage === "teen") && <EducationPanel s={s} />}
+
+
 
 
         {!isDead && (
