@@ -15,6 +15,7 @@ import { BUILDINGS } from "./data/content";
 import { saveToLocal, loadFromLocal } from "./persistence";
 import { makeRng } from "./sim/rng";
 import { normalizeConstructionBuilding } from "./sim/construction";
+import { CROPS, STARTER_CROP_IDS, isCropId, type CropId } from "./data/crops";
 
 export type Screen = "menu" | "founder" | "game";
 export type Overlay = "tree" | "family" | "chronicle" | null;
