@@ -8,6 +8,7 @@ import {
   BACKGROUNDS, FIRST_NAMES_F, FIRST_NAMES_M, SURNAMES, TRAITS, BUILDINGS,
   LIFE_STAGE_THRESHOLDS,
 } from "../data/content";
+import { getPortrait, defaultPortraitFor } from "../data/portraits";
 
 export const MAP_W = 36;
 export const MAP_H = 28;
@@ -156,10 +157,6 @@ export function stageFromAge(age: number): LifeStage {
 
 export function makeFounder(input: FounderInput, spawn: { x: number; y: number }): Survivor {
   const id = nanoid(10);
-  // Age comes from the chosen portrait when available, else a sensible default.
-  // Imported here to avoid a circular import at module init.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { getPortrait, defaultPortraitFor } = require("../data/portraits") as typeof import("../data/portraits");
   const pid = input.portraitId ?? defaultPortraitFor(input.gender);
   const portrait = getPortrait(pid);
   const age = portrait?.age ?? 32;
