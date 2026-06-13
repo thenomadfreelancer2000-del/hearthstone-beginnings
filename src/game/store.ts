@@ -139,6 +139,9 @@ export const useGame = create<GameState>((set, get) => ({
   unlockedCrops: [...STARTER_CROP_IDS],
   reputation: 0,
   lastChronicleId: null,
+  foundingPhase: false,
+  territory: null,
+  borderMode: false,
 
   setScreen: (s) => set({ screen: s }),
   setOverlay: (o) => set({ overlay: o }),
