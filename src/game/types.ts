@@ -228,6 +228,7 @@ export interface Building {
   stalledTicks?: number;
   occupantIds: ID[];
   stored: Partial<Record<ResourceKind, number>>;
+  farm?: FarmState | null;
 }
 
 // ── Arrival events (transient, not persisted) ───────────────────
