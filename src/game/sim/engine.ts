@@ -29,6 +29,8 @@ export interface Engine {
   chronicle: ChronicleEntry[];
   stats: SettlementStats;
   seed: number;
+  /** During the Founding Phase, needs do not decay and arrivals are paused. */
+  foundingPhase?: boolean;
 }
 
 function nextTime(t: GameTime): GameTime {
