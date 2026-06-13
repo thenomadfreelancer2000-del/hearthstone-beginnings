@@ -78,43 +78,118 @@ function BuildingArt({ kind, w, h, farmStage, farmGrowth }: { kind: string; w: n
       );
     }
     case "farm-plot": {
-      // Furrowed soil, fence posts at corners
+      // Stage-aware rendering: empty → planting → growing → mature → harvesting
       const rows = 4;
+      const stage = farmStage ?? "empty";
+      const growth = Math.max(0, Math.min(1, farmGrowth ?? 0));
+      const rowYs = Array.from({ length: rows }, (_, i) => 3 + ((h - 6) / rows) * (i + 0.5));
+      // soil tone shifts as crops grow
+      const soilFill = stage === "empty" ? "#6e4920" : "#5a3818";
       return (
         <g>
-          <rect x={1} y={1} width={w - 2} height={h - 2} fill="#5a3818" stroke={PAL.ink} strokeWidth={1} />
-          {Array.from({ length: rows }).map((_, i) => {
-            const y = 3 + ((h - 6) / rows) * (i + 0.5);
-            return <line key={i} x1={3} y1={y} x2={w - 3} y2={y} stroke="#3d2810" strokeWidth={1.4} />;
-          })}
-          {Array.from({ length: rows }).map((_, i) => {
-            const y = 3 + ((h - 6) / rows) * (i + 0.5);
-            return <line key={`h${i}`} x1={3} y1={y - 1} x2={w - 3} y2={y - 1} stroke="#8e6730" strokeWidth={0.5} opacity={0.6} />;
-          })}
+          <rect x={1} y={1} width={w - 2} height={h - 2} fill={soilFill} stroke={PAL.ink} strokeWidth={1} />
+          {/* furrows */}
+          {rowYs.map((y, i) => (
+            <g key={`f${i}`}>
+              <line x1={3} y1={y} x2={w - 3} y2={y} stroke="#3d2810" strokeWidth={1.4} />
+              <line x1={3} y1={y - 1} x2={w - 3} y2={y - 1} stroke="#8e6730" strokeWidth={0.5} opacity={0.6} />
+            </g>
+          ))}
           {/* corner posts */}
           {[[2, 2], [w - 2, 2], [2, h - 2], [w - 2, h - 2]].map(([x, y], i) => (
             <rect key={i} x={x - 1} y={y - 1} width={2} height={2} fill="#3d2810" />
           ))}
+          {/* crops per stage */}
+          {stage !== "empty" && rowYs.map((y, i) => {
+            const seedsPerRow = 5;
+            return Array.from({ length: seedsPerRow }).map((_, j) => {
+              const cxc = 4 + ((w - 8) / (seedsPerRow - 1)) * j;
+              if (stage === "planting") {
+                return <circle key={`s${i}${j}`} cx={cxc} cy={y} r={0.8} fill="#3d2810" />;
+              }
+              if (stage === "growing") {
+                const sproutH = 2 + growth * 3;
+                return (
+                  <g key={`s${i}${j}`}>
+                    <line x1={cxc} y1={y} x2={cxc} y2={y - sproutH} stroke="#4a6235" strokeWidth={0.9} strokeLinecap="round" />
+                    <circle cx={cxc} cy={y - sproutH} r={0.9} fill="#566e3e" />
+                  </g>
+                );
+              }
+              if (stage === "mature") {
+                return (
+                  <g key={`s${i}${j}`}>
+                    <line x1={cxc} y1={y} x2={cxc} y2={y - 5.5} stroke="#3d5226" strokeWidth={1} strokeLinecap="round" />
+                    <ellipse cx={cxc} cy={y - 6} rx={1.6} ry={2} fill="#d4a93a" stroke={PAL.ink} strokeWidth={0.4} />
+                    <line x1={cxc - 1.2} y1={y - 6.5} x2={cxc + 1.2} y2={y - 6.5} stroke="#e8c462" strokeWidth={0.4} />
+                  </g>
+                );
+              }
+              // harvesting — partly removed, sheaves stacked
+              const removed = j >= Math.ceil(seedsPerRow * (1 - growth));
+              if (removed) {
+                return <line key={`s${i}${j}`} x1={cxc} y1={y} x2={cxc} y2={y - 1.2} stroke="#3d2810" strokeWidth={0.8} />;
+              }
+              return (
+                <g key={`s${i}${j}`}>
+                  <line x1={cxc} y1={y} x2={cxc} y2={y - 5} stroke="#a78436" strokeWidth={1} strokeLinecap="round" />
+                  <ellipse cx={cxc} cy={y - 5.5} rx={1.4} ry={1.8} fill="#c9a14a" stroke={PAL.ink} strokeWidth={0.4} />
+                </g>
+              );
+            });
+          })}
+          {/* stage tag dot */}
+          <circle cx={w - 3} cy={3} r={1.6} fill={
+            stage === "empty" ? "#5e564c" :
+            stage === "planting" ? "#8e6730" :
+            stage === "growing" ? "#566e3e" :
+            stage === "mature" ? "#c9a14a" : "#a83a3a"
+          } stroke={PAL.ink} strokeWidth={0.4} />
         </g>
       );
     }
     case "water-collector": {
-      // Wooden barrel
+      // Stone well with wooden roof, rope, bucket, water surface
+      const rimY = h * 0.42;
       return (
         <g>
-          <ellipse cx={cx} cy={h - 2} rx={w * 0.35} ry={3} fill={PAL.shadow} />
-          <rect x={w * 0.18} y={h * 0.2} width={w * 0.64} height={h * 0.72} rx={w * 0.06} fill="#6b4a24" stroke={PAL.ink} strokeWidth={1.2} />
-          <ellipse cx={cx} cy={h * 0.2} rx={w * 0.32} ry={h * 0.08} fill="#456676" stroke={PAL.ink} strokeWidth={1} />
-          {/* metal bands */}
-          <rect x={w * 0.16} y={h * 0.38} width={w * 0.68} height={2} fill="#3a3530" />
-          <rect x={w * 0.16} y={h * 0.72} width={w * 0.68} height={2} fill="#3a3530" />
-          {/* vertical planks */}
-          {[0.35, 0.5, 0.65].map((p, i) => (
-            <line key={i} x1={w * p} y1={h * 0.22} x2={w * p} y2={h * 0.9} stroke={PAL.inkSoft} strokeWidth={0.5} opacity={0.6} />
+          <ellipse cx={cx} cy={h - 2} rx={w * 0.45} ry={3.5} fill={PAL.shadow} />
+          {/* stone base */}
+          <rect x={w * 0.14} y={rimY} width={w * 0.72} height={h * 0.5} fill="#7a7068" stroke={PAL.ink} strokeWidth={1.2} />
+          {/* mortar lines */}
+          {[0, 1, 2].map(row => (
+            <line key={`mr${row}`} x1={w * 0.14} y1={rimY + (h * 0.5) * ((row + 1) / 3)} x2={w * 0.86} y2={rimY + (h * 0.5) * ((row + 1) / 3)} stroke={PAL.inkSoft} strokeWidth={0.5} opacity={0.7} />
           ))}
+          {[0.3, 0.55, 0.78].map((p, i) => (
+            <line key={`mv${i}`} x1={w * p} y1={rimY + h * 0.08} x2={w * (p - 0.02)} y2={rimY + h * 0.25} stroke={PAL.inkSoft} strokeWidth={0.5} opacity={0.6} />
+          ))}
+          {/* rim */}
+          <ellipse cx={cx} cy={rimY} rx={w * 0.36} ry={h * 0.08} fill="#5e564c" stroke={PAL.ink} strokeWidth={1} />
+          {/* water surface */}
+          <ellipse cx={cx} cy={rimY + 1.2} rx={w * 0.28} ry={h * 0.055} fill="#2f4a5a" stroke={PAL.ink} strokeWidth={0.6} />
+          <path d={`M${cx - w*0.18} ${rimY + 1.2} Q${cx} ${rimY - 0.2} ${cx + w*0.18} ${rimY + 1.2}`} stroke="#6c93a8" strokeWidth={0.5} fill="none" opacity={0.85} />
+          <ellipse cx={cx - w*0.06} cy={rimY + 1} rx={w*0.04} ry={h*0.015} fill="#9bc0d4" opacity={0.7} />
+          {/* roof posts */}
+          <rect x={w * 0.16} y={h * 0.1} width={w * 0.05} height={rimY - h * 0.1} fill="#3d2810" stroke={PAL.ink} strokeWidth={0.6} />
+          <rect x={w * 0.79} y={h * 0.1} width={w * 0.05} height={rimY - h * 0.1} fill="#3d2810" stroke={PAL.ink} strokeWidth={0.6} />
+          {/* roof */}
+          <polygon points={`${w*0.06},${h*0.14} ${cx},${h*0.02} ${w*0.94},${h*0.14}`} fill="#5a3820" stroke={PAL.ink} strokeWidth={1.2} />
+          <line x1={cx} y1={h*0.04} x2={cx} y2={h*0.14} stroke={PAL.inkSoft} strokeWidth={0.5} opacity={0.7} />
+          {/* shingle lines */}
+          <line x1={w*0.18} y1={h*0.1} x2={w*0.82} y2={h*0.1} stroke={PAL.inkSoft} strokeWidth={0.4} opacity={0.6} />
+          {/* crossbar + rope + bucket */}
+          <line x1={w * 0.22} y1={h * 0.17} x2={w * 0.78} y2={h * 0.17} stroke="#3d2810" strokeWidth={1.4} />
+          <circle cx={w * 0.78} cy={h * 0.17} r={1} fill="#3a3530" />
+          <line x1={cx - w*0.02} y1={h * 0.18} x2={cx - w*0.02} y2={rimY - 1} stroke="#d9c89a" strokeWidth={0.6} />
+          {/* bucket hanging just above rim */}
+          <rect x={cx - w*0.07} y={rimY - h*0.08} width={w*0.14} height={h*0.09} fill="#6b4a24" stroke={PAL.ink} strokeWidth={0.8} />
+          <rect x={cx - w*0.07} y={rimY - h*0.06} width={w*0.14} height={1.2} fill="#3a3530" />
+          <rect x={cx - w*0.07} y={rimY - h*0.02} width={w*0.14} height={1.2} fill="#3a3530" />
+          <path d={`M${cx - w*0.06} ${rimY - h*0.08} Q${cx} ${rimY - h*0.14} ${cx + w*0.06} ${rimY - h*0.08}`} stroke="#3a3530" strokeWidth={0.6} fill="none" />
         </g>
       );
     }
+
     case "foraging-camp": {
       // Tent — clearly a triangle on poles, not a house
       return (
