@@ -31,7 +31,7 @@ export function GameShell() {
 
 
   return (
-    <div className="h-screen w-screen flex flex-col overflow-hidden">
+    <div className="h-full w-full flex flex-col overflow-hidden">
       <GameLoop />
       <TopBar
         onToggleDock={() => setDockOpen((v) => !v)}
@@ -41,7 +41,7 @@ export function GameShell() {
       <div className="flex-1 flex min-h-0 relative">
         <MapView />
         <FoundingPanel />
-        <LeaderProfile />
+        <LeaderProfile dockOpen={dockOpen} />
 
         {!isMobile && <Inspector />}
 
@@ -59,18 +59,12 @@ export function GameShell() {
         )}
       </div>
 
-      {/* Desktop: dock always; Mobile: drawer */}
+      {/* Desktop: dock always; Mobile: inline bottom tray so it never covers the leader portrait */}
       {!isMobile && <BottomDock />}
       {isMobile && dockOpen && (
-        <>
-          <div
-            className="fixed inset-0 bg-black/40 z-30"
-            onClick={() => setDockOpen(false)}
-          />
-          <div className="fixed left-0 right-0 bottom-0 z-40 max-h-[70vh] overflow-hidden">
+          <div className="relative z-30 max-h-[50vh] overflow-hidden shrink-0">
             <BottomDock />
           </div>
-        </>
       )}
 
       {overlay === "tree" && <DynastyOverlay />}
