@@ -166,6 +166,10 @@ export interface Survivor {
   /** Tick they joined the ranch — drives expectation drift. */
   arrivalTick?: number | null;
 
+  // ── Heirs & education ──────────────────────────────────────
+  /** A parent or leader has assigned this child a skill focus. */
+  educationFocus?: "build" | "farm" | "lead" | "social" | "medic" | null;
+
   // ── Phase 3+ placeholders (nullable for forward-compat) ──
   factionId?: ID | null;
   politicalLean?: number | null;
@@ -340,6 +344,7 @@ export interface SaveGame {
   families: Family[];
   founderId: ID;
   currentLeaderId: ID;
+  preferredHeirId?: ID | null;
   buildings: Building[];
   resources: Record<ResourceKind, number>;
   chronicle: ChronicleEntry[];
