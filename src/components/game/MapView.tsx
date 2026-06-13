@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { useGame } from "@/game/store";
 import { BUILDINGS } from "@/game/data/content";
 import { CROPS, type CropId } from "@/game/data/crops";
