@@ -128,6 +128,7 @@ export interface FounderInput {
   traits: Trait[];
   values: ("Family" | "Freedom" | "Security" | "Status" | "Community")[];
   companions?: CompanionsChoice;
+  portraitId?: string;
 }
 
 
@@ -168,6 +169,7 @@ export function makeFounder(input: FounderInput, spawn: { x: number; y: number }
     bornYear: 1 - 32, // for chronicle context
     deathTick: null,
     deathYear: null,
+    portraitId: input.portraitId ?? (input.gender === "m" ? "m1" : "f1"),
     x: spawn.x, y: spawn.y,
     state: "idle",
     action: "Standing on the porch.",
