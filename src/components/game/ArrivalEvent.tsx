@@ -1,4 +1,5 @@
 import { useGame } from "@/game/store";
+import { CROPS, type CropId } from "@/game/data/crops";
 
 const KIND_LABEL: Record<string, string> = {
   "lone": "Lone Traveler",
