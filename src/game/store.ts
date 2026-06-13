@@ -444,6 +444,7 @@ export const useGame = create<GameState>((set, get) => ({
         stored: { ...b.stored },
         occupantIds: [...b.occupantIds],
         resourcesDelivered: { ...(b.resourcesDelivered ?? {}) },
+        farm: b.farm ? { ...b.farm } : null,
       })),
       resources: { ...st.resources },
       survivors: st.survivors.map(s => ({
