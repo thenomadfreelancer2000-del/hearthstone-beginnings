@@ -8,8 +8,10 @@ import type {
 } from "./types";
 import {
   MAP_W, MAP_H, generateWorld, makeFounder, makeHomesteadBuilding,
-  makeFounderFamily, generateArrival, type FounderInput,
+  makeFounderFamily, makeWanderer, makeWandererFamily, makeChild, stageFromAge,
+  generateArrival, type FounderInput,
 } from "./sim/world";
+
 import { advance, type Engine } from "./sim/engine";
 import { BUILDINGS } from "./data/content";
 import { saveToLocal, loadFromLocal } from "./persistence";
@@ -480,6 +482,87 @@ export const useGame = create<GameState>((set, get) => ({
     founder.lastHomeKind = "homestead";
     founder.arrivalTick = 0;
     homestead.occupantIds = [founder.id];
+
+    // ── Starting companions ─────────────────────────────────
+    const choice = founderInput.companions ?? "alone";
+    const compRng = makeRng((seed ^ 0xC0FFEE) >>> 0);
+    const extraSurvivors: Survivor[] = [];
+    const extraFamilies: Family[] = [];
+    const spawn = { x: homesteadTile.x, y: homesteadTile.y };
+
+    if (choice === "spouse" || choice === "family") {
+      const spouse = makeWanderer(compRng, spawn, 0, 1);
+      spouse.gender = founder.gender === "m" ? "f" : "m";
+      spouse.surname = founder.surname;
+      spouse.name = (spouse.gender === "m" ? "Sam" : "Mara");
+      spouse.familyId = family.id;
+      spouse.spouseId = founder.id;
+      spouse.marriedTick = 0;
+      spouse.marriedYear = 1;
+      spouse.loyaltyToFounder = 90;
+      spouse.age = Math.max(22, Math.min(50, founder.age - 2 + Math.floor((compRng() - 0.5) * 8)));
+      spouse.stage = stageFromAge(spouse.age);
+      spouse.homeId = homestead.id;
+      spouse.lastHomeKind = "homestead";
+      spouse.arrivalTick = 0;
+      spouse.action = "Standing on the porch beside the founder.";
+      founder.spouseId = spouse.id;
+      founder.marriedTick = 0;
+      founder.marriedYear = 1;
+      family.memberIds.push(spouse.id);
+      homestead.occupantIds.push(spouse.id);
+      extraSurvivors.push(spouse);
+
+      if (choice === "family") {
+        const nKids = 1 + Math.floor(compRng() * 2); // 1 or 2
+        for (let i = 0; i < nKids && homestead.occupantIds.length < 4; i++) {
+          const child = makeChild(compRng, [founder, spouse], 0, 1, family.id, founder.surname, 1, spawn);
+          child.age = 4 + Math.floor(compRng() * 9);
+          child.stage = stageFromAge(child.age);
+          child.homeId = homestead.id;
+          child.lastHomeKind = "homestead";
+          child.arrivalTick = 0;
+          founder.childrenIds.push(child.id);
+          spouse.childrenIds.push(child.id);
+          family.memberIds.push(child.id);
+          homestead.occupantIds.push(child.id);
+          extraSurvivors.push(child);
+        }
+      }
+    } else if (choice === "friends") {
+      const friends: Survivor[] = [];
+      for (let i = 0; i < 2; i++) {
+        const f = makeWanderer(compRng, spawn, 0, 1);
+        f.loyaltyToFounder = 70;
+        f.homeId = homestead.id;
+        f.lastHomeKind = "homestead";
+        f.arrivalTick = 0;
+        f.action = "Came west with the founder.";
+        homestead.occupantIds.push(f.id);
+        friends.push(f);
+      }
+      // Each friend gets their own (small) family line.
+      for (const f of friends) {
+        const fam = makeWandererFamily(f, 1);
+        f.familyId = fam.id;
+        extraFamilies.push(fam);
+        extraSurvivors.push(f);
+      }
+    }
+
+    const allSurvivors: Survivor[] = [founder, ...extraSurvivors];
+    const allFamilies: Family[] = [family, ...extraFamilies];
+    const pop = allSurvivors.length;
+
+    const foundingBody =
+      choice === "alone"
+        ? `The road is empty behind them. The fields are empty in front. They put down the bag. They start to count what they have.`
+        : choice === "spouse"
+          ? `Two figures on the porch. The road is empty behind them. They put down their bags together.`
+          : choice === "family"
+            ? `A family arrives at the porch — children underfoot, a spouse beside. The fields are empty. The work begins together.`
+            : `Three travelers stop at the porch. Friends from the road, ready to put down their bags and call this home.`;
+
     set({
       screen: "game",
       overlay: null,
@@ -490,9 +573,9 @@ export const useGame = create<GameState>((set, get) => ({
       tiles, mapW: MAP_W, mapH: MAP_H, nodes,
       buildings: [homestead],
       resources: emptyResources(),
-      survivors: [founder],
+      survivors: allSurvivors,
       relationships: [],
-      families: [family],
+      families: allFamilies,
       founderId: founder.id,
       currentLeaderId: founder.id,
       chronicle: [
@@ -501,12 +584,13 @@ export const useGame = create<GameState>((set, get) => ({
           tick: 0, year: 1, season: "spring", day: 1,
           category: "founding",
           title: `${founder.name} ${founder.surname} stands on the porch`,
-          body: `The road is empty behind them. The fields are empty in front. They put down the bag. They start to count what they have.`,
-          involvedIds: [founder.id],
-          involvedFamilyIds: [family.id],
+          body: foundingBody,
+          involvedIds: allSurvivors.map(s => s.id),
+          involvedFamilyIds: allFamilies.map(f => f.id),
         },
       ],
-      stats: { ...emptyStats(1, family.name), population: 1, morale: 20, prestige: family.prestige },
+      stats: { ...emptyStats(1, family.name), population: pop, morale: 20, prestige: family.prestige },
+
       selection: { kind: "survivor", id: founder.id },
       buildPlacement: null,
       pendingArrival: null,

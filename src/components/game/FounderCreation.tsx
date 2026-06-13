@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useGame } from "@/game/store";
 import { BACKGROUNDS, FIRST_NAMES_F, FIRST_NAMES_M, SURNAMES, TRAITS, TRAIT_BLURBS } from "@/game/data/content";
 import type { Background, Trait } from "@/game/types";
+import type { CompanionsChoice } from "@/game/sim/world";
 
 const VALUES = ["Family", "Freedom", "Security", "Status", "Community"] as const;
 type Value = typeof VALUES[number];
@@ -12,6 +13,7 @@ const STEPS = [
   { id: 2, label: "Past" },
   { id: 3, label: "Traits" },
   { id: 4, label: "Values" },
+  { id: 5, label: "Company" },
 ] as const;
 
 const STEP_TITLES: Record<number, { eyebrow: string; title: string; sub: string }> = {
@@ -35,7 +37,13 @@ const STEP_TITLES: Record<number, { eyebrow: string; title: string; sub: string 
     title: "Two things you will not compromise.",
     sub: "When everything else is taken, this is what remains.",
   },
+  5: {
+    eyebrow: "Step V — Who Walks With You",
+    title: "Did you come to this porch alone?",
+    sub: "Some founders arrive with nothing but a name. Others bring a spouse, a family, or friends from the road.",
+  },
 };
+
 
 export function FounderCreation() {
   const setScreen = useGame((s) => s.setScreen);
@@ -49,6 +57,7 @@ export function FounderCreation() {
   const [background, setBackground] = useState<Background>("rancher");
   const [traits, setTraits] = useState<Trait[]>(["Brave", "Principled", "Traditional"]);
   const [values, setValues] = useState<Value[]>(["Family", "Community"]);
+  const [companions, setCompanions] = useState<CompanionsChoice>("alone");
 
   const firstNames = useMemo(() => (gender === "m" ? FIRST_NAMES_M : FIRST_NAMES_F), [gender]);
 
@@ -68,11 +77,12 @@ export function FounderCreation() {
     2: !!background,
     3: traits.length === 3,
     4: values.length === 2,
+    5: !!companions,
   };
 
   function next() {
     if (!stepValid[step]) return;
-    if (step < 4) setStep(step + 1);
+    if (step < 5) setStep(step + 1);
     else begin();
   }
   function back() {
@@ -80,9 +90,10 @@ export function FounderCreation() {
     else setStep(step - 1);
   }
   function begin() {
-    if (!stepValid[4]) return;
-    newGame(ranchName, { firstName, surname, gender, background, traits, values });
+    if (!stepValid[5]) return;
+    newGame(ranchName, { firstName, surname, gender, background, traits, values, companions });
   }
+
 
   const t = STEP_TITLES[step];
 
@@ -135,7 +146,7 @@ export function FounderCreation() {
         </div>
 
         <div className="ranch-label text-[9px] sm:text-[10px] text-dust-light shrink-0">
-          {step}<span className="opacity-50">/4</span>
+          {step}<span className="opacity-50">/5</span>
         </div>
       </header>
 
@@ -192,6 +203,14 @@ export function FounderCreation() {
                   founder={{ firstName, surname, ranchName, background, traits }}
                 />
               )}
+              {step === 5 && (
+                <StepCompanions
+                  companions={companions}
+                  setCompanions={setCompanions}
+                  founder={{ firstName, surname }}
+                />
+              )}
+
             </motion.div>
           </AnimatePresence>
         </div>
@@ -211,7 +230,7 @@ export function FounderCreation() {
             disabled={!stepValid[step]}
             className="btn-ranch btn-ranch-primary flex-1 sm:flex-none"
           >
-            {step < 4 ? "Continue" : "Walk onto the porch"}
+            {step < 5 ? "Continue" : "Walk onto the porch"}
           </button>
         </div>
       </footer>
@@ -425,6 +444,80 @@ function StepValues({
           </div>
         </dl>
       </div>
+    </section>
+  );
+}
+
+/* ───────── Step 5 ───────── */
+const COMPANION_OPTIONS: { id: CompanionsChoice; name: string; blurb: string; party: string }[] = [
+  {
+    id: "alone",
+    name: "Alone",
+    blurb: "Just you, a bag, and a name. The harder road, but every choice ahead is wholly yours.",
+    party: "1 settler",
+  },
+  {
+    id: "spouse",
+    name: "With a Spouse",
+    blurb: "You arrive with the one you swore to. Two hands at the porch instead of one.",
+    party: "2 settlers — founder + spouse",
+  },
+  {
+    id: "family",
+    name: "With a Family",
+    blurb: "Spouse and a child or two underfoot. More mouths to feed — and more reasons to keep going.",
+    party: "3–4 settlers — founder, spouse, children",
+  },
+  {
+    id: "friends",
+    name: "With Friends",
+    blurb: "Two companions from the road. Not blood, but bound by what you all left behind.",
+    party: "3 settlers — founder + 2 friends",
+  },
+];
+
+function StepCompanions({
+  companions,
+  setCompanions,
+  founder,
+}: {
+  companions: CompanionsChoice;
+  setCompanions: (c: CompanionsChoice) => void;
+  founder: { firstName: string; surname: string };
+}) {
+  const current = COMPANION_OPTIONS.find((c) => c.id === companions);
+  return (
+    <section className="space-y-4">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3">
+        {COMPANION_OPTIONS.map((c) => (
+          <button
+            key={c.id}
+            onClick={() => setCompanions(c.id)}
+            className={`btn-ranch text-left !py-3 ${companions === c.id ? "btn-ranch-primary" : ""}`}
+          >
+            {c.name}
+          </button>
+        ))}
+      </div>
+      {current && (
+        <div className="parchment-panel corner-brackets p-5 sm:p-6 space-y-2">
+          <p className="ranch-label">{current.name}</p>
+          <p className="ranch-handwritten text-base text-parchment-dark leading-relaxed">
+            {current.blurb}
+          </p>
+          <p className="ranch-data text-[11px] text-amber/80 pt-1">{current.party}</p>
+          <p className="ranch-handwritten text-sm text-dust-light pt-1">
+            {founder.firstName} {founder.surname}
+            {current.id === "alone"
+              ? " arrives at the porch with nothing but a name."
+              : current.id === "spouse"
+                ? " arrives at the porch, a spouse at their side."
+                : current.id === "family"
+                  ? " arrives at the porch with a spouse and children."
+                  : " arrives at the porch with two friends from the road."}
+          </p>
+        </div>
+      )}
     </section>
   );
 }
