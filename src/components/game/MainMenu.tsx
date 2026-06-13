@@ -60,16 +60,6 @@ export function MainMenu() {
         <CornerMark className="bottom-0 left-0 -rotate-90" />
       </div>
 
-      {/* Top chrome */}
-      <motion.div
-        initial={{ opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1.2, delay: 0.6 }}
-        className="absolute top-0 left-0 right-0 flex items-center justify-between px-10 md:px-16 py-7 z-10"
-      >
-        <span className="ranch-label text-[color:var(--amber)]/75">Lovable Studios</span>
-        <span className="ranch-label text-[color:var(--amber)]/75">MMXXVI</span>
-      </motion.div>
 
       {/* Content — bottom-left anchored */}
       <div className="absolute inset-0 z-10 flex items-end px-8 md:px-20 pb-20 md:pb-24">
