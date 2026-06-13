@@ -68,15 +68,21 @@ function nearestStockpile(s: Survivor, buildings: Building[]): Building | null {
 }
 
 function nearestUnfinished(s: Survivor, buildings: Building[]): Building | null {
-  let best: Building | null = null;
-  let bestD = Infinity;
+  // Completion-priority boost: prefer sites at >=75% progress so nearly-done
+  // buildings get finished before new ones are started.
+  let bestNear: Building | null = null; let bestNearD = Infinity;
+  let bestFar: Building | null = null; let bestFarD = Infinity;
   for (const b of buildings) {
     if (b.builtProgress >= 1) continue;
     const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
     const d = dist(s.x, s.y, cx, cy);
-    if (d < bestD) { bestD = d; best = b; }
+    if (b.builtProgress >= 0.75) {
+      if (d < bestNearD) { bestNearD = d; bestNear = b; }
+    } else {
+      if (d < bestFarD) { bestFarD = d; bestFar = b; }
+    }
   }
-  return best;
+  return bestNear ?? bestFar;
 }
 
 function nearestWater(s: Survivor, tiles: Tile[], mapW: number): Tile | null {
@@ -209,6 +215,11 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
     return;
   }
 
+  // ── Construction commitment: assigned builders stay focused on their site,
+  //    only interrupted by *critical* needs, and resume after eating/drinking.
+  if (handleConstructionCommitment(s, dt, deps)) return;
+
+
   if (s.needs.water < 28) {
     const w = nearestWater(s, deps.tiles, deps.mapW);
     if (w) {
@@ -300,21 +311,31 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
       normalizeConstructionBuilding(b);
       const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
       s.workTarget = { kind: "building", id: b.id };
+      const isAssigned = assigned?.id === b.id;
+      // Establish a long-running commitment for the assigned builder so they
+      // stop thrashing between tasks each tick.
+      if (isAssigned && (!s.commitment || s.commitment.buildingId !== b.id)) {
+        s.commitment = { kind: "construction", buildingId: b.id, phase: "building", sinceTick: deps.tick };
+      }
       if (!hasConstructionResources(b)) {
         s.action = `Waiting on materials for the ${b.kind}.`;
         s.state = "idle";
         return;
       }
       if (dist(s.x, s.y, cx, cy) < 1.6) {
-        const isAssigned = assigned?.id === b.id;
         const isBuilder = s.occupation === "builder";
-        const skillMult = 1 + (s.skills.build ?? 1) * 0.18; // 0..~6.4x at skill 30
-        const roleMult = isAssigned ? 1.25 : isBuilder ? 1.0 : 0.7;
-        const work = skillMult * roleMult * (dt / 24);
+        const nearDone = b.builtProgress >= 0.75;
+        const skillMult = 1 + (s.skills.build ?? 1) * 0.18;
+        // Assigned = 100% priority. Helpers = lower. Near-completion bonus
+        // makes everyone push to finish the last quarter.
+        const roleMult = isAssigned ? 1.25 : isBuilder ? 0.85 : 0.6;
+        const finishMult = nearDone ? 1.4 : 1.0;
+        const work = skillMult * roleMult * finishMult * (dt / 24);
         applyConstructionWork(b, work, deps.tick);
         s.skills.build = Math.min(30, (s.skills.build ?? 1) + 0.003 * dt);
         s.state = "working";
-        s.action = isAssigned ? `Working their site — the ${b.kind}.` : `Lending hands at the ${b.kind}.`;
+        s.action = isAssigned ? `Building — ${b.kind}.` : `Lending hands at the ${b.kind}.`;
+        if (b.builtProgress >= 1 && s.commitment?.buildingId === b.id) s.commitment = null;
       } else {
         setTarget(s, cx, cy);
         s.action = `Walking to the ${b.kind} build site.`;
@@ -322,6 +343,7 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
       return;
     }
   }
+
 
   {
     // Leaders do not chop wood themselves — they walk, talk, and tend the line.
@@ -408,6 +430,133 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
     return;
   }
 }
+
+// ── Construction commitment handler ──────────────────────────────
+// Returns true if the commitment fully handled this tick (caller should return).
+// Assigned builders only break off for *critical* food/water/rest, then
+// automatically return to their site. This prevents per-tick task thrashing.
+const CRIT_WATER = 15;
+const CRIT_FOOD  = 18;
+const CRIT_REST  = 10;
+const RESUME_WATER = 55;
+const RESUME_FOOD  = 55;
+const RESUME_REST  = 45;
+
+function handleConstructionCommitment(s: Survivor, dt: number, deps: SimDeps): boolean {
+  const c = s.commitment;
+  if (!c || c.kind !== "construction") return false;
+  const b = deps.buildings.find(x => x.id === c.buildingId);
+  if (!b || b.builtProgress >= 1 || b.assignedBuilderId !== s.id) {
+    s.commitment = null;
+    return false;
+  }
+  normalizeConstructionBuilding(b);
+  const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+
+  // ── Critical needs override (only critical, not normal) ──
+  if (c.phase === "building" || c.phase === "returning") {
+    if (s.needs.water < CRIT_WATER) {
+      c.phase = "going_to_drink"; c.sinceTick = deps.tick;
+    } else if (s.needs.food < CRIT_FOOD && deps.resources.food > 0) {
+      c.phase = "going_to_eat"; c.sinceTick = deps.tick;
+    } else if (s.needs.rest < CRIT_REST) {
+      c.phase = "resting"; c.sinceTick = deps.tick;
+    }
+  }
+
+  switch (c.phase) {
+    case "going_to_drink": {
+      const w = nearestWater(s, deps.tiles, deps.mapW);
+      if (!w) { c.phase = "building"; break; }
+      if (dist(s.x, s.y, w.x, w.y) < 1.2) {
+        c.phase = "drinking"; s.state = "drinking"; s.action = "Drinking.";
+      } else {
+        setTarget(s, w.x, w.y); s.action = "Going To Drink.";
+      }
+      return true;
+    }
+    case "drinking": {
+      s.needs.water = Math.min(100, s.needs.water + 80);
+      s.state = "drinking"; s.action = "Drinking.";
+      if (s.needs.water >= RESUME_WATER) { c.phase = "returning"; c.sinceTick = deps.tick; }
+      return true;
+    }
+    case "going_to_eat": {
+      const sp = nearestStockpile(s, deps.buildings);
+      if (!sp || deps.resources.food <= 0) { c.phase = "building"; break; }
+      const ex = sp.x + sp.w / 2, ey = sp.y + sp.h / 2;
+      if (dist(s.x, s.y, ex, ey) < 1.5) {
+        c.phase = "eating"; s.state = "eating"; s.action = "Eating.";
+      } else {
+        setTarget(s, ex, ey); s.action = "Going To Eat.";
+      }
+      return true;
+    }
+    case "eating": {
+      const eat = Math.min(deps.resources.food, 6);
+      deps.resources.food -= eat;
+      s.needs.food = Math.min(100, s.needs.food + eat * 12);
+      s.state = "eating"; s.action = "Eating.";
+      if (s.needs.food >= RESUME_FOOD || deps.resources.food <= 0) {
+        c.phase = "returning"; c.sinceTick = deps.tick;
+      }
+      return true;
+    }
+    case "resting": {
+      const sh = nearestShelter(s, deps.buildings);
+      if (sh) {
+        const rx = sh.x + sh.w / 2, ry = sh.y + sh.h / 2;
+        if (dist(s.x, s.y, rx, ry) < 1.0) {
+          s.needs.rest = Math.min(100, s.needs.rest + 4);
+          s.state = "resting"; s.action = "Resting.";
+        } else {
+          setTarget(s, rx, ry); s.action = "Going To Rest."; return true;
+        }
+      } else {
+        s.needs.rest = Math.min(100, s.needs.rest + 2);
+        s.state = "resting"; s.action = "Sleeping on the ground.";
+      }
+      if (s.needs.rest >= RESUME_REST) { c.phase = "returning"; c.sinceTick = deps.tick; }
+      return true;
+    }
+    case "returning": {
+      if (dist(s.x, s.y, cx, cy) >= 1.6) {
+        setTarget(s, cx, cy); s.action = "Returning To Construction.";
+        return true;
+      }
+      c.phase = "building";
+      return handleBuildPhase(s, dt, deps, b, cx, cy);
+    }
+    case "building": {
+      return handleBuildPhase(s, dt, deps, b, cx, cy);
+    }
+  }
+  return false;
+}
+
+function handleBuildPhase(s: Survivor, dt: number, deps: SimDeps, b: Building, cx: number, cy: number): boolean {
+  if (!hasConstructionResources(b)) {
+    s.action = `Waiting on materials for the ${b.kind}.`;
+    s.state = "idle";
+    return true;
+  }
+  s.workTarget = { kind: "building", id: b.id };
+  if (dist(s.x, s.y, cx, cy) >= 1.6) {
+    setTarget(s, cx, cy); s.action = `Walking to the ${b.kind} build site.`;
+    return true;
+  }
+  const skillMult = 1 + (s.skills.build ?? 1) * 0.18;
+  const finishMult = b.builtProgress >= 0.75 ? 1.4 : 1.0;
+  const work = skillMult * 1.25 * finishMult * (dt / 24);
+  applyConstructionWork(b, work, deps.tick);
+  s.skills.build = Math.min(30, (s.skills.build ?? 1) + 0.003 * dt);
+  s.state = "working";
+  s.action = "Building.";
+  if (b.builtProgress >= 1) s.commitment = null;
+  return true;
+}
+
+
 
 function getBuildEffort(b: Building): number {
   if (b.builtProgress >= 1) return 1;
