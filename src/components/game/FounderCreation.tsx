@@ -447,3 +447,77 @@ function StepValues({
     </section>
   );
 }
+
+/* ───────── Step 5 ───────── */
+const COMPANION_OPTIONS: { id: CompanionsChoice; name: string; blurb: string; party: string }[] = [
+  {
+    id: "alone",
+    name: "Alone",
+    blurb: "Just you, a bag, and a name. The harder road, but every choice ahead is wholly yours.",
+    party: "1 settler",
+  },
+  {
+    id: "spouse",
+    name: "With a Spouse",
+    blurb: "You arrive with the one you swore to. Two hands at the porch instead of one.",
+    party: "2 settlers — founder + spouse",
+  },
+  {
+    id: "family",
+    name: "With a Family",
+    blurb: "Spouse and a child or two underfoot. More mouths to feed — and more reasons to keep going.",
+    party: "3–4 settlers — founder, spouse, children",
+  },
+  {
+    id: "friends",
+    name: "With Friends",
+    blurb: "Two companions from the road. Not blood, but bound by what you all left behind.",
+    party: "3 settlers — founder + 2 friends",
+  },
+];
+
+function StepCompanions({
+  companions,
+  setCompanions,
+  founder,
+}: {
+  companions: CompanionsChoice;
+  setCompanions: (c: CompanionsChoice) => void;
+  founder: { firstName: string; surname: string };
+}) {
+  const current = COMPANION_OPTIONS.find((c) => c.id === companions);
+  return (
+    <section className="space-y-4">
+      <div className="grid grid-cols-2 gap-2 sm:gap-3">
+        {COMPANION_OPTIONS.map((c) => (
+          <button
+            key={c.id}
+            onClick={() => setCompanions(c.id)}
+            className={`btn-ranch text-left !py-3 ${companions === c.id ? "btn-ranch-primary" : ""}`}
+          >
+            {c.name}
+          </button>
+        ))}
+      </div>
+      {current && (
+        <div className="parchment-panel corner-brackets p-5 sm:p-6 space-y-2">
+          <p className="ranch-label">{current.name}</p>
+          <p className="ranch-handwritten text-base text-parchment-dark leading-relaxed">
+            {current.blurb}
+          </p>
+          <p className="ranch-data text-[11px] text-amber/80 pt-1">{current.party}</p>
+          <p className="ranch-handwritten text-sm text-dust-light pt-1">
+            {founder.firstName} {founder.surname}
+            {current.id === "alone"
+              ? " arrives at the porch with nothing but a name."
+              : current.id === "spouse"
+                ? " arrives at the porch, a spouse at their side."
+                : current.id === "family"
+                  ? " arrives at the porch with a spouse and children."
+                  : " arrives at the porch with two friends from the road."}
+          </p>
+        </div>
+      )}
+    </section>
+  );
+}
