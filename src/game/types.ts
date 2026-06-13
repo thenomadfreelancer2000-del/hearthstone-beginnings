@@ -74,6 +74,12 @@ export interface Memory {
   emotion: "joy" | "fear" | "grief" | "pride" | "anger" | "trust" | "betrayal" | "love";
   weight: number;
   aboutSurvivorId?: ID | null;
+  /** Optional categorical kind: "founder-accepted", "founder-rejected", "spouse-died", etc. */
+  kind?: string;
+  /** Weight drained per day. Defaults to 2 when absent. */
+  decayRate?: number;
+  /** Minimum weight a memory can decay to. Defaults to 0. */
+  floor?: number;
 }
 
 export type AIState =
