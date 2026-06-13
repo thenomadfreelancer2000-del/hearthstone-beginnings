@@ -6,7 +6,7 @@ import type {
 import {
   DAYS_PER_SEASON, SEASONS, TICKS_PER_DAY,
   decayNeeds, tickSurvivor, touchRelationship, markAsSpouses, markAsKin,
-  findRelationship,
+  findRelationship, decayMemoriesDaily,
 } from "./ai";
 import { normalizeConstructionBuilding, recoverStalledConstruction } from "./construction";
 import { CHRONICLE_OPENERS, FERTILE_MAX, FERTILE_MIN, NATURAL_DEATH_AGE } from "../data/content";
@@ -79,14 +79,18 @@ export function emitMemory(
   emotion: Memory["emotion"],
   weight: number,
   aboutId?: string,
+  opts?: { kind?: string; decayRate?: number; floor?: number },
 ) {
   s.memories.unshift({
     id: nanoid(6),
     tick: 0,
     text, emotion, weight,
     aboutSurvivorId: aboutId ?? null,
+    kind: opts?.kind,
+    decayRate: opts?.decayRate,
+    floor: opts?.floor,
   });
-  if (s.memories.length > 24) s.memories.pop();
+  if (s.memories.length > 32) s.memories.pop();
 }
 
 function recomputeStats(eng: Engine) {
