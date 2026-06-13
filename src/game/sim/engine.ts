@@ -477,3 +477,64 @@ function processBirths(eng: Engine, rng: () => number) {
 function cap(s: string) {
   return s[0].toUpperCase() + s.slice(1);
 }
+
+// ── Farms ──────────────────────────────────────────────────────
+import { CROPS, expectedYield, growthRateMultiplier, isCropId, type CropId } from "../data/crops";
+
+function processFarms(eng: Engine) {
+  for (const b of eng.buildings) {
+    if (b.kind !== "farm-plot" || !b.farm || b.builtProgress < 1) continue;
+    const farm = b.farm;
+    const cid = isCropId(farm.cropId) ? farm.cropId : "corn";
+    const crop = CROPS[cid as CropId];
+    const farmer = farm.assignedFarmerId
+      ? eng.survivors.find(s => s.id === farm.assignedFarmerId && s.health > 0)
+      : null;
+    const skill = farmer?.skills.farm ?? 0;
+    const rate = growthRateMultiplier(skill);
+
+    // Empty → planted (someone needs to be assigned; otherwise wait)
+    if (farm.stage === "empty") {
+      if (farmer) {
+        farm.stage = "growing";
+        farm.growth = 0;
+        farm.plantedTick = eng.time.tick;
+        farm.plantedYear = eng.time.year;
+      }
+      continue;
+    }
+
+    if (farm.stage === "growing") {
+      farm.growth = Math.min(1, farm.growth + rate / Math.max(1, crop.growthDays));
+      if (farm.growth >= 1) {
+        farm.stage = "mature";
+      }
+      continue;
+    }
+
+    if (farm.stage === "mature") {
+      if (!farmer) continue; // wait for someone to harvest
+      // Harvest!
+      const base = expectedYield(crop, skill);
+      const variance = 0.85 + Math.random() * 0.3;
+      const harvested = Math.max(1, Math.round(base * variance));
+      eng.resources.food += harvested;
+      farm.lastYield = harvested;
+      farm.lastHarvestYear = eng.time.year;
+      farm.lastHarvestDay = eng.time.day;
+      farm.totalHarvests = (farm.totalHarvests ?? 0) + 1;
+      farm.stage = "empty";
+      farm.growth = 0;
+      farm.plantedTick = null;
+      // Skill gain for the farmer
+      farmer.skills.farm = Math.min(30, (farmer.skills.farm ?? 1) + 0.8);
+      farmer.needs.purpose = Math.min(100, farmer.needs.purpose + 12);
+      addChronicle(
+        eng, "milestone",
+        `${farmer.name} brings in ${crop.name}`,
+        `${harvested} food gathered from the ${crop.name.toLowerCase()} plot.`,
+        [farmer.id],
+      );
+    }
+  }
+}
