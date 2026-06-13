@@ -548,6 +548,21 @@ function processBirths(eng: Engine, rng: () => number) {
     }
     fam.prestige = Math.min(200, fam.prestige + 2);
     eng.stats.totalBorn += 1;
+    // Parents' core memory
+    emitMem(eng, mother, `Our child ${child.name} was born.`, "joy", 90, child.id,
+      { kind: "child-born", floor: 50, decayRate: 0.15 });
+    emitMem(eng, father, `Our child ${child.name} was born.`, "joy", 90, child.id,
+      { kind: "child-born", floor: 50, decayRate: 0.15 });
+    mother.mood = Math.min(100, mother.mood + 20);
+    father.mood = Math.min(100, father.mood + 15);
+    // Family lore — grandparents remember too.
+    for (const gp of [...mother.parentIds, ...father.parentIds]) {
+      const g = eng.survivors.find(x => x.id === gp);
+      if (g && g.health > 0) {
+        emitMem(eng, g, `${child.name} was born to ${mother.name} and ${father.name}. Our line lengthens.`,
+          "pride", 55, child.id, { kind: "grandchild-born", floor: 20, decayRate: 0.3 });
+      }
+    }
     addChronicle(
       eng, "birth",
       `A child is born to ${mother.name} and ${father.name}`,
