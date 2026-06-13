@@ -93,6 +93,8 @@ interface GameState {
   assignFarmer: (buildingId: ID, farmerId: ID | null) => void;
   setFarmCrop: (buildingId: ID, cropId: string) => void;
   closeFarmSetup: () => void;
+  assignWorker: (buildingId: ID, survivorId: ID | null) => void;
+  assignToNode: (nodeId: ID, survivorId: ID | null) => void;
   // Housing
   assignSurvivorToHome: (survivorId: ID, buildingId: ID | null) => void;
   setHomeReserved: (buildingId: ID, reserved: boolean) => void;
@@ -395,6 +397,45 @@ export const useGame = create<GameState>((set, get) => ({
   },
 
   closeFarmSetup: () => set({ pendingFarmSetup: null }),
+
+  assignWorker: (buildingId, survivorId) => {
+    const st = get();
+    const b = st.buildings.find(x => x.id === buildingId);
+    if (!b) return;
+    const occMap: Partial<Record<BuildingKind, Survivor["occupation"]>> = {
+      "workbench": "builder",
+      "foraging-camp": "forager",
+      "well": "hauler",
+      "water-collector": "hauler",
+      "stockpile": "hauler",
+      "watchtower": "leader",
+    };
+    const occ = occMap[b.kind];
+    set({
+      buildings: st.buildings.map(x =>
+        x.id === buildingId ? { ...x, assignedWorkerId: survivorId } : x
+      ),
+      survivors: survivorId && occ
+        ? st.survivors.map(s => s.id === survivorId ? { ...s, occupation: occ } : s)
+        : st.survivors,
+    });
+  },
+
+  assignToNode: (nodeId, survivorId) => {
+    const st = get();
+    const node = st.nodes.find(n => n.id === nodeId);
+    if (!node || !survivorId) return;
+    const occ: Survivor["occupation"] =
+      node.kind === "trees" ? "woodcutter" :
+      node.kind === "rocks" ? "miner" :
+      node.kind === "berries" ? "forager" : "hauler";
+    set({
+      survivors: st.survivors.map(s => s.id === survivorId ? { ...s, occupation: occ } : s),
+    });
+    const who = st.survivors.find(s => s.id === survivorId);
+    if (who) toast.success(`${who.name} sent to ${node.kind === "trees" ? "chop wood" : node.kind}`);
+  },
+
 
   assignSurvivorToHome: (survivorId, buildingId) => {
     const st = get();

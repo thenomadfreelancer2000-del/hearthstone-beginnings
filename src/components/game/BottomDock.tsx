@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { useGame } from "@/game/store";
 import { BUILDABLE_KINDS, BUILDINGS } from "@/game/data/content";
 
@@ -79,22 +80,35 @@ function BuildMenu() {
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
         {kinds.map((k) => {
           const def = BUILDINGS[k];
-          const affordable = Object.entries(def.cost).every(
-            ([r, amt]) => (resources as any)[r] >= (amt ?? 0),
-          );
+          const missing = Object.entries(def.cost)
+            .map(([r, amt]) => [r, Math.max(0, (amt ?? 0) - ((resources as any)[r] ?? 0))] as const)
+            .filter(([, m]) => m > 0);
+          const affordable = missing.length === 0;
           return (
             <button
               key={k}
-              disabled={!affordable}
-              onClick={() => startBuild(k)}
-              className={`btn-ranch text-left p-2 flex flex-col ${buildPlacement?.kind === k ? "btn-ranch-primary" : ""}`}
-              title={def.blurb}
+              onClick={() => {
+                if (!affordable) {
+                  toast.error(
+                    `Can't build ${def.name} — missing ${missing.map(([r, m]) => `${m} ${r}`).join(", ")}`,
+                  );
+                  return;
+                }
+                startBuild(k);
+              }}
+              className={`btn-ranch text-left p-2 flex flex-col ${buildPlacement?.kind === k ? "btn-ranch-primary" : ""} ${!affordable ? "opacity-60" : ""}`}
+              title={affordable ? def.blurb : `Missing: ${missing.map(([r, m]) => `${m} ${r}`).join(", ")}`}
             >
               <span className="text-[11px]">{def.name}</span>
               <span className="ranch-handwritten text-[10px] text-dust-light mt-0.5 line-clamp-2">{def.blurb}</span>
               <span className="ranch-data text-[10px] mt-1 normal-case tracking-normal text-dust">
                 {Object.entries(def.cost).map(([r, a]) => `${a}${r[0].toUpperCase()}`).join(" ") || "free"}
               </span>
+              {!affordable && (
+                <span className="ranch-data text-[10px] mt-0.5 text-danger normal-case tracking-normal">
+                  need {missing.map(([r, m]) => `${m}${r[0].toUpperCase()}`).join(" ")}
+                </span>
+              )}
             </button>
           );
         })}
