@@ -102,6 +102,11 @@ export function Inspector() {
           </>
         )}
 
+        {/* Housing */}
+        {!isDead && <SurvivorHousingPanel s={s} />}
+
+
+
         {!isDead && (
           <>
             <h4 className="ranch-label mt-5 mb-2">Needs</h4>
