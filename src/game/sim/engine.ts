@@ -342,7 +342,7 @@ function killSurvivor(eng: Engine, s: Survivor, cause: string) {
   if (s.spouseId) {
     const sp = eng.survivors.find(x => x.id === s.spouseId);
     if (sp && sp.health > 0) {
-      emitMemory(sp, `${s.name} died. The bed is cold.`, "grief", 100, s.id,
+      emitMem(eng, sp, `${s.name} died. The bed is cold.`, "grief", 100, s.id,
         { kind: "spouse-died", floor: 50, decayRate: 0.3 });
       sp.mood = Math.max(-100, sp.mood - 35);
     }
@@ -350,7 +350,7 @@ function killSurvivor(eng: Engine, s: Survivor, cause: string) {
   for (const pid of s.parentIds) {
     const p = eng.survivors.find(x => x.id === pid);
     if (p && p.health > 0) {
-      emitMemory(p, `Lost ${s.name}. A child should outlive their parents.`, "grief", 100, s.id,
+      emitMem(eng, p, `Lost ${s.name}. A child should outlive their parents.`, "grief", 100, s.id,
         { kind: "child-died", floor: 60, decayRate: 0.2 });
       p.mood = Math.max(-100, p.mood - 45);
     }
@@ -358,7 +358,7 @@ function killSurvivor(eng: Engine, s: Survivor, cause: string) {
   for (const cid of s.childrenIds) {
     const c = eng.survivors.find(x => x.id === cid);
     if (c && c.health > 0) {
-      emitMemory(c, `${s.name} is gone.`, "grief", 90, s.id,
+      emitMem(eng, c, `${s.name} is gone.`, "grief", 90, s.id,
         { kind: "parent-died", floor: 40, decayRate: 0.3 });
       c.mood = Math.max(-100, c.mood - 25);
     }
