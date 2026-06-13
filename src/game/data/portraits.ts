@@ -2,10 +2,18 @@ import m1 from "@/assets/portraits/m1.jpg";
 import m2 from "@/assets/portraits/m2.jpg";
 import m3 from "@/assets/portraits/m3.jpg";
 import m4 from "@/assets/portraits/m4.jpg";
+import m5 from "@/assets/portraits/m5.jpg";
+import m6 from "@/assets/portraits/m6.jpg";
+import m7 from "@/assets/portraits/m7.jpg";
+import m8 from "@/assets/portraits/m8.jpg";
 import f1 from "@/assets/portraits/f1.jpg";
 import f2 from "@/assets/portraits/f2.jpg";
 import f3 from "@/assets/portraits/f3.jpg";
 import f4 from "@/assets/portraits/f4.jpg";
+import f5 from "@/assets/portraits/f5.jpg";
+import f6 from "@/assets/portraits/f6.jpg";
+import f7 from "@/assets/portraits/f7.jpg";
+import f8 from "@/assets/portraits/f8.jpg";
 
 export type Ethnicity = "white" | "arab" | "black" | "chinese";
 
@@ -19,14 +27,24 @@ export interface PortraitDef {
 }
 
 export const PORTRAITS: PortraitDef[] = [
+  // Men — 2 of each ethnicity
   { id: "m1", gender: "m", ethnicity: "white",   url: m1, age: 28 },
-  { id: "f1", gender: "f", ethnicity: "white",   url: f1, age: 28 },
-  { id: "m2", gender: "m", ethnicity: "arab",    url: m2, age: 32 },
-  { id: "f2", gender: "f", ethnicity: "arab",    url: f2, age: 26 },
-  { id: "m3", gender: "m", ethnicity: "black",   url: m3, age: 34 },
-  { id: "f3", gender: "f", ethnicity: "black",   url: f3, age: 29 },
-  { id: "m4", gender: "m", ethnicity: "chinese", url: m4, age: 28 },
-  { id: "f4", gender: "f", ethnicity: "chinese", url: f4, age: 25 },
+  { id: "m2", gender: "m", ethnicity: "white",   url: m2, age: 35 },
+  { id: "m3", gender: "m", ethnicity: "arab",    url: m3, age: 30 },
+  { id: "m4", gender: "m", ethnicity: "arab",    url: m4, age: 38 },
+  { id: "m5", gender: "m", ethnicity: "black",   url: m5, age: 29 },
+  { id: "m6", gender: "m", ethnicity: "black",   url: m6, age: 36 },
+  { id: "m7", gender: "m", ethnicity: "chinese", url: m7, age: 27 },
+  { id: "m8", gender: "m", ethnicity: "chinese", url: m8, age: 34 },
+  // Women — 2 of each ethnicity
+  { id: "f1", gender: "f", ethnicity: "white",   url: f1, age: 26 },
+  { id: "f2", gender: "f", ethnicity: "white",   url: f2, age: 32 },
+  { id: "f3", gender: "f", ethnicity: "arab",    url: f3, age: 27 },
+  { id: "f4", gender: "f", ethnicity: "arab",    url: f4, age: 33 },
+  { id: "f5", gender: "f", ethnicity: "black",   url: f5, age: 28 },
+  { id: "f6", gender: "f", ethnicity: "black",   url: f6, age: 34 },
+  { id: "f7", gender: "f", ethnicity: "chinese", url: f7, age: 25 },
+  { id: "f8", gender: "f", ethnicity: "chinese", url: f8, age: 30 },
 ];
 
 export function getPortrait(id: string | null | undefined): PortraitDef | null {
