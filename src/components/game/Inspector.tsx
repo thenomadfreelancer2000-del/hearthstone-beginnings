@@ -110,16 +110,18 @@ export function Inspector() {
         {!isDead && (
           <>
             <h4 className="ranch-label mt-5 mb-2">Needs</h4>
-            <NeedBar label="Food" v={s.needs.food} />
-            <NeedBar label="Water" v={s.needs.water} />
-            <NeedBar label="Rest" v={s.needs.rest} />
-            <NeedBar label="Shelter" v={s.needs.shelter} />
-            <NeedBar label="Belonging" v={s.needs.belonging} />
-            <NeedBar label="Purpose" v={s.needs.purpose} />
-            <NeedBar label="Health" v={s.health} warn />
-            <DebugNeedsPanel s={s} />
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+              <NeedBar label="Food" v={s.needs.food} />
+              <NeedBar label="Water" v={s.needs.water} />
+              <NeedBar label="Rest" v={s.needs.rest} />
+              <NeedBar label="Shelter" v={s.needs.shelter} />
+              <NeedBar label="Belonging" v={s.needs.belonging} />
+              <NeedBar label="Purpose" v={s.needs.purpose} />
+              <NeedBar label="Health" v={s.health} warn />
+            </div>
           </>
         )}
+
 
         <h4 className="ranch-label mt-5 mb-2">Traits</h4>
         <div className="flex flex-wrap gap-1">
