@@ -136,33 +136,6 @@ export function MainMenu() {
             </button>
           </motion.div>
 
-          <motion.div
-            variants={{
-              hidden: { opacity: 0 },
-              show: { opacity: 1, transition: { duration: 1.4, delay: 0.6 } },
-            }}
-            className="mt-10 flex items-center gap-6 text-[color:var(--parchment-deep)]/70"
-          >
-            <span className="ranch-data text-[10px] tracking-[0.3em] uppercase">
-              Phase I
-            </span>
-            <span className="h-px w-12 bg-[color:var(--parchment-deep)]/30" />
-            <span className="ranch-display italic text-sm">
-              Founding &amp; First Light
-            </span>
-          </motion.div>
-        </motion.div>
-      </div>
-
-      {/* Bottom signature */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 2, delay: 1.6 }}
-        className="absolute bottom-6 right-10 md:right-16 ranch-data text-[10px] text-[color:var(--parchment-deep)]/50"
-      >
-        v0.1 — pre-production
-      </motion.div>
     </div>
   );
 }
