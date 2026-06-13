@@ -248,6 +248,8 @@ export interface Building {
   buildEffortTotal: number;
   completedYear?: number | null;
   assignedBuilderId?: ID | null;
+  /** Persistent worker assignment for completed production buildings. */
+  assignedWorkerId?: ID | null;
   resourcesDelivered?: Partial<Record<ResourceKind, number>>;
   lastWorkedTick?: number | null;
   stalledTicks?: number;
