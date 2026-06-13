@@ -5,9 +5,10 @@ import type {
   LifeStage, Building, Family, ID,
 } from "../types";
 import {
-  BACKGROUNDS, FIRST_NAMES_F, FIRST_NAMES_M, SURNAMES, TRAITS, BUILDINGS,
+  BACKGROUNDS, FIRST_NAMES_F, FIRST_NAMES_M, SURNAMES, BUILDINGS,
   LIFE_STAGE_THRESHOLDS,
 } from "../data/content";
+import { pickTraits } from "../data/traits";
 import { getPortrait, defaultPortraitFor } from "../data/portraits";
 
 export const MAP_W = 36;
@@ -240,7 +241,7 @@ export function makeWanderer(
   const surname = pick(rng, SURNAMES);
   const bgList = BACKGROUNDS.filter(b => b.id !== "native-born");
   const bg = pick(rng, bgList).id;
-  const traits = pickN(rng, TRAITS, 2 + Math.floor(rng() * 2));
+  const traits = pickTraits(rng, 2 + Math.floor(rng() * 3));
   const values = pickN(rng, ["Family", "Freedom", "Security", "Status", "Community"] as const, 2);
   const age = rangeInt(rng, 17, 44);
   return {
