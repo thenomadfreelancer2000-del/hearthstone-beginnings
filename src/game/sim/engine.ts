@@ -126,7 +126,7 @@ export function advance(eng: Engine, n: number, opts?: { onArrival?: (s: Survivo
 
     for (const s of eng.survivors) {
       if (s.health <= 0) continue;
-      decayNeeds(s, dt);
+      if (!eng.foundingPhase) decayNeeds(s, dt);
       tickSurvivor(s, dt, deps);
     }
 
