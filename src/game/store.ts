@@ -484,11 +484,25 @@ export const useGame = create<GameState>((set, get) => ({
         const prevKind = s.lastHomeKind ?? null;
         const prevQ = prevKind ? (BUILDINGS[prevKind]?.housingQuality ?? 0) : 0;
         const newQ = BUILDINGS[tgt.kind]?.housingQuality ?? 0;
+        const upgraded = newQ > prevQ;
+        const downgraded = newQ < prevQ && !!prevKind;
+        const newMemory = upgraded
+          ? { id: nanoid(6), tick: st.time.tick, year: st.time.year, season: st.time.season, day: st.time.day,
+              text: `The Founder gave us a ${BUILDINGS[tgt.kind]?.name ?? tgt.kind}.`,
+              emotion: "trust" as const, weight: 55, aboutSurvivorId: st.currentLeaderId,
+              kind: "housing-upgrade", floor: 12, decayRate: 0.4 }
+          : downgraded
+          ? { id: nanoid(6), tick: st.time.tick, year: st.time.year, season: st.time.season, day: st.time.day,
+              text: `Moved from our ${BUILDINGS[prevKind!]?.name ?? prevKind} to a ${BUILDINGS[tgt.kind]?.name ?? tgt.kind}.`,
+              emotion: "anger" as const, weight: 60, aboutSurvivorId: st.currentLeaderId,
+              kind: "housing-downgrade", floor: 20, decayRate: 0.3 }
+          : null;
         return {
           ...s,
           homeId: buildingId,
           lastHomeKind: tgt.kind,
-          housingGratitude: newQ > prevQ ? (s.housingGratitude ?? 0) + 10 : (s.housingGratitude ?? 0),
+          housingGratitude: upgraded ? (s.housingGratitude ?? 0) + 10 : (s.housingGratitude ?? 0),
+          memories: newMemory ? [newMemory, ...s.memories].slice(0, 64) : s.memories,
         };
       }
       return { ...s, homeId: null };
