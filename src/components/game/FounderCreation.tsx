@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGame } from "@/game/store";
 import { BACKGROUNDS, FIRST_NAMES_F, FIRST_NAMES_M, SURNAMES, TRAITS, TRAIT_BLURBS } from "@/game/data/content";
+import { PORTRAITS, defaultPortraitFor } from "@/game/data/portraits";
 import type { Background, Trait } from "@/game/types";
 import type { CompanionsChoice } from "@/game/sim/world";
 
@@ -58,6 +59,7 @@ export function FounderCreation() {
   const [traits, setTraits] = useState<Trait[]>(["Brave", "Principled", "Traditional"]);
   const [values, setValues] = useState<Value[]>(["Family", "Community"]);
   const [companions, setCompanions] = useState<CompanionsChoice>("alone");
+  const [portraitId, setPortraitId] = useState<string>(defaultPortraitFor("m"));
 
   const firstNames = useMemo(() => (gender === "m" ? FIRST_NAMES_M : FIRST_NAMES_F), [gender]);
 
@@ -91,7 +93,13 @@ export function FounderCreation() {
   }
   function begin() {
     if (!stepValid[5]) return;
-    newGame(ranchName, { firstName, surname, gender, background, traits, values, companions });
+    newGame(ranchName, { firstName, surname, gender, background, traits, values, companions, portraitId });
+  }
+
+  function handleSetGender(g: "m" | "f") {
+    setGender(g);
+    const current = PORTRAITS.find((p) => p.id === portraitId);
+    if (!current || current.gender !== g) setPortraitId(defaultPortraitFor(g));
   }
 
 
@@ -180,7 +188,7 @@ export function FounderCreation() {
               {step === 1 && (
                 <StepIdentity
                   gender={gender}
-                  setGender={setGender}
+                  setGender={handleSetGender}
                   firstName={firstName}
                   setFirstName={setFirstName}
                   surname={surname}
@@ -188,6 +196,8 @@ export function FounderCreation() {
                   ranchName={ranchName}
                   setRanchName={setRanchName}
                   firstNames={firstNames}
+                  portraitId={portraitId}
+                  setPortraitId={setPortraitId}
                 />
               )}
               {step === 2 && (
@@ -249,8 +259,11 @@ function StepIdentity(props: {
   ranchName: string;
   setRanchName: (s: string) => void;
   firstNames: readonly string[];
+  portraitId: string;
+  setPortraitId: (id: string) => void;
 }) {
-  const { gender, setGender, firstName, setFirstName, surname, setSurname, ranchName, setRanchName, firstNames } = props;
+  const { gender, setGender, firstName, setFirstName, surname, setSurname, ranchName, setRanchName, firstNames, portraitId, setPortraitId } = props;
+  const availablePortraits = PORTRAITS.filter((p) => p.gender === gender);
   return (
     <section className="parchment-panel corner-brackets p-5 sm:p-7">
       <div className="grid sm:grid-cols-2 gap-4 sm:gap-5">
@@ -265,6 +278,35 @@ function StepIdentity(props: {
             </button>
           ))}
         </div>
+
+        <div className="sm:col-span-2">
+          <label className="ranch-label text-[9px] block mb-2">Face</label>
+          <div className="grid grid-cols-4 gap-2">
+            {availablePortraits.map((p) => {
+              const active = p.id === portraitId;
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => setPortraitId(p.id)}
+                  className={`relative aspect-square overflow-hidden border-2 transition ${
+                    active ? "border-amber shadow-[0_0_0_2px_rgba(201,161,74,0.25)]" : "border-amber/20 hover:border-amber/60"
+                  }`}
+                  type="button"
+                >
+                  <img
+                    src={p.url}
+                    alt="Portrait option"
+                    loading="lazy"
+                    width={128}
+                    height={128}
+                    className="w-full h-full object-cover"
+                  />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         <Field label="First Name">
           <select
             value={firstName}
