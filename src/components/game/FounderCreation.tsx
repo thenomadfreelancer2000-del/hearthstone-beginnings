@@ -203,6 +203,14 @@ export function FounderCreation() {
                   founder={{ firstName, surname, ranchName, background, traits }}
                 />
               )}
+              {step === 5 && (
+                <StepCompanions
+                  companions={companions}
+                  setCompanions={setCompanions}
+                  founder={{ firstName, surname }}
+                />
+              )}
+
             </motion.div>
           </AnimatePresence>
         </div>
