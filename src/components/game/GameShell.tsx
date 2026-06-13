@@ -77,10 +77,24 @@ export function GameShell() {
       <FarmSetupModal />
       <Toaster
         position={isMobile ? "top-center" : "bottom-right"}
+        theme="dark"
         toastOptions={{
+          unstyled: true,
           classNames: {
-            toast: "bg-coal text-parchment border border-amber/40",
-            description: "text-dust-light",
+            toast:
+              "parchment-panel corner-brackets w-full flex items-start gap-3 p-4 pr-5 ranch-body text-parchment shadow-[0_12px_40px_rgba(0,0,0,0.6)]",
+            title: "ranch-display text-base leading-snug text-parchment",
+            description: "ranch-handwritten text-sm text-dust-light mt-1",
+            icon: "text-amber mt-0.5",
+            success: "border-l-2 border-l-success",
+            error: "border-l-2 border-l-danger",
+            warning: "border-l-2 border-l-warning",
+            info: "border-l-2 border-l-amber",
+            default: "border-l-2 border-l-amber/60",
+            actionButton: "btn-ranch btn-ranch-primary !py-1.5 !px-3 ml-auto",
+            cancelButton: "btn-ranch btn-ranch-ghost !py-1.5 !px-3",
+            closeButton:
+              "!bg-coal !border !border-amber/40 !text-amber hover:!text-amber-light",
           },
         }}
       />
