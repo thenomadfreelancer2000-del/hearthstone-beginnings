@@ -76,23 +76,25 @@ export function GameShell() {
       <AssignBuilderModal />
       <FarmSetupModal />
       <Toaster
-        position={isMobile ? "top-center" : "bottom-right"}
+        position="top-center"
         theme="dark"
+        offset={64}
+        mobileOffset={56}
         toastOptions={{
           unstyled: true,
           classNames: {
             toast:
-              "parchment-panel corner-brackets w-full flex items-start gap-3 p-4 pr-5 ranch-body text-parchment shadow-[0_12px_40px_rgba(0,0,0,0.6)]",
-            title: "ranch-display text-base leading-snug text-parchment",
-            description: "ranch-handwritten text-sm text-dust-light mt-1",
-            icon: "text-amber mt-0.5",
+              "parchment-panel corner-brackets w-auto max-w-[320px] mx-auto flex items-start gap-2 px-3 py-2 ranch-body text-parchment shadow-[0_8px_24px_rgba(0,0,0,0.5)]",
+            title: "ranch-display text-[13px] leading-tight text-parchment",
+            description: "ranch-handwritten text-[11px] text-dust-light mt-0.5",
+            icon: "text-amber mt-0.5 scale-75",
             success: "border-l-2 border-l-success",
             error: "border-l-2 border-l-danger",
             warning: "border-l-2 border-l-warning",
             info: "border-l-2 border-l-amber",
             default: "border-l-2 border-l-amber/60",
-            actionButton: "btn-ranch btn-ranch-primary !py-1.5 !px-3 ml-auto",
-            cancelButton: "btn-ranch btn-ranch-ghost !py-1.5 !px-3",
+            actionButton: "btn-ranch btn-ranch-primary !py-1 !px-2 !text-[10px] ml-auto",
+            cancelButton: "btn-ranch btn-ranch-ghost !py-1 !px-2 !text-[10px]",
             closeButton:
               "!bg-coal !border !border-amber/40 !text-amber hover:!text-amber-light",
           },
