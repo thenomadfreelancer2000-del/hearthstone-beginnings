@@ -672,6 +672,7 @@ export const useGame = create<GameState>((set, get) => ({
       families: allFamilies,
       founderId: founder.id,
       currentLeaderId: founder.id,
+      preferredHeirId: null,
       chronicle: [
         {
           id: nanoid(8),
@@ -735,6 +736,7 @@ export const useGame = create<GameState>((set, get) => ({
       families: save.families,
       founderId: save.founderId,
       currentLeaderId: save.currentLeaderId,
+      preferredHeirId: save.preferredHeirId ?? null,
       chronicle: save.chronicle,
       stats: save.stats,
       selection: { kind: "none" },
