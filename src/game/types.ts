@@ -103,6 +103,14 @@ export interface Survivor {
   state: AIState;
   workTarget?: { kind: "node" | "building"; id: ID } | null;
   carrying?: { resource: ResourceKind; amount: number } | null;
+  // Long-running commitment (e.g. assigned construction). When set, the AI
+  // resists task-switching and resumes the commitment after critical needs.
+  commitment?: {
+    kind: "construction";
+    buildingId: ID;
+    phase: "building" | "going_to_eat" | "eating" | "going_to_drink" | "drinking" | "returning" | "resting";
+    sinceTick: number;
+  } | null;
   action: string;
 
   traits: Trait[];
