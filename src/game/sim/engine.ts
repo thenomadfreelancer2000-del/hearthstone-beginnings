@@ -551,60 +551,98 @@ function assignSpousesToShared(eng: Engine, a: Survivor, b: Survivor) {
 // ── Farms ──────────────────────────────────────────────────────
 import { CROPS, expectedYield, growthRateMultiplier, isCropId, type CropId } from "../data/crops";
 
+const SPOIL_DAYS = 5;
+
 function processFarms(eng: Engine) {
   for (const b of eng.buildings) {
     if (b.kind !== "farm-plot" || !b.farm || b.builtProgress < 1) continue;
     const farm = b.farm;
     const cid = isCropId(farm.cropId) ? farm.cropId : "corn";
     const crop = CROPS[cid as CropId];
-    const farmer = farm.assignedFarmerId
+
+    // The assigned farmer is only "effective" while their occupation is still
+    // farmer — if the player reassigned them elsewhere, the plot waits.
+    const assigned = farm.assignedFarmerId
       ? eng.survivors.find(s => s.id === farm.assignedFarmerId && s.health > 0)
       : null;
-    const skill = farmer?.skills.farm ?? 0;
+    const effectiveFarmer = assigned && assigned.occupation === "farmer" ? assigned : null;
+    const skill = effectiveFarmer?.skills.farm ?? 0;
     const rate = growthRateMultiplier(skill);
 
-    // Empty → planted (someone needs to be assigned; otherwise wait)
+    // Empty → planted (needs the assigned farmer actively working)
     if (farm.stage === "empty") {
-      if (farmer) {
+      if (effectiveFarmer) {
         farm.stage = "growing";
         farm.growth = 0;
         farm.plantedTick = eng.time.tick;
         farm.plantedYear = eng.time.year;
+        farm.matureSinceTick = null;
       }
       continue;
     }
 
     if (farm.stage === "growing") {
+      // Crops keep growing even without a tender, just slower if no skill.
       farm.growth = Math.min(1, farm.growth + rate / Math.max(1, crop.growthDays));
       if (farm.growth >= 1) {
         farm.stage = "mature";
+        farm.matureSinceTick = eng.time.tick;
       }
       continue;
     }
 
     if (farm.stage === "mature") {
-      if (!farmer) continue; // wait for someone to harvest
-      // Harvest!
-      const base = expectedYield(crop, skill);
-      const variance = 0.85 + Math.random() * 0.3;
-      const harvested = Math.max(1, Math.round(base * variance));
-      eng.resources.food += harvested;
-      farm.lastYield = harvested;
-      farm.lastHarvestYear = eng.time.year;
-      farm.lastHarvestDay = eng.time.day;
-      farm.totalHarvests = (farm.totalHarvests ?? 0) + 1;
-      farm.stage = "empty";
-      farm.growth = 0;
-      farm.plantedTick = null;
-      // Skill gain for the farmer
-      farmer.skills.farm = Math.min(30, (farmer.skills.farm ?? 1) + 0.8);
-      farmer.needs.purpose = Math.min(100, farmer.needs.purpose + 12);
-      addChronicle(
-        eng, "milestone",
-        `${farmer.name} brings in ${crop.name}`,
-        `${harvested} food gathered from the ${crop.name.toLowerCase()} plot.`,
-        [farmer.id],
-      );
+      if (farm.matureSinceTick == null) farm.matureSinceTick = eng.time.tick;
+
+      // Pick a harvester: the effective farmer, or any unassigned idle hand.
+      let harvester = effectiveFarmer;
+      if (!harvester) {
+        harvester = eng.survivors.find(s =>
+          s.health > 0 &&
+          s.occupation === "idle" &&
+          (s.stage === "adult" || s.stage === "youth" || s.stage === "elder" || s.isFounder),
+        ) ?? null;
+      }
+
+      if (harvester) {
+        const hSkill = harvester.skills.farm ?? 0;
+        const base = expectedYield(crop, hSkill);
+        const variance = 0.85 + Math.random() * 0.3;
+        const harvested = Math.max(1, Math.round(base * variance));
+        eng.resources.food += harvested;
+        farm.lastYield = harvested;
+        farm.lastHarvestYear = eng.time.year;
+        farm.lastHarvestDay = eng.time.day;
+        farm.totalHarvests = (farm.totalHarvests ?? 0) + 1;
+        farm.stage = "empty";
+        farm.growth = 0;
+        farm.plantedTick = null;
+        farm.matureSinceTick = null;
+        harvester.skills.farm = Math.min(30, (harvester.skills.farm ?? 1) + (harvester === effectiveFarmer ? 0.8 : 0.3));
+        harvester.needs.purpose = Math.min(100, harvester.needs.purpose + 12);
+        addChronicle(
+          eng, "milestone",
+          `${harvester.name} brings in ${crop.name}`,
+          `${harvested} food gathered from the ${crop.name.toLowerCase()} plot.`,
+          [harvester.id],
+        );
+        continue;
+      }
+
+      // No one to harvest — crop spoils if it sits mature too long.
+      const waited = eng.time.tick - (farm.matureSinceTick ?? eng.time.tick);
+      if (waited >= SPOIL_DAYS * TICKS_PER_DAY) {
+        farm.stage = "empty";
+        farm.growth = 0;
+        farm.plantedTick = null;
+        farm.matureSinceTick = null;
+        farm.lastYield = 0;
+        addChronicle(
+          eng, "event",
+          `${crop.name} spoils in the field`,
+          `With no one tending the plot, the ${crop.name.toLowerCase()} rotted before it could be brought in.`,
+        );
+      }
     }
   }
 }
