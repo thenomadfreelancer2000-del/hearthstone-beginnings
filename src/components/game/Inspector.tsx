@@ -304,7 +304,103 @@ export function Inspector() {
     );
   }
 
+  if (sel.kind === "tile") {
+    return <TilePanel x={sel.x} y={sel.y} />;
+  }
+
   return null;
+}
+
+function WorkerPanel({ b }: { b: Building }) {
+  const survivors = useGame((g) => g.survivors);
+  const assignWorker = useGame((g) => g.assignWorker);
+  const selectSurvivor = useGame((g) => g.selectSurvivor);
+  const worker = b.assignedWorkerId ? survivors.find(s => s.id === b.assignedWorkerId) : null;
+  const eligible = survivors.filter(s =>
+    s.health > 0 && (s.stage === "adult" || s.stage === "youth" || s.stage === "elder" || s.isFounder)
+  );
+  return (
+    <div className="parchment-panel-warm corner-brackets p-3 mt-3">
+      <div className="ranch-label text-[10px] text-amber mb-1">Assigned Worker</div>
+      {worker ? (
+        <button onClick={() => selectSurvivor(worker.id)} className="ranch-body text-sm text-parchment hover:text-amber">
+          {worker.isFounder && "★ "}{worker.name} {worker.surname}
+          <span className="ranch-data text-[10px] text-dust ml-2">{worker.occupation}</span>
+        </button>
+      ) : (
+        <p className="ranch-handwritten text-xs text-dust-light">No one assigned — anyone idle may pitch in.</p>
+      )}
+      <select
+        className="w-full bg-coal border border-amber/30 text-parchment text-xs px-2 py-1 mt-2"
+        value={b.assignedWorkerId ?? ""}
+        onChange={(e) => assignWorker(b.id, e.target.value || null)}
+      >
+        <option value="">— Unassigned —</option>
+        {eligible.map((s) => (
+          <option key={s.id} value={s.id}>
+            {s.name} {s.surname} ({s.occupation})
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+function TilePanel({ x, y }: { x: number; y: number }) {
+  const tiles = useGame((g) => g.tiles);
+  const mapW = useGame((g) => g.mapW);
+  const nodes = useGame((g) => g.nodes);
+  const survivors = useGame((g) => g.survivors);
+  const clearSelection = useGame((g) => g.clearSelection);
+  const assignToNode = useGame((g) => g.assignToNode);
+  const selectSurvivor = useGame((g) => g.selectSurvivor);
+  const tile = tiles[y * mapW + x];
+  const node = nodes.find(n => Math.floor(n.x) === x && Math.floor(n.y) === y);
+  const eligible = survivors.filter(s =>
+    s.health > 0 && (s.stage === "adult" || s.stage === "youth" || s.stage === "elder" || s.isFounder)
+  );
+  return (
+    <aside className="parchment-panel w-full sm:w-[340px] p-4 border-l border-amber/20 overflow-auto scroll-amber">
+      <button onClick={clearSelection} className="ranch-label hover:text-amber">← Deselect</button>
+      <h3 className="ranch-display text-2xl mt-3">{tile ? cap(tile.kind.replace("-", " ")) : "Tile"}</h3>
+      <p className="ranch-handwritten text-sm text-dust-light">Tile ({x}, {y})</p>
+      <div className="divider-amber my-3" />
+      {node ? (
+        <div className="parchment-panel-warm corner-brackets p-3">
+          <div className="ranch-label text-[10px] text-amber mb-1">{cap(node.kind)}</div>
+          <div className="ranch-data text-[10px] text-dust mb-2">
+            Yields <span className="text-parchment">{node.yields}</span> · {Math.floor(node.amount)} / {node.max} remaining
+          </div>
+          <div className="ranch-label text-[10px] text-amber mb-1">
+            Assign {node.kind === "trees" ? "Cutter" : node.kind === "rocks" ? "Miner" : "Forager"}
+          </div>
+          <select
+            className="w-full bg-coal border border-amber/30 text-parchment text-xs px-2 py-1"
+            defaultValue=""
+            onChange={(e) => {
+              if (e.target.value) {
+                assignToNode(node.id, e.target.value);
+                selectSurvivor(e.target.value);
+              }
+              e.currentTarget.value = "";
+            }}
+          >
+            <option value="">— Pick a survivor —</option>
+            {eligible.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name} {s.surname} ({s.occupation})
+              </option>
+            ))}
+          </select>
+          <p className="ranch-handwritten text-[10px] text-dust mt-2">
+            They'll change occupation and begin gathering from this kind of node.
+          </p>
+        </div>
+      ) : (
+        <p className="ranch-handwritten text-xs text-dust-light">Nothing to harvest here.</p>
+      )}
+    </aside>
+  );
 }
 
 function KinRow({ label, who, onClick }: { label: string; who: Survivor; onClick: () => void }) {
