@@ -481,9 +481,9 @@ function marry(eng: Engine, a: Survivor, b: Survivor) {
   b.mood = Math.min(100, b.mood + 30);
   a.needs.belonging = 100;
   b.needs.belonging = 100;
-  emitMemory(a, `Married ${b.name} ${b.surname}.`, "love", 95, b.id,
+  emitMem(eng, a, `Married ${b.name} ${b.surname}.`, "love", 95, b.id,
     { kind: "married", floor: 40, decayRate: 0.5 });
-  emitMemory(b, `Married ${a.name} ${a.surname}.`, "love", 95, a.id,
+  emitMem(eng, b, `Married ${a.name} ${a.surname}.`, "love", 95, a.id,
     { kind: "married", floor: 40, decayRate: 0.5 });
 
   addChronicle(
