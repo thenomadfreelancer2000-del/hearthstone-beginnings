@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import type {
   ArrivalEvent, Building, BuildingKind, ChronicleEntry, Family, GameSpeed, GameTime, ID,
   Relationship, ResourceKind, ResourceNode, SaveGame, SettlementStats,
-  Survivor, Tile,
+  Survivor, Territory, Tile,
 } from "./types";
 import {
   MAP_W, MAP_H, generateWorld, makeFounder, makeHomesteadBuilding,
@@ -65,6 +65,11 @@ interface GameState {
   reputation: number; // -100..100, affects future arrivals
   lastChronicleId: ID | null;
 
+  // ── Founding Phase ────────────────────────────────────────────
+  foundingPhase: boolean;
+  territory: Territory | null;
+  borderMode: boolean;
+
   // actions
   setScreen: (s: Screen) => void;
   setOverlay: (o: Overlay) => void;
@@ -91,6 +96,11 @@ interface GameState {
   tickReal: (deltaMs: number) => void;
   acceptArrival: () => void;
   rejectArrival: () => void;
+  // Founding phase
+  enterBorderMode: () => void;
+  exitBorderMode: () => void;
+  setBorderFromClick: (x: number, y: number) => void;
+  completeFounding: () => void;
 }
 
 const emptyResources = (): Record<ResourceKind, number> => ({
