@@ -273,10 +273,42 @@ function NodeArt({ kind, size, seed }: { kind: string; size: number; seed: numbe
 }
 
 // ── Survivor sprite ──────────────────────────────────────────────
-function SurvivorArt({ founder, dead }: { founder: boolean; dead: boolean }) {
+function SurvivorArt({ founder, dead, female }: { founder: boolean; dead: boolean; female: boolean }) {
   const skin = "#d9b48a";
-  const shirt = founder ? "#7a3a2a" : "#3a5a6a";
+  const shirt = female
+    ? (founder ? "#9a4a6a" : "#6a4a8a")
+    : (founder ? "#7a3a2a" : "#3a5a6a");
   const pants = "#3d2810";
+  const hairColor = founder ? "#4a2818" : "#3a2410";
+
+  if (female) {
+    // Dress silhouette + long hair, no hat (founder gets gold hairband)
+    return (
+      <g opacity={dead ? 0.4 : 1}>
+        <ellipse cx={0} cy={9} rx={5} ry={1.6} fill={PAL.shadow} />
+        {/* legs (peek under dress) */}
+        <rect x={-2.2} y={5} width={1.8} height={3} fill={pants} stroke={PAL.ink} strokeWidth={0.4} />
+        <rect x={0.4} y={5} width={1.8} height={3} fill={pants} stroke={PAL.ink} strokeWidth={0.4} />
+        {/* dress — triangular flare */}
+        <polygon points={`-3,-3 3,-3 4.5,5.5 -4.5,5.5`} fill={shirt} stroke={PAL.ink} strokeWidth={0.5} />
+        {/* waist sash */}
+        <rect x={-3} y={0.5} width={6} height={1} fill={PAL.ink} opacity={0.5} />
+        {/* apron hint */}
+        <polygon points={`-1.8,-2 1.8,-2 2.4,5 -2.4,5`} fill="#e8d8b8" opacity={0.35} />
+        {/* hair behind head */}
+        <path d={`M-3.2,-6 Q-4.2,-2 -3.2,1 L3.2,1 Q4.2,-2 3.2,-6 Z`} fill={hairColor} stroke={PAL.ink} strokeWidth={0.4} />
+        {/* head */}
+        <circle cx={0} cy={-5.5} r={2.6} fill={skin} stroke={PAL.ink} strokeWidth={0.5} />
+        {/* fringe */}
+        <path d={`M-2.6,-6.2 Q0,-8.2 2.6,-6.2 Q1.2,-5.5 0,-5.8 Q-1.2,-5.5 -2.6,-6.2 Z`} fill={hairColor} stroke={PAL.ink} strokeWidth={0.4} />
+        {founder && (
+          <ellipse cx={0} cy={-7.2} rx={2.8} ry={0.7} fill={PAL.gold} stroke={PAL.ink} strokeWidth={0.4} />
+        )}
+      </g>
+    );
+  }
+
+  // Male
   const hat = founder ? "#c9a14a" : "#5a3820";
   return (
     <g opacity={dead ? 0.4 : 1}>
@@ -284,18 +316,21 @@ function SurvivorArt({ founder, dead }: { founder: boolean; dead: boolean }) {
       {/* legs */}
       <rect x={-3} y={3} width={2.4} height={5} fill={pants} stroke={PAL.ink} strokeWidth={0.4} />
       <rect x={0.6} y={3} width={2.4} height={5} fill={pants} stroke={PAL.ink} strokeWidth={0.4} />
-      {/* body */}
-      <rect x={-3.5} y={-3} width={7} height={6.5} rx={1} fill={shirt} stroke={PAL.ink} strokeWidth={0.5} />
+      {/* body — square shoulders */}
+      <rect x={-3.8} y={-3} width={7.6} height={6.5} rx={1} fill={shirt} stroke={PAL.ink} strokeWidth={0.5} />
       {/* belt */}
-      <rect x={-3.5} y={2} width={7} height={1} fill={PAL.ink} opacity={0.6} />
+      <rect x={-3.8} y={2} width={7.6} height={1} fill={PAL.ink} opacity={0.6} />
       {/* head */}
       <circle cx={0} cy={-5.5} r={2.8} fill={skin} stroke={PAL.ink} strokeWidth={0.5} />
+      {/* short beard hint for non-founder males */}
+      {!founder && <path d={`M-1.8,-4.5 Q0,-3 1.8,-4.5`} stroke={hairColor} strokeWidth={0.6} fill="none" />}
       {/* hat */}
-      <ellipse cx={0} cy={-7.5} rx={4} ry={1} fill={hat} stroke={PAL.ink} strokeWidth={0.5} />
+      <ellipse cx={0} cy={-7.5} rx={4.2} ry={1} fill={hat} stroke={PAL.ink} strokeWidth={0.5} />
       <rect x={-2} y={-9} width={4} height={2} rx={0.5} fill={hat} stroke={PAL.ink} strokeWidth={0.5} />
     </g>
   );
 }
+
 
 export function MapView() {
   const tiles = useGame((s) => s.tiles);
