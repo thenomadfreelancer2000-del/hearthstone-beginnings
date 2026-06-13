@@ -184,7 +184,14 @@ export interface Family {
 // ── Buildings ────────────────────────────────────────────────────
 export type BuildingKind =
   | "homestead" | "tent" | "cabin" | "campfire" | "stockpile"
-  | "workbench" | "well" | "watchtower" | "field" | "farm-plot";
+  | "workbench" | "well" | "watchtower" | "field" | "farm-plot"
+  | "water-collector" | "foraging-camp";
+
+export interface Territory {
+  cx: number;     // center tile x (usually homestead center)
+  cy: number;     // center tile y
+  radius: number; // tiles; 0 = not yet defined
+}
 
 // ── Farm plots ───────────────────────────────────────────────────
 export type FarmStage =
