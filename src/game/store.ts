@@ -93,6 +93,8 @@ interface GameState {
   assignFarmer: (buildingId: ID, farmerId: ID | null) => void;
   setFarmCrop: (buildingId: ID, cropId: string) => void;
   closeFarmSetup: () => void;
+  assignWorker: (buildingId: ID, survivorId: ID | null) => void;
+  assignToNode: (nodeId: ID, survivorId: ID | null) => void;
   // Housing
   assignSurvivorToHome: (survivorId: ID, buildingId: ID | null) => void;
   setHomeReserved: (buildingId: ID, reserved: boolean) => void;
