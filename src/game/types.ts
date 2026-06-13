@@ -181,7 +181,24 @@ export interface Family {
 // ── Buildings ────────────────────────────────────────────────────
 export type BuildingKind =
   | "homestead" | "tent" | "cabin" | "campfire" | "stockpile"
-  | "workbench" | "well" | "watchtower" | "field";
+  | "workbench" | "well" | "watchtower" | "field" | "farm-plot";
+
+// ── Farm plots ───────────────────────────────────────────────────
+export type FarmStage =
+  | "empty" | "planting" | "growing" | "mature" | "harvesting";
+
+export interface FarmState {
+  cropId: string;               // CropId from data/crops.ts
+  stage: FarmStage;
+  growth: number;               // 0..1, 1 = mature
+  plantedTick: number | null;
+  plantedYear?: number | null;
+  assignedFarmerId: ID | null;
+  lastYield: number | null;
+  lastHarvestYear?: number | null;
+  lastHarvestDay?: number | null;
+  totalHarvests: number;
+}
 
 export interface BuildingDef {
   kind: BuildingKind;
