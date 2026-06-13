@@ -540,7 +540,8 @@ export const useGame = create<GameState>((set, get) => ({
       buildings: save.buildings.map(b => ({
         assignedBuilderId: null,
         ...b,
-        // Repair legacy saves missing buildEffortTotal so progress never stalls
+        occupantIds: b.occupantIds ?? [],
+        stored: b.stored ?? {},
         buildEffortTotal: b.buildEffortTotal || Math.max(1, b.effortRemaining + (b.builtProgress > 0 ? 1 : 0)),
       })).map(b => {
         normalizeConstructionBuilding(b);
