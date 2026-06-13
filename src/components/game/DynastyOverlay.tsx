@@ -180,10 +180,21 @@ function PersonCard({
 
 function FamilyCard({ f }: { f: Family }) {
   const survivors = useGame((s) => s.survivors);
+  const chronicle = useGame((s) => s.chronicle);
   const alive = f.memberIds.filter(id => {
     const m = survivors.find(x => x.id === id);
     return m && m.health > 0;
   }).length;
+  const counts = useMemo(() => {
+    let births = 0, marriages = 0, deaths = 0;
+    for (const c of chronicle) {
+      if (!c.involvedFamilyIds?.includes(f.id)) continue;
+      if (c.category === "birth") births++;
+      else if (c.category === "marriage") marriages++;
+      else if (c.category === "death") deaths++;
+    }
+    return { births, marriages, deaths };
+  }, [chronicle, f.id]);
   return (
     <div className="parchment-panel corner-brackets p-4">
       <div className="flex items-baseline justify-between">
@@ -194,7 +205,7 @@ function FamilyCard({ f }: { f: Family }) {
         Founded Y{f.foundedYear} · {f.memberIds.length} members · {alive} living
       </p>
       <div className="divider-amber my-3" />
-      <div className="grid grid-cols-2 gap-2 ranch-data text-xs">
+      <div className="grid grid-cols-3 gap-2 ranch-data text-xs">
         <div>
           <span className="ranch-label text-[9px] block">Prestige</span>
           <span className="text-amber">{Math.round(f.prestige)}</span>
@@ -202,6 +213,24 @@ function FamilyCard({ f }: { f: Family }) {
         <div>
           <span className="ranch-label text-[9px] block">Wealth</span>
           <span className="text-amber">{Math.round(f.wealth)}</span>
+        </div>
+        <div>
+          <span className="ranch-label text-[9px] block">Living</span>
+          <span className="text-amber">{alive}</span>
+        </div>
+      </div>
+      <div className="grid grid-cols-3 gap-2 ranch-data text-xs mt-2">
+        <div>
+          <span className="ranch-label text-[9px] block">Births</span>
+          <span className="text-success">{counts.births}</span>
+        </div>
+        <div>
+          <span className="ranch-label text-[9px] block">Marriages</span>
+          <span className="text-amber-light">{counts.marriages}</span>
+        </div>
+        <div>
+          <span className="ranch-label text-[9px] block">Deaths</span>
+          <span className="text-danger">{counts.deaths}</span>
         </div>
       </div>
       {Object.keys(f.relations).length > 0 && (
