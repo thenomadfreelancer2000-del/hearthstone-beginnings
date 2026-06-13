@@ -179,7 +179,9 @@ function dailyTick(eng: Engine, opts?: { onArrival?: (s: Survivor) => Survivor |
   for (const b of eng.buildings) {
     if (b.builtProgress < 1) continue;
     if (b.kind === "well") eng.resources.water += 8;
+    if (b.kind === "water-collector") eng.resources.water += 5;
     if (b.kind === "field") eng.resources.food += 6;
+    if (b.kind === "foraging-camp") eng.resources.food += 4;
     if (b.kind === "workbench" && eng.resources.wood >= 2) {
       eng.resources.wood -= 2;
       eng.resources.tools += 1;
