@@ -119,11 +119,17 @@ export const BUILDINGS: Record<BuildingKind, BuildingDef> = {
     cost: { wood: 6, fiber: 3 }, buildEffort: 30, housingCapacity: 0, storageCapacity: 0, social: false,
     produces: { resource: "food", perDay: 4 },
   },
+  fence: {
+    kind: "fence", name: "Wooden Fence", blurb: "A simple post-and-rail barrier. Marks the edge of the ranch.",
+    size: { w: 1, h: 1 },
+    cost: { wood: 4 }, buildEffort: 10, housingCapacity: 0, storageCapacity: 0, social: false,
+    produces: null,
+  },
 };
 
 export const BUILDABLE_KINDS: BuildingKind[] = [
   "tent", "cabin", "campfire", "stockpile", "workbench",
-  "farm-plot", "foraging-camp", "well", "water-collector",
+  "farm-plot", "foraging-camp", "well", "water-collector", "fence",
 ];
 
 export const CHRONICLE_OPENERS = [
