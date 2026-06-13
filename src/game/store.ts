@@ -874,6 +874,7 @@ export const useGame = create<GameState>((set, get) => ({
       relationships: eng.relationships,
       families: eng.families,
       currentLeaderId: eng.currentLeaderId,
+      preferredHeirId: eng.preferredHeirId ?? null,
       chronicle: eng.chronicle,
       stats: eng.stats,
       pendingArrival,
