@@ -502,6 +502,51 @@ function cap(s: string) {
   return s[0].toUpperCase() + s.slice(1);
 }
 
+function assignHomeWithGratitude(s: Survivor, b: Building) {
+  const prevKind = s.lastHomeKind;
+  s.homeId = b.id;
+  if (!b.occupantIds.includes(s.id)) b.occupantIds.push(s.id);
+  // Upgrade detection: higher quality than last home → gratitude
+  const prevQ = prevKind ? (require("../data/content").BUILDINGS[prevKind]?.housingQuality ?? 0) : 0;
+  const newQ = require("../data/content").BUILDINGS[b.kind]?.housingQuality ?? 0;
+  if (newQ > prevQ) {
+    s.housingGratitude = (s.housingGratitude ?? 0) + 10;
+  }
+  s.lastHomeKind = b.kind;
+}
+
+function assignSpousesToShared(eng: Engine, a: Survivor, b: Survivor) {
+  // If one has room at home, the other moves in.
+  const tryMoveInto = (target: Survivor, mover: Survivor) => {
+    if (!target.homeId) return false;
+    const h = eng.buildings.find(x => x.id === target.homeId);
+    if (!h || !isResidential(h.kind)) return false;
+    if ((h.occupantIds?.length ?? 0) >= homeCapacity(h)) return false;
+    // remove mover from old home
+    if (mover.homeId) {
+      const old = eng.buildings.find(x => x.id === mover.homeId);
+      if (old) old.occupantIds = old.occupantIds.filter(id => id !== mover.id);
+    }
+    assignHomeWithGratitude(mover, h);
+    return true;
+  };
+  if (tryMoveInto(a, b)) return;
+  if (tryMoveInto(b, a)) return;
+  // Otherwise find best home for the couple together.
+  const home = findBestHome(a, eng.buildings, eng.survivors);
+  if (!home) return;
+  for (const sp of [a, b]) {
+    if (sp.homeId) {
+      const old = eng.buildings.find(x => x.id === sp.homeId);
+      if (old) old.occupantIds = old.occupantIds.filter(id => id !== sp.id);
+    }
+    if ((home.occupantIds?.length ?? 0) < homeCapacity(home)) {
+      assignHomeWithGratitude(sp, home);
+    }
+  }
+}
+
+
 // ── Farms ──────────────────────────────────────────────────────
 import { CROPS, expectedYield, growthRateMultiplier, isCropId, type CropId } from "../data/crops";
 
