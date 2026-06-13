@@ -142,6 +142,18 @@ export interface Survivor {
   // settlement's unlockedCrops when they're welcomed in.
   cropKnowledge?: string[];
 
+  // ── Housing (Housing & Family update) ──────────────────────
+  homeId?: ID | null;
+  lastHomeKind?: BuildingKind | null;
+  /** 0..100, recomputed daily. */
+  housingSatisfaction?: number;
+  /** Founder-opinion bonus from a recent housing upgrade — decays linearly. */
+  housingGratitude?: number;
+  /** Rising baseline: the longer they live here, the more they expect. */
+  expectationBaseline?: number;
+  /** Tick they joined the ranch — drives expectation drift. */
+  arrivalTick?: number | null;
+
   // ── Phase 3+ placeholders (nullable for forward-compat) ──
   factionId?: ID | null;
   politicalLean?: number | null;
