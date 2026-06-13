@@ -549,6 +549,18 @@ export const useGame = create<GameState>((set, get) => ({
     set({ buildings, survivors });
   },
 
+  setPreferredHeir: (id) => set({ preferredHeirId: id }),
+  setEducationFocus: (childId, focus) => {
+    const st = get();
+    set({
+      survivors: st.survivors.map((s) =>
+        s.id === childId ? { ...s, educationFocus: focus } : s,
+      ),
+    });
+  },
+
+
+
 
 
 
