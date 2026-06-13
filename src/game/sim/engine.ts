@@ -262,6 +262,7 @@ function dailyTick(eng: Engine, opts?: { onArrival?: (s: Survivor) => Survivor |
     for (const s of eng.survivors) {
       if (s.health <= 0) continue;
       const prevStage = s.stage;
+      const prevLabel = lifeStageLabel(s);
       s.age += 0.25;
       const newStage = stageFromAge(s.age);
       if (newStage !== prevStage) {
@@ -275,6 +276,17 @@ function dailyTick(eng: Engine, opts?: { onArrival?: (s: Survivor) => Survivor |
           );
         }
       }
+      // Sub-tier crossings (Mature Adult, Elder, Very Elderly).
+      const newLabel = lifeStageLabel(s);
+      if (newLabel !== prevLabel && (newLabel === "Mature Adult" || newLabel === "Elder" || newLabel === "Very Elderly")) {
+        addChronicle(
+          eng, "coming-of-age",
+          `${s.name} ${s.surname} grows into ${newLabel}`,
+          `Year ${eng.time.year}. The years have settled on their shoulders.`,
+          [s.id], [s.familyId],
+        );
+      }
+      applyAgingEffects(s);
     }
   }
 
