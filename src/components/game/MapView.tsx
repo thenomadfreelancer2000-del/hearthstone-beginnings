@@ -32,7 +32,7 @@ function rand(x: number, y: number, salt = 0) {
 }
 
 // ── Hand-drawn building renderers (unified style) ────────────────
-function BuildingArt({ kind, w, h }: { kind: string; w: number; h: number }) {
+function BuildingArt({ kind, w, h, farmStage, farmGrowth }: { kind: string; w: number; h: number; farmStage?: string; farmGrowth?: number }) {
   // All buildings share: dark ink outline, warm wood tones, simple silhouettes.
   const cx = w / 2;
   switch (kind) {
