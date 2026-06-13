@@ -647,9 +647,9 @@ export const useGame = create<GameState>((set, get) => ({
       unlockedCrops: (save.unlockedCrops && save.unlockedCrops.length > 0)
         ? save.unlockedCrops
         : [...STARTER_CROP_IDS],
-      // Existing saves predate the Founding Phase — skip it.
-      foundingPhase: false,
-      territory: null,
+      // Preserve founding phase if the save was created during it; legacy saves default to completed.
+      foundingPhase: save.foundingPhase ?? false,
+      territory: save.territory ?? null,
       borderMode: false,
     });
     return true;
@@ -676,6 +676,8 @@ export const useGame = create<GameState>((set, get) => ({
       chronicle: st.chronicle,
       stats: st.stats,
       unlockedCrops: [...st.unlockedCrops],
+      foundingPhase: st.foundingPhase,
+      territory: st.territory,
       factions: [], laws: [], externalSettlements: [],
     };
     return saveToLocal(data);
