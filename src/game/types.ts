@@ -302,6 +302,7 @@ export interface SaveGame {
   resources: Record<ResourceKind, number>;
   chronicle: ChronicleEntry[];
   stats: SettlementStats;
+  unlockedCrops?: string[];
   // Phase 3+ reservations (always present, empty for now):
   factions: unknown[];
   laws: unknown[];
