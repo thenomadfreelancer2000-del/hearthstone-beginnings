@@ -13,6 +13,7 @@ import { BUILDINGS as BUILDINGS_DATA } from "@/game/data/content";
 import type { Building, Occupation, Relationship, Survivor } from "@/game/types";
 import { AuthorityPanel } from "./AuthorityPanel";
 import { FamilyPanel } from "./FamilyPanel";
+import { rankHeirs, heirRating, EDUCATION_LABEL, type EducationFocus } from "@/game/sim/heirs";
 
 const OCCUPATIONS: Occupation[] = [
   "idle", "forager", "woodcutter", "miner", "farmer", "builder", "hauler",
@@ -543,8 +544,7 @@ function HeirPanel({ leader }: { leader: Survivor }) {
   const setPreferredHeir = useGame((s) => s.setPreferredHeir);
   const selectSurvivor = useGame((s) => s.selectSurvivor);
 
-  // Inline imports for ranking (avoid top-level churn).
-  const { rankHeirs, heirRating } = require("@/game/sim/heirs") as typeof import("@/game/sim/heirs");
+
 
   const ranked = rankHeirs({
     leader,
