@@ -508,8 +508,8 @@ function assignHomeWithGratitude(s: Survivor, b: Building) {
   s.homeId = b.id;
   if (!b.occupantIds.includes(s.id)) b.occupantIds.push(s.id);
   // Upgrade detection: higher quality than last home → gratitude
-  const prevQ = prevKind ? (require("../data/content").BUILDINGS[prevKind]?.housingQuality ?? 0) : 0;
-  const newQ = require("../data/content").BUILDINGS[b.kind]?.housingQuality ?? 0;
+  const prevQ = prevKind ? (BUILDINGS[prevKind]?.housingQuality ?? 0) : 0;
+  const newQ = BUILDINGS[b.kind]?.housingQuality ?? 0;
   if (newQ > prevQ) {
     s.housingGratitude = (s.housingGratitude ?? 0) + 10;
   }
