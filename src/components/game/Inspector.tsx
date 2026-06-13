@@ -287,6 +287,9 @@ export function Inspector() {
         )}
         {b.kind === "farm-plot" && b.builtProgress >= 1 && <FarmPanel b={b} />}
         {isResidential(b.kind) && b.builtProgress >= 1 && <ResidentialPanel b={b} />}
+        {b.builtProgress >= 1 && !isResidential(b.kind) && b.kind !== "farm-plot" && b.kind !== "fence" && (
+          <WorkerPanel b={b} />
+        )}
         <div className="divider-amber my-3" />
         <div className="ranch-data text-[10px] text-dust space-y-0.5">
           <div>
