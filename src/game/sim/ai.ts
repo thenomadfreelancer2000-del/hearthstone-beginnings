@@ -337,7 +337,7 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
   const helpsBuild =
     !!assigned ||
     s.occupation === "builder" || s.occupation === "idle" ||
-    s.occupation === "leader" || s.occupation === "hauler" ||
+    s.occupation === "hauler" ||
     s.occupation === "forager" || s.isFounder;
   if (helpsBuild) {
     const b = assigned ?? nearestUnfinished(s, deps.buildings);
