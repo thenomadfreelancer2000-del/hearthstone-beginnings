@@ -148,7 +148,7 @@ export function advance(eng: Engine, n: number, opts?: { onArrival?: (s: Survivo
       survivors: eng.survivors,
       relationships: eng.relationships,
       emitMemory: (s: Survivor, text: string, emotion: Memory["emotion"], weight: number) =>
-        emitMemory(s, text, emotion, weight),
+        emitMem(eng, s, text, emotion, weight),
     };
 
     for (const s of eng.survivors) {
