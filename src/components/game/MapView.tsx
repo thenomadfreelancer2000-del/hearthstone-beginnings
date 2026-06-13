@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from "react";
 import { useGame } from "@/game/store";
 import { BUILDINGS } from "@/game/data/content";
+import { CROPS, type CropId } from "@/game/data/crops";
 import type { Tile } from "@/game/types";
 
 const TILE = 24;
