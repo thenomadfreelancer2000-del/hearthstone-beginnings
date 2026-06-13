@@ -422,6 +422,7 @@ export const useGame = create<GameState>((set, get) => ({
       resources: st.resources,
       chronicle: st.chronicle,
       stats: st.stats,
+      unlockedCrops: [...st.unlockedCrops],
       factions: [], laws: [], externalSettlements: [],
     };
     return saveToLocal(data);
