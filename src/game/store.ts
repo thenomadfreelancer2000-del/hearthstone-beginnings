@@ -877,12 +877,38 @@ export const useGame = create<GameState>((set, get) => ({
     if (newlyUnlocked.length) {
       toast(`New crops unlocked: ${newlyUnlocked.map(c => CROPS[c as CropId]?.name ?? c).join(", ")}`);
     }
-    // Auto-assign homes to the newcomers.
+    // Auto-assign homes to the newcomers + emit memories for existing survivors.
     const buildings = st.buildings.map(b => ({ ...b, occupantIds: [...b.occupantIds] }));
-    const allSurvivors = [...st.survivors, ...ev.survivors.map(s => ({
+    const { traitRefugeeBias } = await import("@/game/data/traits");
+    const { nanoid: nid } = await import("nanoid");
+    const existing = st.survivors.map(s => {
+      if (s.health <= 0) return s;
+      const bias = traitRefugeeBias(s.traits);
+      const moodShift = 2 + Math.max(0, bias) * 0.3;
+      const memText = bias > 4
+        ? `The founder welcomed strangers. That is who we are.`
+        : bias < -4
+          ? `More mouths to feed. The founder says yes too easily.`
+          : `New faces at the gate. Welcomed in.`;
+      const memories = [
+        { id: nid(6), tick: st.time.tick, text: memText,
+          emotion: (bias >= 0 ? "trust" : "anger") as "trust" | "anger",
+          weight: 30 + Math.abs(bias),
+          kind: "founder-accepted", decayRate: 1, floor: 5 },
+        ...s.memories,
+      ].slice(0, 32);
+      return { ...s, memories, mood: Math.max(-100, Math.min(100, s.mood + moodShift)) };
+    });
+    const allSurvivors = [...existing, ...ev.survivors.map(s => ({
       ...s,
       arrivalTick: st.time.tick,
       housingGratitude: 5, // small welcome bonus
+      memories: [
+        { id: nid(6), tick: st.time.tick, text: `The founder welcomed me in.`,
+          emotion: "trust" as const, weight: 80, aboutSurvivorId: st.founderId,
+          kind: "founder-accepted-me", decayRate: 0.4, floor: 35 },
+        ...s.memories,
+      ],
     }))];
     for (const s of ev.survivors) {
       const fresh = allSurvivors.find(x => x.id === s.id);
