@@ -111,7 +111,7 @@ export function FounderCreation() {
       <div className="pointer-events-none fixed inset-4 md:inset-8 border border-amber/15 hidden sm:block" />
 
       {/* Top chrome — step indicator */}
-      <header className="px-4 sm:px-8 pt-4 sm:pt-6 pb-3 sm:pb-4 flex items-center justify-between gap-3 shrink-0">
+      <header className="px-4 sm:px-8 pt-2 sm:pt-6 pb-2 sm:pb-4 flex items-center justify-between gap-3 shrink-0">
         <button
           onClick={back}
           className="ranch-label text-[9px] sm:text-[10px] hover:text-amber transition shrink-0"
