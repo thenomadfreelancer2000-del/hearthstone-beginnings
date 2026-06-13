@@ -425,37 +425,27 @@ function killSurvivor(eng: Engine, s: Survivor, cause: string) {
 
 function succeed(eng: Engine) {
   const oldLeader = eng.survivors.find(s => s.id === eng.currentLeaderId);
-  // Find heir: alive adult descendant of founder (preferred), then spouse, then any adult kin
-  const isDescendantOfFounder = (s: Survivor): boolean => {
-    if (s.id === eng.founderId) return true;
-    if (!s.parentIds || s.parentIds.length === 0) return false;
-    return s.parentIds.some(pid => {
-      const p = eng.survivors.find(x => x.id === pid);
-      return p ? isDescendantOfFounder(p) : false;
-    });
-  };
-  const candidates = eng.survivors.filter(s =>
-    s.health > 0 && s.id !== eng.currentLeaderId && (s.stage === "adult" || s.stage === "elder")
-  );
-  // Sort by: descendant > non-descendant; older first
-  candidates.sort((a, b) => {
-    const da = isDescendantOfFounder(a) ? 0 : 1;
-    const db = isDescendantOfFounder(b) ? 0 : 1;
-    if (da !== db) return da - db;
-    return b.age - a.age;
+  const heir = pickSuccessor({
+    leader: oldLeader ?? null,
+    founderId: eng.founderId,
+    preferredHeirId: eng.preferredHeirId ?? null,
+    survivors: eng.survivors,
+    relationships: eng.relationships,
+    families: eng.families,
   });
-  const heir = candidates[0];
   if (!heir) return; // dynasty ends in silence
+  const wasPreferred = eng.preferredHeirId === heir.id;
   eng.currentLeaderId = heir.id;
+  eng.preferredHeirId = null; // consumed
   heir.occupation = "leader";
   heir.achievements = [...(heir.achievements ?? []), `Inherited the ranch in Year ${eng.time.year}`];
-  // Prestige bump
   const fam = familyOf(eng, heir.id);
   if (fam) fam.prestige = Math.min(200, fam.prestige + 10);
   addChronicle(
     eng, "succession",
     `${heir.name} ${heir.surname} takes the porch`,
-    `With ${oldLeader?.name ?? "the leader"} gone, ${heir.name} ${heir.surname} stands at the door of the homestead and the dust settles around them.`,
+    `With ${oldLeader?.name ?? "the leader"} gone, ${heir.name} ${heir.surname} stands at the door of the homestead and the dust settles around them.` +
+      (wasPreferred ? ` Named heir by ${oldLeader?.name ?? "the late leader"}.` : ""),
     [heir.id, ...(oldLeader ? [oldLeader.id] : [])],
     [heir.familyId],
   );
