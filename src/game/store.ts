@@ -408,7 +408,7 @@ export const useGame = create<GameState>((set, get) => ({
       "well": "hauler",
       "water-collector": "hauler",
       "stockpile": "hauler",
-      "watchtower": "leader",
+      "watchtower": "idle",
     };
     const occ = occMap[b.kind];
     set({
