@@ -588,7 +588,7 @@ function handleBuildPhase(s: Survivor, dt: number, deps: SimDeps, b: Building, c
   }
   const skillMult = 1 + (s.skills.build ?? 1) * 0.18;
   const finishMult = b.builtProgress >= 0.75 ? 1.4 : 1.0;
-  const work = skillMult * 1.25 * finishMult * (dt / 24);
+  const work = skillMult * 1.25 * finishMult * traitWorkSpeed(s.traits) * (dt / 24);
   applyConstructionWork(b, work, deps.tick);
   s.skills.build = Math.min(30, (s.skills.build ?? 1) + 0.003 * dt);
   s.state = "working";
