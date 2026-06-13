@@ -11,22 +11,28 @@ export interface PortraitDef {
   id: string;
   gender: "m" | "f";
   url: string;
+  /** Approximate age of the depicted face (used to set founder age in-game). */
+  age: number;
 }
 
 export const PORTRAITS: PortraitDef[] = [
-  { id: "m1", gender: "m", url: m1 },
-  { id: "m2", gender: "m", url: m2 },
-  { id: "m3", gender: "m", url: m3 },
-  { id: "m4", gender: "m", url: m4 },
-  { id: "f1", gender: "f", url: f1 },
-  { id: "f2", gender: "f", url: f2 },
-  { id: "f3", gender: "f", url: f3 },
-  { id: "f4", gender: "f", url: f4 },
+  { id: "m1", gender: "m", url: m1, age: 42 },
+  { id: "m2", gender: "m", url: m2, age: 24 },
+  { id: "m3", gender: "m", url: m3, age: 30 },
+  { id: "m4", gender: "m", url: m4, age: 36 },
+  { id: "f1", gender: "f", url: f1, age: 28 },
+  { id: "f2", gender: "f", url: f2, age: 22 },
+  { id: "f3", gender: "f", url: f3, age: 35 },
+  { id: "f4", gender: "f", url: f4, age: 26 },
 ];
 
-export function getPortraitUrl(id: string | null | undefined): string | null {
+export function getPortrait(id: string | null | undefined): PortraitDef | null {
   if (!id) return null;
-  return PORTRAITS.find((p) => p.id === id)?.url ?? null;
+  return PORTRAITS.find((p) => p.id === id) ?? null;
+}
+
+export function getPortraitUrl(id: string | null | undefined): string | null {
+  return getPortrait(id)?.url ?? null;
 }
 
 export function defaultPortraitFor(gender: "m" | "f"): string {

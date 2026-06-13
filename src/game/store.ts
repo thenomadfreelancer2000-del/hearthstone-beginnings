@@ -19,6 +19,7 @@ import { makeRng } from "./sim/rng";
 import { normalizeConstructionBuilding } from "./sim/construction";
 import { CROPS, STARTER_CROP_IDS, isCropId, type CropId } from "./data/crops";
 import { findBestHome as findBestHomeFor, homeCapacity } from "./sim/housing";
+import { getPortrait } from "./data/portraits";
 
 export type Screen = "menu" | "founder" | "game";
 export type Overlay = "tree" | "family" | "chronicle" | null;
@@ -163,10 +164,20 @@ export const useGame = create<GameState>((set, get) => ({
   clearSelection: () => set({ selection: { kind: "none" } }),
   setSurvivorPortrait: (survivorId, portraitId) => {
     const st = get();
+    const portrait = getPortrait(portraitId);
     set({
-      survivors: st.survivors.map(s =>
-        s.id === survivorId ? { ...s, portraitId } : s
-      ),
+      survivors: st.survivors.map(s => {
+        if (s.id !== survivorId) return s;
+        if (!portrait) return { ...s, portraitId };
+        const age = portrait.age;
+        return {
+          ...s,
+          portraitId,
+          age,
+          stage: stageFromAge(age),
+          bornYear: s.bornYear, // keep recorded birth year stable
+        };
+      }),
     });
   },
   startBuild: (kind) => {

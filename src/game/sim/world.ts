@@ -8,6 +8,7 @@ import {
   BACKGROUNDS, FIRST_NAMES_F, FIRST_NAMES_M, SURNAMES, TRAITS, BUILDINGS,
   LIFE_STAGE_THRESHOLDS,
 } from "../data/content";
+import { getPortrait, defaultPortraitFor } from "../data/portraits";
 
 export const MAP_W = 36;
 export const MAP_H = 28;
@@ -156,20 +157,23 @@ export function stageFromAge(age: number): LifeStage {
 
 export function makeFounder(input: FounderInput, spawn: { x: number; y: number }): Survivor {
   const id = nanoid(10);
+  const pid = input.portraitId ?? defaultPortraitFor(input.gender);
+  const portrait = getPortrait(pid);
+  const age = portrait?.age ?? 32;
   return {
     id,
     name: input.firstName,
     surname: input.surname,
-    age: 32,
-    stage: "adult",
+    age,
+    stage: stageFromAge(age),
     gender: input.gender,
     background: input.background,
     isFounder: true,
     bornTick: 0,
-    bornYear: 1 - 32, // for chronicle context
+    bornYear: 1 - Math.floor(age),
     deathTick: null,
     deathYear: null,
-    portraitId: input.portraitId ?? (input.gender === "m" ? "m1" : "f1"),
+    portraitId: pid,
     x: spawn.x, y: spawn.y,
     state: "idle",
     action: "Standing on the porch.",
