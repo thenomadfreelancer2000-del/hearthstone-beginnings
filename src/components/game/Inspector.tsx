@@ -855,3 +855,42 @@ function ResidentialPanel({ b }: { b: Building }) {
   );
 }
 
+function EducationPanel({ s }: { s: Survivor }) {
+  const setEducationFocus = useGame((g) => g.setEducationFocus);
+  const focus = (s.educationFocus ?? null) as EducationFocus | null;
+  const FOCI: EducationFocus[] = ["build", "farm", "lead", "social", "medic"];
+  return (
+    <>
+      <h4 className="ranch-label mt-5 mb-2">Education</h4>
+      <div className="parchment-panel-warm corner-brackets p-3">
+        <p className="ranch-handwritten text-xs text-dust-light mb-2">
+          Parents can shape what the child practices each day.
+        </p>
+        <div className="grid grid-cols-3 gap-1">
+          <button
+            onClick={() => setEducationFocus(s.id, null)}
+            className={`btn-ranch text-[9px] py-1 ${!focus ? "btn-ranch-primary" : "btn-ranch-ghost"}`}
+          >
+            None
+          </button>
+          {FOCI.map((f) => (
+            <button
+              key={f}
+              onClick={() => setEducationFocus(s.id, f)}
+              className={`btn-ranch text-[9px] py-1 ${focus === f ? "btn-ranch-primary" : "btn-ranch-ghost"}`}
+            >
+              {EDUCATION_LABEL[f]}
+            </button>
+          ))}
+        </div>
+        {focus && (
+          <p className="ranch-data text-[10px] text-amber mt-2">
+            Practicing {EDUCATION_LABEL[focus]} · current skill {Math.round(s.skills[focus] ?? 1)}
+          </p>
+        )}
+      </div>
+    </>
+  );
+}
+
+
