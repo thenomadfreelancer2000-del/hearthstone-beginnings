@@ -380,14 +380,16 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
 
 
   {
-    // Leaders do not chop wood themselves — they walk, talk, and tend the line.
-    const isLeader = s.occupation === "leader" || s.isFounder;
+    // Leaders idle by the fire unless the player explicitly assigns them a job.
+    const isLeader = s.occupation === "leader";
     const wants: ResourceKind | null =
-      isLeader ? null :
       s.occupation === "woodcutter" ? "wood" :
       s.occupation === "miner" ? "stone" :
       s.occupation === "farmer" ? "food" :
-      s.occupation === "forager" ? "food" : "wood";
+      s.occupation === "forager" ? "food" :
+      isLeader ? null :
+      s.isFounder ? null :
+      "wood";
     const node = wants ? nearestNode(s, deps.nodes, wants) : null;
     if (wants && node && node.amount > 0) {
       if (dist(s.x, s.y, node.x, node.y) < 1.3) {
