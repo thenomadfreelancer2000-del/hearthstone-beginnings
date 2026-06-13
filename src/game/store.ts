@@ -395,6 +395,9 @@ export const useGame = create<GameState>((set, get) => ({
       stats: save.stats,
       selection: { kind: "none" },
       buildPlacement: null,
+      unlockedCrops: (save.unlockedCrops && save.unlockedCrops.length > 0)
+        ? save.unlockedCrops
+        : [...STARTER_CROP_IDS],
     });
     return true;
   },
