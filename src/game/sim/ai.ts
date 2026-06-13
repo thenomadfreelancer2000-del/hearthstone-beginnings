@@ -530,7 +530,8 @@ function handleConstructionCommitment(s: Survivor, dt: number, deps: SimDeps): b
     case "eating": {
       const eat = Math.min(deps.resources.food, 6);
       deps.resources.food -= eat;
-      s.needs.food = Math.min(100, s.needs.food + eat * 12);
+      s.needs.food = Math.min(100, s.needs.food + eat * 14);
+      s.lastMealTick = deps.tick;
       s.state = "eating"; s.action = "Eating.";
       if (s.needs.food >= RESUME_FOOD || deps.resources.food <= 0) {
         c.phase = "returning"; c.sinceTick = deps.tick;
