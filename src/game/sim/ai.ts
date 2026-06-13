@@ -520,39 +520,42 @@ function handleConstructionCommitment(s: Survivor, dt: number, deps: SimDeps): b
       return true;
     }
     case "returning": {
-      if (dist(s.x, s.y, cx, cy) < 1.6) {
-        c.phase = "building";
-      } else {
+      if (dist(s.x, s.y, cx, cy) >= 1.6) {
         setTarget(s, cx, cy); s.action = "Returning To Construction.";
         return true;
       }
-      // fallthrough to building
+      c.phase = "building";
+      return handleBuildPhase(s, dt, deps, b, cx, cy);
     }
-    // eslint-disable-next-line no-fallthrough
     case "building": {
-      if (!hasConstructionResources(b)) {
-        s.action = `Waiting on materials for the ${b.kind}.`;
-        s.state = "idle";
-        return true;
-      }
-      s.workTarget = { kind: "building", id: b.id };
-      if (dist(s.x, s.y, cx, cy) >= 1.6) {
-        setTarget(s, cx, cy); s.action = `Walking to the ${b.kind} build site.`;
-        return true;
-      }
-      const skillMult = 1 + (s.skills.build ?? 1) * 0.18;
-      const finishMult = b.builtProgress >= 0.75 ? 1.4 : 1.0;
-      const work = skillMult * 1.25 * finishMult * (dt / 24);
-      applyConstructionWork(b, work, deps.tick);
-      s.skills.build = Math.min(30, (s.skills.build ?? 1) + 0.003 * dt);
-      s.state = "working";
-      s.action = "Building.";
-      if (b.builtProgress >= 1) s.commitment = null;
-      return true;
+      return handleBuildPhase(s, dt, deps, b, cx, cy);
     }
   }
   return false;
 }
+
+function handleBuildPhase(s: Survivor, dt: number, deps: SimDeps, b: Building, cx: number, cy: number): boolean {
+  if (!hasConstructionResources(b)) {
+    s.action = `Waiting on materials for the ${b.kind}.`;
+    s.state = "idle";
+    return true;
+  }
+  s.workTarget = { kind: "building", id: b.id };
+  if (dist(s.x, s.y, cx, cy) >= 1.6) {
+    setTarget(s, cx, cy); s.action = `Walking to the ${b.kind} build site.`;
+    return true;
+  }
+  const skillMult = 1 + (s.skills.build ?? 1) * 0.18;
+  const finishMult = b.builtProgress >= 0.75 ? 1.4 : 1.0;
+  const work = skillMult * 1.25 * finishMult * (dt / 24);
+  applyConstructionWork(b, work, deps.tick);
+  s.skills.build = Math.min(30, (s.skills.build ?? 1) + 0.003 * dt);
+  s.state = "working";
+  s.action = "Building.";
+  if (b.builtProgress >= 1) s.commitment = null;
+  return true;
+}
+
 
 
 function getBuildEffort(b: Building): number {
