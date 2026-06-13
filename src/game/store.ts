@@ -90,6 +90,10 @@ interface GameState {
   assignFarmer: (buildingId: ID, farmerId: ID | null) => void;
   setFarmCrop: (buildingId: ID, cropId: string) => void;
   closeFarmSetup: () => void;
+  // Housing
+  assignSurvivorToHome: (survivorId: ID, buildingId: ID | null) => void;
+  setHomeReserved: (buildingId: ID, reserved: boolean) => void;
+  autoAssignHomeless: () => void;
   newGame: (ranchName: string, founderInput: FounderInput) => void;
   resumeFromSave: () => boolean;
   save: () => boolean;
