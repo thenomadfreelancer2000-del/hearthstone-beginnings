@@ -252,6 +252,9 @@ export interface Building {
   lastWorkedTick?: number | null;
   stalledTicks?: number;
   occupantIds: ID[];
+  /** Founder may reserve a home for a particular survivor or future family. */
+  reserved?: boolean;
+  reservedFor?: ID | null;
   stored: Partial<Record<ResourceKind, number>>;
   farm?: FarmState | null;
 }
