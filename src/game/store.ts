@@ -53,6 +53,7 @@ interface GameState {
   families: Family[];
   founderId: ID;
   currentLeaderId: ID;
+  preferredHeirId: ID | null;
   chronicle: ChronicleEntry[];
   stats: SettlementStats;
 
@@ -102,6 +103,8 @@ interface GameState {
   assignSurvivorToHome: (survivorId: ID, buildingId: ID | null) => void;
   setHomeReserved: (buildingId: ID, reserved: boolean) => void;
   autoAssignHomeless: () => void;
+  setPreferredHeir: (id: ID | null) => void;
+  setEducationFocus: (childId: ID, focus: "build" | "farm" | "lead" | "social" | "medic" | null) => void;
   newGame: (ranchName: string, founderInput: FounderInput) => void;
   setSurvivorPortrait: (survivorId: ID, portraitId: string) => void;
   resumeFromSave: () => boolean;
@@ -142,6 +145,7 @@ export const useGame = create<GameState>((set, get) => ({
   resources: emptyResources(),
   survivors: [], relationships: [], families: [],
   founderId: "", currentLeaderId: "",
+  preferredHeirId: null,
   chronicle: [],
   stats: emptyStats(1, ""),
   selection: { kind: "none" },
@@ -545,6 +549,18 @@ export const useGame = create<GameState>((set, get) => ({
     set({ buildings, survivors });
   },
 
+  setPreferredHeir: (id) => set({ preferredHeirId: id }),
+  setEducationFocus: (childId, focus) => {
+    const st = get();
+    set({
+      survivors: st.survivors.map((s) =>
+        s.id === childId ? { ...s, educationFocus: focus } : s,
+      ),
+    });
+  },
+
+
+
 
 
 
@@ -656,6 +672,7 @@ export const useGame = create<GameState>((set, get) => ({
       families: allFamilies,
       founderId: founder.id,
       currentLeaderId: founder.id,
+      preferredHeirId: null,
       chronicle: [
         {
           id: nanoid(8),
@@ -719,6 +736,7 @@ export const useGame = create<GameState>((set, get) => ({
       families: save.families,
       founderId: save.founderId,
       currentLeaderId: save.currentLeaderId,
+      preferredHeirId: save.preferredHeirId ?? null,
       chronicle: save.chronicle,
       stats: save.stats,
       selection: { kind: "none" },
@@ -750,6 +768,7 @@ export const useGame = create<GameState>((set, get) => ({
       families: st.families,
       founderId: st.founderId,
       currentLeaderId: st.currentLeaderId,
+      preferredHeirId: st.preferredHeirId,
       buildings: st.buildings,
       resources: st.resources,
       chronicle: st.chronicle,
@@ -799,6 +818,7 @@ export const useGame = create<GameState>((set, get) => ({
       })),
       founderId: st.founderId,
       currentLeaderId: st.currentLeaderId,
+      preferredHeirId: st.preferredHeirId,
       chronicle: [...st.chronicle],
       stats: { ...st.stats },
       seed: st.seed,
@@ -854,6 +874,7 @@ export const useGame = create<GameState>((set, get) => ({
       relationships: eng.relationships,
       families: eng.families,
       currentLeaderId: eng.currentLeaderId,
+      preferredHeirId: eng.preferredHeirId ?? null,
       chronicle: eng.chronicle,
       stats: eng.stats,
       pendingArrival,

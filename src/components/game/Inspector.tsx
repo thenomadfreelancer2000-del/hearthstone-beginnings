@@ -13,6 +13,7 @@ import { BUILDINGS as BUILDINGS_DATA } from "@/game/data/content";
 import type { Building, Occupation, Relationship, Survivor } from "@/game/types";
 import { AuthorityPanel } from "./AuthorityPanel";
 import { FamilyPanel } from "./FamilyPanel";
+import { rankHeirs, heirRating, EDUCATION_LABEL, type EducationFocus } from "@/game/sim/heirs";
 
 const OCCUPATIONS: Occupation[] = [
   "idle", "forager", "woodcutter", "miner", "farmer", "builder", "hauler",
@@ -107,6 +108,10 @@ export function Inspector() {
 
         {/* Housing */}
         {!isDead && <SurvivorHousingPanel s={s} />}
+
+        {/* Education — for children/teens */}
+        {!isDead && (s.stage === "child" || s.stage === "teen") && <EducationPanel s={s} />}
+
 
 
 
@@ -536,50 +541,79 @@ function DebugRow({ label, value, warn }: { label: string; value: string; warn?:
 
 function HeirPanel({ leader }: { leader: Survivor }) {
   const survivors = useGame((s) => s.survivors);
+  const relationships = useGame((s) => s.relationships);
+  const families = useGame((s) => s.families);
   const founderId = useGame((s) => s.founderId);
+  const preferredHeirId = useGame((s) => s.preferredHeirId);
+  const setPreferredHeir = useGame((s) => s.setPreferredHeir);
   const selectSurvivor = useGame((s) => s.selectSurvivor);
 
-  const isDescendantOfFounder = (s: Survivor): boolean => {
-    if (s.id === founderId) return true;
-    if (!s.parentIds.length) return false;
-    return s.parentIds.some(pid => {
-      const p = survivors.find(x => x.id === pid);
-      return p ? isDescendantOfFounder(p) : false;
-    });
-  };
 
-  const candidates = survivors
-    .filter(s => s.health > 0 && s.id !== leader.id && (s.stage === "adult" || s.stage === "elder"))
-    .sort((a, b) => {
-      const da = isDescendantOfFounder(a) ? 0 : 1;
-      const db = isDescendantOfFounder(b) ? 0 : 1;
-      if (da !== db) return da - db;
-      return b.age - a.age;
-    })
-    .slice(0, 3);
+
+  const ranked = rankHeirs({
+    leader,
+    founderId,
+    survivors,
+    relationships,
+    families,
+  }).slice(0, 6);
+
+  const preferred = preferredHeirId ? survivors.find((s) => s.id === preferredHeirId) : null;
 
   return (
     <div className="parchment-panel-warm corner-brackets p-3 mt-5">
-      <h4 className="ranch-label mb-2">Line of Succession</h4>
-      {candidates.length === 0 ? (
+      <div className="flex items-baseline justify-between mb-2">
+        <h4 className="ranch-label">Heirs</h4>
+        {preferred && preferred.health > 0 && (
+          <span className="ranch-data text-[10px] text-amber">
+            ★ Named: {preferred.name}
+          </span>
+        )}
+      </div>
+      {ranked.length === 0 ? (
         <p className="ranch-handwritten text-xs text-dust-light">
-          No heir of age yet. If the leader falls now, the dynasty falls quiet.
+          No heir yet. If the leader falls now, the dynasty falls quiet.
         </p>
       ) : (
-        <ol className="space-y-1">
-          {candidates.map((c, i) => (
-            <li key={c.id}>
-              <button onClick={() => selectSurvivor(c.id)} className="w-full text-left hover:bg-amber/5 px-1 py-0.5">
-                <span className="ranch-data text-[10px] text-amber mr-2">{i + 1}.</span>
-                <span className="ranch-body text-sm text-parchment">{c.name} {c.surname}</span>
-                <span className="ranch-data text-[10px] text-dust ml-2">
-                  {isDescendantOfFounder(c) ? "of the line" : "by oath"} · age {Math.floor(c.age)}
-                </span>
-              </button>
-            </li>
-          ))}
-        </ol>
+        <ul className="space-y-2">
+          {ranked.map((c) => {
+            const rating = heirRating(c.score);
+            const isPref = c.survivor.id === preferredHeirId;
+            return (
+              <li key={c.survivor.id} className="border-l-2 border-amber/30 pl-2">
+                <div className="flex justify-between items-baseline">
+                  <button
+                    onClick={() => selectSurvivor(c.survivor.id)}
+                    className="ranch-body text-sm text-parchment hover:text-amber text-left"
+                  >
+                    {isPref && "★ "}{c.survivor.name} {c.survivor.surname}
+                  </button>
+                  <span className={`ranch-data text-[10px] ${rating.tone}`}>
+                    {rating.rating} · {c.score}
+                  </span>
+                </div>
+                <div className="ranch-data text-[9px] text-dust mt-0.5">
+                  age {Math.floor(c.survivor.age)} · cap {c.capability} · rep {Math.round(c.reputation)} · kin {Math.round(c.familySupport)}
+                </div>
+                {c.notes.length > 0 && (
+                  <div className="ranch-handwritten text-[10px] text-dust-light mt-0.5">
+                    {c.notes.slice(0, 3).join(" · ")}
+                  </div>
+                )}
+                <button
+                  onClick={() => setPreferredHeir(isPref ? null : c.survivor.id)}
+                  className={`btn-ranch text-[9px] py-0.5 mt-1 ${isPref ? "btn-ranch-primary" : "btn-ranch-ghost"}`}
+                >
+                  {isPref ? "Unname" : "Name as heir"}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
       )}
+      <p className="ranch-handwritten text-[10px] text-dust mt-2 italic">
+        On succession, a named heir takes the porch if alive and of age.
+      </p>
     </div>
   );
 }
@@ -820,4 +854,43 @@ function ResidentialPanel({ b }: { b: Building }) {
     </div>
   );
 }
+
+function EducationPanel({ s }: { s: Survivor }) {
+  const setEducationFocus = useGame((g) => g.setEducationFocus);
+  const focus = (s.educationFocus ?? null) as EducationFocus | null;
+  const FOCI: EducationFocus[] = ["build", "farm", "lead", "social", "medic"];
+  return (
+    <>
+      <h4 className="ranch-label mt-5 mb-2">Education</h4>
+      <div className="parchment-panel-warm corner-brackets p-3">
+        <p className="ranch-handwritten text-xs text-dust-light mb-2">
+          Parents can shape what the child practices each day.
+        </p>
+        <div className="grid grid-cols-3 gap-1">
+          <button
+            onClick={() => setEducationFocus(s.id, null)}
+            className={`btn-ranch text-[9px] py-1 ${!focus ? "btn-ranch-primary" : "btn-ranch-ghost"}`}
+          >
+            None
+          </button>
+          {FOCI.map((f) => (
+            <button
+              key={f}
+              onClick={() => setEducationFocus(s.id, f)}
+              className={`btn-ranch text-[9px] py-1 ${focus === f ? "btn-ranch-primary" : "btn-ranch-ghost"}`}
+            >
+              {EDUCATION_LABEL[f]}
+            </button>
+          ))}
+        </div>
+        {focus && (
+          <p className="ranch-data text-[10px] text-amber mt-2">
+            Practicing {EDUCATION_LABEL[focus]} · current skill {Math.round(s.skills[focus] ?? 1)}
+          </p>
+        )}
+      </div>
+    </>
+  );
+}
+
 
