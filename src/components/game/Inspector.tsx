@@ -1,6 +1,6 @@
 import { useGame } from "@/game/store";
 import { BUILDINGS } from "@/game/data/content";
-import { opinionLabel, opinionScore } from "@/game/sim/ai";
+import { opinionLabel, opinionScore, decayRateForSurvivor, TICKS_PER_DAY } from "@/game/sim/ai";
 import {
   constructionEffortCompleted,
   constructionStatus,
