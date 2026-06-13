@@ -8,6 +8,7 @@ import { GameLoop } from "./GameLoop";
 import { DynastyOverlay } from "./DynastyOverlay";
 import { ArrivalEvent } from "./ArrivalEvent";
 import { AssignBuilderModal } from "./AssignBuilderModal";
+import { FarmSetupModal } from "./FarmSetupModal";
 import { useGame } from "@/game/store";
 import { useIsMobile } from "@/hooks/use-mobile";
 
