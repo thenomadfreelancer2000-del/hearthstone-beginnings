@@ -559,6 +559,29 @@ function processBirths(eng: Engine, rng: () => number) {
       if (sibId === child.id) continue;
       markAsKin(eng.relationships, sibId, child.id);
     }
+    // Cousins start with a small positive bond (children of parents' siblings).
+    const parentSiblingIds = new Set<string>();
+    for (const parent of [mother, father]) {
+      for (const gpId of parent.parentIds) {
+        const gp = eng.survivors.find(x => x.id === gpId);
+        if (!gp) continue;
+        for (const auntUncleId of gp.childrenIds) {
+          if (auntUncleId === parent.id) continue;
+          parentSiblingIds.add(auntUncleId);
+        }
+      }
+    }
+    for (const auId of parentSiblingIds) {
+      const au = eng.survivors.find(x => x.id === auId);
+      if (!au) continue;
+      for (const cousinId of au.childrenIds) {
+        const cousin = eng.survivors.find(x => x.id === cousinId);
+        if (!cousin || cousin.id === child.id || cousin.health <= 0) continue;
+        touchRelationship(eng.relationships, child.id, cousin.id, {
+          affection: 18, trust: 10, friendship: 12,
+        });
+      }
+    }
     fam.prestige = Math.min(200, fam.prestige + 2);
     eng.stats.totalBorn += 1;
     // Parents' core memory
