@@ -61,6 +61,23 @@ export function ArrivalEvent() {
           </>
         )}
 
+        {ev.cropKnowledge && ev.cropKnowledge.length > 0 && (
+          <>
+            <div className="ranch-label text-[10px] mt-4 mb-1 text-amber">Special Knowledge</div>
+            <div className="space-y-1">
+              {ev.cropKnowledge.map((cid) => {
+                const c = CROPS[cid as CropId];
+                if (!c) return null;
+                return (
+                  <div key={cid} className="ranch-handwritten text-sm text-parchment">
+                    "{c.knowledgeLine}" <span className="text-dust text-[11px]">— {c.blurb}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+
         <div className="ranch-data text-[10px] text-dust mt-3">
           Reputation: <span className={reputation >= 0 ? "text-success" : "text-danger"}>{reputation}</span>
         </div>
