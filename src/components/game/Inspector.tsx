@@ -8,6 +8,8 @@ import {
   requiredConstructionResources,
 } from "@/game/sim/construction";
 import { CROPS, expectedYield, growthRateMultiplier, skillTierLabel, type CropId } from "@/game/data/crops";
+import { computeHousingSatisfaction, homeCapacity, homeQuality, isResidential } from "@/game/sim/housing";
+import { BUILDINGS as BUILDINGS_DATA } from "@/game/data/content";
 import type { Building, Occupation, Relationship, Survivor } from "@/game/types";
 
 const OCCUPATIONS: Occupation[] = [
