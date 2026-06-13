@@ -221,6 +221,8 @@ export interface FarmState {
   lastHarvestYear?: number | null;
   lastHarvestDay?: number | null;
   totalHarvests: number;
+  /** Tick the plot first became mature (for spoilage timing). */
+  matureSinceTick?: number | null;
 }
 
 export interface BuildingDef {
