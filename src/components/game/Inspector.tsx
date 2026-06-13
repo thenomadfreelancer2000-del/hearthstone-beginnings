@@ -174,22 +174,49 @@ export function Inspector() {
           </>
         )}
 
-        {rels.length > 0 && (
-          <>
-            <h4 className="ranch-label mt-5 mb-2">Relationships</h4>
-            <div className="space-y-1.5">
-              {[...rels]
-                .sort((a, b) => Math.abs(opinionScore(b)) - Math.abs(opinionScore(a)))
-                .slice(0, 24)
-                .map((r) => {
-                const otherId = r.a === s.id ? r.b : r.a;
-                const other = survivors.find(o => o.id === otherId);
-                if (!other) return null;
-                return <RelRow key={otherId} r={r} other={other} onClick={() => selectSurvivor(other.id)} />;
-              })}
-            </div>
-          </>
-        )}
+        {rels.length > 0 && (() => {
+          const groups: Record<string, { r: Relationship; other: Survivor; score: number }[]> = {
+            "best-friend": [], "friend": [], "rival": [], "enemy": [],
+            "dislike": [], "acquaintance": [], "neutral": [],
+          };
+          for (const r of rels) {
+            const otherId = r.a === s.id ? r.b : r.a;
+            const other = survivors.find(o => o.id === otherId);
+            if (!other) continue;
+            const score = opinionScore(r);
+            const cat = opinionCategory(score, r.tag);
+            if (cat === "spouse" || cat === "kin") continue; // shown in Kin section
+            (groups[cat] ?? groups.neutral).push({ r, other, score });
+          }
+          for (const k of Object.keys(groups)) {
+            groups[k].sort((a, b) => Math.abs(b.score) - Math.abs(a.score));
+          }
+          const section = (title: string, key: string, tone: string) => {
+            const list = groups[key];
+            if (!list || list.length === 0) return null;
+            return (
+              <div key={key} className="mt-2">
+                <div className={`ranch-label text-[10px] ${tone} mb-1`}>{title} · {list.length}</div>
+                <div className="space-y-1">
+                  {list.slice(0, 8).map(({ r, other }) => (
+                    <RelRow key={other.id} r={r} other={other} onClick={() => selectSurvivor(other.id)} />
+                  ))}
+                </div>
+              </div>
+            );
+          };
+          return (
+            <>
+              <h4 className="ranch-label mt-5 mb-2">Social Circle</h4>
+              {section("Best Friends", "best-friend", "text-success")}
+              {section("Friends", "friend", "text-success")}
+              {section("Enemies", "enemy", "text-danger")}
+              {section("Rivals", "rival", "text-danger")}
+              {section("Dislikes", "dislike", "text-warning")}
+              {section("Acquaintances", "acquaintance", "text-amber")}
+            </>
+          );
+        })()}
 
         {s.id === currentLeaderId && !isDead && (
           <>
