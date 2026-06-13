@@ -340,6 +340,10 @@ export function makeHomesteadBuilding(spawn: { x: number; y: number }): Building
 
 // ── Arrival event generator ─────────────────────────────────────
 import type { ArrivalEvent, ArrivalKind } from "../types";
+import { ALL_CROP_IDS, CROPS, STARTER_CROP_IDS, type CropId } from "../data/crops";
+
+const NON_STARTER_CROPS: CropId[] = ALL_CROP_IDS.filter(id => !STARTER_CROP_IDS.includes(id));
+
 
 
 const ARRIVAL_KINDS: { kind: ArrivalKind; weight: number; title: string; blurb: string }[] = [
