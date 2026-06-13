@@ -510,7 +510,8 @@ function handleConstructionCommitment(s: Survivor, dt: number, deps: SimDeps): b
       return true;
     }
     case "drinking": {
-      s.needs.water = Math.min(100, s.needs.water + 80);
+      s.needs.water = Math.min(100, s.needs.water + 90);
+      s.lastDrinkTick = deps.tick;
       s.state = "drinking"; s.action = "Drinking.";
       if (s.needs.water >= RESUME_WATER) { c.phase = "returning"; c.sinceTick = deps.tick; }
       return true;
