@@ -82,7 +82,7 @@ export type AIState =
   | "socializing";
 
 export interface Survivor {
-  id: ID;
+  id: string;
   name: string;
   surname: string;
   age: number;                  // in years, fractional
@@ -94,6 +94,8 @@ export interface Survivor {
   bornYear: number;             // year of birth (chronicle convenience)
   deathTick?: number | null;
   deathYear?: number | null;
+  /** Portrait identifier from PORTRAITS list. Optional; null for procedurally generated NPCs. */
+  portraitId?: string | null;
 
   // Position
   x: number;
