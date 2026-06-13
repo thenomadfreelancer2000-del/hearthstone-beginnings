@@ -265,7 +265,8 @@ function StepIdentity(props: {
   const { gender, setGender, firstName, setFirstName, surname, setSurname, ranchName, setRanchName, firstNames, portraitId, setPortraitId } = props;
   const availablePortraits = PORTRAITS.filter((p) => p.gender === gender);
   return (
-    <section className="space-y-5">
+    <section className="grid md:grid-cols-2 gap-4 md:gap-5 items-start">
+
       {/* Panel A — Face */}
       <div className="parchment-panel corner-brackets p-5 sm:p-7">
         <div className="flex items-baseline justify-between mb-4">
