@@ -27,7 +27,7 @@ export function BottomDock() {
 }
 
 const BUILD_CATEGORIES: { id: string; label: string; kinds: import("@/game/types").BuildingKind[] }[] = [
-  { id: "shelter",  label: "Shelter",         kinds: ["tent", "cabin"] },
+  { id: "shelter",  label: "Shelter",         kinds: ["tent", "cabin", "house", "large-house"] },
   { id: "food",     label: "Food Production", kinds: ["farm-plot", "foraging-camp"] },
   { id: "water",    label: "Water",           kinds: ["well", "water-collector"] },
   { id: "crafting", label: "Crafting",        kinds: ["workbench"] },
