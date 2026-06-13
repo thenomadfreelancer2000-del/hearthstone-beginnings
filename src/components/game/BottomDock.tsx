@@ -26,11 +26,27 @@ export function BottomDock() {
   );
 }
 
+const BUILD_CATEGORIES: { id: string; label: string; kinds: import("@/game/types").BuildingKind[] }[] = [
+  { id: "shelter",  label: "Shelter",         kinds: ["tent", "cabin"] },
+  { id: "food",     label: "Food Production", kinds: ["farm-plot"] },
+  { id: "water",    label: "Water",           kinds: ["well"] },
+  { id: "crafting", label: "Crafting",        kinds: ["workbench"] },
+  { id: "storage",  label: "Storage",         kinds: ["stockpile"] },
+  { id: "social",   label: "Social",          kinds: ["campfire"] },
+];
+
 function BuildMenu() {
   const buildPlacement = useGame((s) => s.buildPlacement);
   const startBuild = useGame((s) => s.startBuild);
   const cancelBuild = useGame((s) => s.cancelBuild);
   const resources = useGame((s) => s.resources);
+  const [cat, setCat] = useState<string>("food");
+
+  const active = BUILD_CATEGORIES.find(c => c.id === cat) ?? BUILD_CATEGORIES[0];
+  // Surface any kinds not yet bucketed so nothing is hidden.
+  const known = new Set(BUILD_CATEGORIES.flatMap(c => c.kinds));
+  const orphans = BUILDABLE_KINDS.filter(k => !known.has(k));
+  const kinds = cat === "other" ? orphans : active.kinds;
 
   return (
     <div>
@@ -40,8 +56,27 @@ function BuildMenu() {
           <button className="btn-ranch btn-ranch-ghost" onClick={cancelBuild}>Cancel</button>
         </div>
       )}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-2">
-        {BUILDABLE_KINDS.map((k) => {
+      <div className="flex flex-wrap gap-1 mb-2">
+        {BUILD_CATEGORIES.map((c) => (
+          <button
+            key={c.id}
+            onClick={() => setCat(c.id)}
+            className={`px-2 py-1 ranch-label text-[10px] border ${cat === c.id ? "border-amber text-amber bg-amber/10" : "border-amber/20 text-dust hover:text-parchment"}`}
+          >
+            {c.label}
+          </button>
+        ))}
+        {orphans.length > 0 && (
+          <button
+            onClick={() => setCat("other")}
+            className={`px-2 py-1 ranch-label text-[10px] border ${cat === "other" ? "border-amber text-amber bg-amber/10" : "border-amber/20 text-dust hover:text-parchment"}`}
+          >
+            Other
+          </button>
+        )}
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+        {kinds.map((k) => {
           const def = BUILDINGS[k];
           const affordable = Object.entries(def.cost).every(
             ([r, amt]) => (resources as any)[r] >= (amt ?? 0),
@@ -55,6 +90,7 @@ function BuildMenu() {
               title={def.blurb}
             >
               <span className="text-[11px]">{def.name}</span>
+              <span className="ranch-handwritten text-[10px] text-dust-light mt-0.5 line-clamp-2">{def.blurb}</span>
               <span className="ranch-data text-[10px] mt-1 normal-case tracking-normal text-dust">
                 {Object.entries(def.cost).map(([r, a]) => `${a}${r[0].toUpperCase()}`).join(" ") || "free"}
               </span>
