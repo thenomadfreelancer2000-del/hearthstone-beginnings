@@ -533,17 +533,28 @@ export const useGame = create<GameState>((set, get) => ({
     for (const [r, amt] of Object.entries(ev.gifts)) {
       (newResources as any)[r] = ((newResources as any)[r] ?? 0) + (amt ?? 0);
     }
+    const newKnown = new Set(st.unlockedCrops);
+    const newlyUnlocked: string[] = [];
+    for (const cid of ev.cropKnowledge ?? []) {
+      if (!newKnown.has(cid)) { newKnown.add(cid); newlyUnlocked.push(cid); }
+    }
+    const unlockedSummary = newlyUnlocked.length
+      ? ` New crops to plant: ${newlyUnlocked.map(c => CROPS[c as CropId]?.name ?? c).join(", ")}.`
+      : "";
     const newChronicle: ChronicleEntry = {
       id: nanoid(8),
       tick: st.time.tick,
       year: st.time.year, season: st.time.season, day: st.time.day,
       category: "arrival",
       title: `${ev.title} — welcomed in`,
-      body: `${ev.survivors.length} new soul${ev.survivors.length === 1 ? "" : "s"} joined the ranch. ${ev.blurb}`,
+      body: `${ev.survivors.length} new soul${ev.survivors.length === 1 ? "" : "s"} joined the ranch. ${ev.blurb}${unlockedSummary}`,
       involvedIds: ev.survivors.map(s => s.id),
       involvedFamilyIds: [ev.family.id],
     };
     toast.success(`Welcomed ${ev.survivors.length} to the ranch`);
+    if (newlyUnlocked.length) {
+      toast(`New crops unlocked: ${newlyUnlocked.map(c => CROPS[c as CropId]?.name ?? c).join(", ")}`);
+    }
     set({
       survivors: [...st.survivors, ...ev.survivors],
       families: [...st.families, ev.family],
@@ -552,6 +563,7 @@ export const useGame = create<GameState>((set, get) => ({
       pendingArrival: null,
       reputation: Math.min(100, st.reputation + 4),
       lastChronicleId: newChronicle.id,
+      unlockedCrops: Array.from(newKnown),
     });
   },
 
