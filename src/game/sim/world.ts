@@ -286,11 +286,11 @@ export function makeChild(
   const name = pick(rng, gender === "m" ? FIRST_NAMES_M : FIRST_NAMES_F);
 
   // Trait inheritance: pick a mix from both parents + small chance of a fresh trait
-  const pool = Array.from(new Set([...parents[0].traits, ...parents[1].traits]));
-  const inherited = pickN(rng, pool, Math.min(2, pool.length));
+  const pool: string[] = Array.from(new Set<string>([...parents[0].traits, ...parents[1].traits]));
+  const inherited: string[] = pool.length ? pickN(rng, pool, Math.min(2, pool.length)) : [];
   if (chance(rng, 0.35) && inherited.length < 3) {
-    const fresh = pick(rng, TRAITS);
-    if (!inherited.includes(fresh)) inherited.push(fresh);
+    const fresh = pickTraits(rng, 1)[0];
+    if (fresh && !inherited.includes(fresh)) inherited.push(fresh);
   }
 
   // Value inheritance: pick one from each parent
