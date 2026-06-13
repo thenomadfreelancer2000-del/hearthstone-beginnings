@@ -609,7 +609,7 @@ function assignSpousesToShared(eng: Engine, a: Survivor, b: Survivor) {
       const old = eng.buildings.find(x => x.id === mover.homeId);
       if (old) old.occupantIds = old.occupantIds.filter(id => id !== mover.id);
     }
-    assignHomeWithGratitude(mover, h);
+    assignHomeWithGratitude(eng, mover, h);
     return true;
   };
   if (tryMoveInto(a, b)) return;
@@ -623,7 +623,7 @@ function assignSpousesToShared(eng: Engine, a: Survivor, b: Survivor) {
       if (old) old.occupantIds = old.occupantIds.filter(id => id !== sp.id);
     }
     if ((home.occupantIds?.length ?? 0) < homeCapacity(home)) {
-      assignHomeWithGratitude(sp, home);
+      assignHomeWithGratitude(eng, sp, home);
     }
   }
 }
