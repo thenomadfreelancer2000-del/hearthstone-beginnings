@@ -111,7 +111,7 @@ export function FounderCreation() {
       <div className="pointer-events-none fixed inset-4 md:inset-8 border border-amber/15 hidden sm:block" />
 
       {/* Top chrome — step indicator */}
-      <header className="px-4 sm:px-8 pt-4 sm:pt-6 pb-3 sm:pb-4 flex items-center justify-between gap-3 shrink-0">
+      <header className="px-4 sm:px-8 pt-2 sm:pt-6 pb-2 sm:pb-4 flex items-center justify-between gap-3 shrink-0">
         <button
           onClick={back}
           className="ranch-label text-[9px] sm:text-[10px] hover:text-amber transition shrink-0"
@@ -176,7 +176,10 @@ export function FounderCreation() {
               >
                 {t.eyebrow}
               </p>
-              <h1 className="ranch-display text-[26px] sm:text-5xl md:text-6xl leading-[1.05] mb-2 sm:mb-4">
+              <h1
+                className="ranch-display leading-[1.05] mb-2 sm:mb-4"
+                style={{ fontSize: "clamp(22px, 5.5vw, 60px)" }}
+              >
                 {t.title}
               </h1>
               <p className="ranch-display italic text-dust-light text-sm sm:text-lg max-w-2xl leading-snug">
@@ -238,9 +241,14 @@ export function FounderCreation() {
           <button
             onClick={next}
             disabled={!stepValid[step]}
-            className="btn-ranch btn-ranch-primary flex-1 sm:flex-none"
+            className="btn-ranch btn-ranch-primary flex-1 sm:flex-none whitespace-nowrap"
           >
-            {step < 5 ? "Continue" : "Walk onto the porch"}
+            {step < 5 ? "Continue" : (
+              <>
+                <span className="sm:hidden">Begin</span>
+                <span className="hidden sm:inline">Walk onto the porch</span>
+              </>
+            )}
           </button>
         </div>
       </footer>
