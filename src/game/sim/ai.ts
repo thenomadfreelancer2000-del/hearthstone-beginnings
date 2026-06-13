@@ -184,6 +184,26 @@ export interface SimDeps {
   emitMemory: (s: Survivor, text: string, emotion: import("../types").Memory["emotion"], weight: number) => void;
 }
 
+/** Workers who dislike each other (opinion <= -30) drag down a shared build site. */
+function rivalryWorkMult(s: Survivor, b: Building, deps: SimDeps): number {
+  const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+  let worst = 0;
+  for (const o of deps.survivors) {
+    if (o.id === s.id || o.health <= 0) continue;
+    const sameSite =
+      (o.workTarget?.kind === "building" && o.workTarget.id === b.id) ||
+      dist(o.x, o.y, cx, cy) < 2.5;
+    if (!sameSite) continue;
+    const r = findRelationship(deps.relationships, s.id, o.id);
+    if (!r) continue;
+    const score = opinionScore(r);
+    if (score <= -30 && score < worst) worst = score;
+  }
+  if (worst === 0) return 1;
+  // -30 → 0.9, -60 → 0.75, -80+ → 0.65
+  return Math.max(0.6, 1 + worst * 0.005);
+}
+
 const CARRY_CAP = 12;
 
 export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
