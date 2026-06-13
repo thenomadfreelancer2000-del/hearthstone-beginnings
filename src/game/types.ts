@@ -328,6 +328,8 @@ export interface SaveGame {
   chronicle: ChronicleEntry[];
   stats: SettlementStats;
   unlockedCrops?: string[];
+  foundingPhase?: boolean;
+  territory?: { cx: number; cy: number; radius: number } | null;
   // Phase 3+ reservations (always present, empty for now):
   factions: unknown[];
   laws: unknown[];
