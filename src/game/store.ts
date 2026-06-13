@@ -601,7 +601,83 @@ export const useGame = create<GameState>((set, get) => ({
       lastChronicleId: newChronicle.id,
     });
   },
+
+  enterBorderMode: () => set({ borderMode: true, buildPlacement: null }),
+  exitBorderMode: () => set({ borderMode: false }),
+  setBorderFromClick: (x, y) => {
+    const st = get();
+    if (!st.borderMode) return;
+    const t = st.territory;
+    if (!t) return;
+    const r = Math.max(3, Math.min(40, Math.round(Math.hypot(x - t.cx, y - t.cy))));
+    set({ territory: { ...t, radius: r }, borderMode: false });
+    toast.success(`Ranch border claimed — ${territoryAcres(r)} acres`);
+    maybeCompleteFounding(get, set);
+  },
+  completeFounding: () => {
+    const st = get();
+    if (!st.foundingPhase) return;
+    const t = st.territory;
+    const founder = st.survivors.find(s => s.id === st.founderId);
+    const firstBuilt = st.buildings
+      .filter(b => b.kind !== "homestead" && b.builtProgress >= 1)
+      .slice(0, 5)
+      .map(b => BUILDINGS[b.kind].name);
+    const entry: ChronicleEntry = {
+      id: nanoid(8),
+      tick: st.time.tick,
+      year: st.time.year, season: st.time.season, day: st.time.day,
+      category: "founding",
+      title: "The Ranch Has Been Founded",
+      body: `${founder?.name ?? "The Founder"} ${founder?.surname ?? ""} founded ${st.ranchName}. ` +
+        `Population: ${st.survivors.filter(s => s.health > 0).length}. ` +
+        `Territory: ${t ? territoryAcres(t.radius) : 0} acres. ` +
+        `First structures: ${firstBuilt.join(", ") || "—"}.`,
+      involvedIds: [st.founderId],
+    };
+    toast.success("The Ranch Has Been Founded", {
+      description: "The simulation begins in earnest.",
+    });
+    set({
+      foundingPhase: false,
+      chronicle: [entry, ...st.chronicle],
+      lastChronicleId: entry.id,
+    });
+  },
 }));
+
+function territoryAcres(radius: number): number {
+  // 1 tile ≈ 0.1 acre (arbitrary but readable scale).
+  return Math.max(1, Math.round(Math.PI * radius * radius * 0.1));
+}
+
+function maybeCompleteFounding(
+  get: () => GameState,
+  set: (partial: Partial<GameState>) => void,
+) {
+  const st = get();
+  if (!st.foundingPhase) return;
+  const objs = computeFoundingObjectives(st);
+  if (objs.every(o => o.done)) {
+    // Defer slightly so toasts stack properly.
+    setTimeout(() => useGame.getState().completeFounding(), 100);
+  }
+  void set;
+}
+
+export interface FoundingObjective { id: string; label: string; done: boolean }
+
+export function computeFoundingObjectives(st: GameState): FoundingObjective[] {
+  const has = (kinds: BuildingKind[]) =>
+    st.buildings.some(b => kinds.includes(b.kind) && b.builtProgress >= 1);
+  return [
+    { id: "home",   label: "Build a home (Tent or Cabin)",        done: has(["tent", "cabin"]) },
+    { id: "water",  label: "Secure water (Well or Water Collector)", done: has(["well", "water-collector"]) },
+    { id: "food",   label: "Secure food (Farm Plot or Foraging Camp)", done: has(["farm-plot", "foraging-camp"]) },
+    { id: "border", label: "Define the ranch border",              done: (st.territory?.radius ?? 0) > 0 },
+  ];
+}
+
 
 function notifyChronicle(c: ChronicleEntry) {
   switch (c.category) {
