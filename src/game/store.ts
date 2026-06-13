@@ -67,6 +67,7 @@ interface GameState {
   // Crops the settlement currently knows how to grow.
   unlockedCrops: string[];
   reputation: number; // -100..100, affects future arrivals
+  reputationProfile: import("./sim/reputation").ReputationProfile;
   lastChronicleId: ID | null;
 
   // ── Founding Phase ────────────────────────────────────────────
@@ -149,6 +150,7 @@ export const useGame = create<GameState>((set, get) => ({
   pendingFarmSetup: null,
   unlockedCrops: [...STARTER_CROP_IDS],
   reputation: 0,
+  reputationProfile: { compassionate: 0, ruthless: 0, builder: 0, provider: 0, honest: 0 },
   lastChronicleId: null,
   foundingPhase: false,
   territory: null,
@@ -659,6 +661,7 @@ export const useGame = create<GameState>((set, get) => ({
       pendingFarmSetup: null,
       unlockedCrops: [...STARTER_CROP_IDS],
       reputation: 0,
+      reputationProfile: { compassionate: 0, ruthless: 0, builder: 0, provider: 0, honest: 0 },
       lastChronicleId: null,
       foundingPhase: true,
       territory: {
@@ -899,6 +902,11 @@ export const useGame = create<GameState>((set, get) => ({
       chronicle: [newChronicle, ...st.chronicle],
       pendingArrival: null,
       reputation: Math.min(100, st.reputation + 4),
+      reputationProfile: {
+        ...st.reputationProfile,
+        compassionate: Math.min(100, st.reputationProfile.compassionate + 8),
+        ruthless: Math.max(0, st.reputationProfile.ruthless - 2),
+      },
       lastChronicleId: newChronicle.id,
       unlockedCrops: Array.from(newKnown),
     });
@@ -922,6 +930,11 @@ export const useGame = create<GameState>((set, get) => ({
       chronicle: [newChronicle, ...st.chronicle],
       pendingArrival: null,
       reputation: Math.max(-100, st.reputation - 3),
+      reputationProfile: {
+        ...st.reputationProfile,
+        ruthless: Math.min(100, st.reputationProfile.ruthless + 8),
+        compassionate: Math.max(0, st.reputationProfile.compassionate - 2),
+      },
       lastChronicleId: newChronicle.id,
     });
   },
