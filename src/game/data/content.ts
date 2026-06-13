@@ -50,19 +50,31 @@ export const BUILDINGS: Record<BuildingKind, BuildingDef> = {
   homestead: {
     kind: "homestead", name: "Homestead", blurb: "The original house. Where it all began.",
     size: { w: 3, h: 3 },
-    cost: {}, buildEffort: 0, housingCapacity: 4, storageCapacity: 200, social: true,
+    cost: {}, buildEffort: 0, housingCapacity: 4, housingQuality: 3, storageCapacity: 200, social: true,
     produces: null,
   },
   tent: {
-    kind: "tent", name: "Canvas Tent", blurb: "Sleep under stitched cloth.",
+    kind: "tent", name: "Canvas Tent", blurb: "Sleep under stitched cloth. Cramped, but it's a roof.",
     size: { w: 2, h: 2 },
-    cost: { wood: 8, fiber: 4 }, buildEffort: 40, housingCapacity: 2, storageCapacity: 0, social: false,
+    cost: { wood: 8, fiber: 4 }, buildEffort: 40, housingCapacity: 2, housingQuality: 1, storageCapacity: 0, social: false,
     produces: null,
   },
   cabin: {
     kind: "cabin", name: "Log Cabin", blurb: "A real roof. Walls that hold the cold out.",
     size: { w: 3, h: 3 },
-    cost: { wood: 30, stone: 8 }, buildEffort: 140, housingCapacity: 3, storageCapacity: 40, social: false,
+    cost: { wood: 30, stone: 8 }, buildEffort: 140, housingCapacity: 4, housingQuality: 2, storageCapacity: 40, social: false,
+    produces: null,
+  },
+  house: {
+    kind: "house", name: "House", blurb: "Two rooms, a hearth, and a door that latches.",
+    size: { w: 3, h: 3 },
+    cost: { wood: 60, stone: 20 }, buildEffort: 260, housingCapacity: 6, housingQuality: 3, storageCapacity: 60, social: false,
+    produces: null,
+  },
+  "large-house": {
+    kind: "large-house", name: "Large House", blurb: "Room enough for a whole family and then some.",
+    size: { w: 4, h: 4 },
+    cost: { wood: 110, stone: 45 }, buildEffort: 460, housingCapacity: 10, housingQuality: 4, storageCapacity: 100, social: false,
     produces: null,
   },
   campfire: {
@@ -128,7 +140,8 @@ export const BUILDINGS: Record<BuildingKind, BuildingDef> = {
 };
 
 export const BUILDABLE_KINDS: BuildingKind[] = [
-  "tent", "cabin", "campfire", "stockpile", "workbench",
+  "tent", "cabin", "house", "large-house",
+  "campfire", "stockpile", "workbench",
   "farm-plot", "foraging-camp", "well", "water-collector", "fence",
 ];
 

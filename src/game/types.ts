@@ -142,6 +142,18 @@ export interface Survivor {
   // settlement's unlockedCrops when they're welcomed in.
   cropKnowledge?: string[];
 
+  // ── Housing (Housing & Family update) ──────────────────────
+  homeId?: ID | null;
+  lastHomeKind?: BuildingKind | null;
+  /** 0..100, recomputed daily. */
+  housingSatisfaction?: number;
+  /** Founder-opinion bonus from a recent housing upgrade — decays linearly. */
+  housingGratitude?: number;
+  /** Rising baseline: the longer they live here, the more they expect. */
+  expectationBaseline?: number;
+  /** Tick they joined the ranch — drives expectation drift. */
+  arrivalTick?: number | null;
+
   // ── Phase 3+ placeholders (nullable for forward-compat) ──
   factionId?: ID | null;
   politicalLean?: number | null;
@@ -183,7 +195,8 @@ export interface Family {
 
 // ── Buildings ────────────────────────────────────────────────────
 export type BuildingKind =
-  | "homestead" | "tent" | "cabin" | "campfire" | "stockpile"
+  | "homestead" | "tent" | "cabin" | "house" | "large-house"
+  | "campfire" | "stockpile"
   | "workbench" | "well" | "watchtower" | "field" | "farm-plot"
   | "water-collector" | "foraging-camp" | "fence";
 
@@ -218,6 +231,8 @@ export interface BuildingDef {
   cost: Partial<Record<ResourceKind, number>>;
   buildEffort: number;
   housingCapacity: number;
+  /** 0 = non-residential, 1..5 = housing tier (1 tent → 5 manor). */
+  housingQuality?: number;
   storageCapacity: number;
   social: boolean;
   produces?: { resource: ResourceKind; perDay: number } | null;
@@ -237,6 +252,9 @@ export interface Building {
   lastWorkedTick?: number | null;
   stalledTicks?: number;
   occupantIds: ID[];
+  /** Founder may reserve a home for a particular survivor or future family. */
+  reserved?: boolean;
+  reservedFor?: ID | null;
   stored: Partial<Record<ResourceKind, number>>;
   farm?: FarmState | null;
 }

@@ -12,6 +12,8 @@ import { normalizeConstructionBuilding, recoverStalledConstruction } from "./con
 import { CHRONICLE_OPENERS, FERTILE_MAX, FERTILE_MIN, NATURAL_DEATH_AGE } from "../data/content";
 import { makeRng, chance, pick } from "./rng";
 import { makeChild, stageFromAge } from "./world";
+import { dailyHousingTick, findBestHome, homeCapacity, isResidential } from "./housing";
+import { BUILDINGS } from "../data/content";
 
 export interface Engine {
   time: GameTime;
@@ -189,6 +191,12 @@ function dailyTick(eng: Engine, opts?: { onArrival?: (s: Survivor) => Survivor |
   }
 
   processFarms(eng);
+  dailyHousingTick({ buildings: eng.buildings, survivors: eng.survivors, tick: eng.time.tick });
+
+
+
+
+
 
 
   // ── Lifecycle: aging happens at season change ─────────────────
@@ -408,6 +416,11 @@ function marry(eng: Engine, a: Survivor, b: Survivor) {
 
   markAsSpouses(eng.relationships, a.id, b.id, eng.time.tick);
 
+  // Couples prefer to share a home. If one already has a home with room, the
+  // other moves in; otherwise auto-assign the best available together.
+  assignSpousesToShared(eng, a, b);
+
+
   a.mood = Math.min(100, a.mood + 30);
   b.mood = Math.min(100, b.mood + 30);
   a.needs.belonging = 100;
@@ -456,6 +469,14 @@ function processBirths(eng: Engine, rng: () => number) {
       { x: spawnX, y: spawnY },
     );
     eng.survivors.push(child);
+    // Child inherits parent's home if there's space.
+    const parentHome = eng.buildings.find(b =>
+      b.id === (mother.homeId ?? father.homeId) && isResidential(b.kind)
+    );
+    if (parentHome && (parentHome.occupantIds?.length ?? 0) < homeCapacity(parentHome)) {
+      child.homeId = parentHome.id;
+      if (!parentHome.occupantIds.includes(child.id)) parentHome.occupantIds.push(child.id);
+    }
     addToFamily(fam, child);
     mother.childrenIds.push(child.id);
     father.childrenIds.push(child.id);
@@ -481,6 +502,51 @@ function processBirths(eng: Engine, rng: () => number) {
 function cap(s: string) {
   return s[0].toUpperCase() + s.slice(1);
 }
+
+function assignHomeWithGratitude(s: Survivor, b: Building) {
+  const prevKind = s.lastHomeKind;
+  s.homeId = b.id;
+  if (!b.occupantIds.includes(s.id)) b.occupantIds.push(s.id);
+  // Upgrade detection: higher quality than last home → gratitude
+  const prevQ = prevKind ? (BUILDINGS[prevKind]?.housingQuality ?? 0) : 0;
+  const newQ = BUILDINGS[b.kind]?.housingQuality ?? 0;
+  if (newQ > prevQ) {
+    s.housingGratitude = (s.housingGratitude ?? 0) + 10;
+  }
+  s.lastHomeKind = b.kind;
+}
+
+function assignSpousesToShared(eng: Engine, a: Survivor, b: Survivor) {
+  // If one has room at home, the other moves in.
+  const tryMoveInto = (target: Survivor, mover: Survivor) => {
+    if (!target.homeId) return false;
+    const h = eng.buildings.find(x => x.id === target.homeId);
+    if (!h || !isResidential(h.kind)) return false;
+    if ((h.occupantIds?.length ?? 0) >= homeCapacity(h)) return false;
+    // remove mover from old home
+    if (mover.homeId) {
+      const old = eng.buildings.find(x => x.id === mover.homeId);
+      if (old) old.occupantIds = old.occupantIds.filter(id => id !== mover.id);
+    }
+    assignHomeWithGratitude(mover, h);
+    return true;
+  };
+  if (tryMoveInto(a, b)) return;
+  if (tryMoveInto(b, a)) return;
+  // Otherwise find best home for the couple together.
+  const home = findBestHome(a, eng.buildings, eng.survivors);
+  if (!home) return;
+  for (const sp of [a, b]) {
+    if (sp.homeId) {
+      const old = eng.buildings.find(x => x.id === sp.homeId);
+      if (old) old.occupantIds = old.occupantIds.filter(id => id !== sp.id);
+    }
+    if ((home.occupantIds?.length ?? 0) < homeCapacity(home)) {
+      assignHomeWithGratitude(sp, home);
+    }
+  }
+}
+
 
 // ── Farms ──────────────────────────────────────────────────────
 import { CROPS, expectedYield, growthRateMultiplier, isCropId, type CropId } from "../data/crops";

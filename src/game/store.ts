@@ -16,6 +16,7 @@ import { saveToLocal, loadFromLocal } from "./persistence";
 import { makeRng } from "./sim/rng";
 import { normalizeConstructionBuilding } from "./sim/construction";
 import { CROPS, STARTER_CROP_IDS, isCropId, type CropId } from "./data/crops";
+import { findBestHome as findBestHomeFor, homeCapacity } from "./sim/housing";
 
 export type Screen = "menu" | "founder" | "game";
 export type Overlay = "tree" | "family" | "chronicle" | null;
@@ -90,6 +91,10 @@ interface GameState {
   assignFarmer: (buildingId: ID, farmerId: ID | null) => void;
   setFarmCrop: (buildingId: ID, cropId: string) => void;
   closeFarmSetup: () => void;
+  // Housing
+  assignSurvivorToHome: (survivorId: ID, buildingId: ID | null) => void;
+  setHomeReserved: (buildingId: ID, reserved: boolean) => void;
+  autoAssignHomeless: () => void;
   newGame: (ranchName: string, founderInput: FounderInput) => void;
   resumeFromSave: () => boolean;
   save: () => boolean;
@@ -389,6 +394,77 @@ export const useGame = create<GameState>((set, get) => ({
 
   closeFarmSetup: () => set({ pendingFarmSetup: null }),
 
+  assignSurvivorToHome: (survivorId, buildingId) => {
+    const st = get();
+    let buildings = st.buildings;
+    const survivors = st.survivors.map(s => {
+      if (s.id !== survivorId) return s;
+      const prev = s.homeId;
+      if (prev === buildingId) return s;
+      // remove from old
+      if (prev) {
+        buildings = buildings.map(b => b.id === prev ? { ...b, occupantIds: b.occupantIds.filter(id => id !== s.id) } : b);
+      }
+      // add to new (capacity check)
+      if (buildingId) {
+        const tgt = buildings.find(b => b.id === buildingId);
+        if (!tgt) return s;
+        const cap = BUILDINGS[tgt.kind]?.housingCapacity ?? 0;
+        if ((tgt.occupantIds?.length ?? 0) >= cap) {
+          toast.warning("Home is full");
+          return s;
+        }
+        buildings = buildings.map(b => b.id === buildingId ? { ...b, occupantIds: [...b.occupantIds, s.id] } : b);
+        const prevKind = s.lastHomeKind ?? null;
+        const prevQ = prevKind ? (BUILDINGS[prevKind]?.housingQuality ?? 0) : 0;
+        const newQ = BUILDINGS[tgt.kind]?.housingQuality ?? 0;
+        return {
+          ...s,
+          homeId: buildingId,
+          lastHomeKind: tgt.kind,
+          housingGratitude: newQ > prevQ ? (s.housingGratitude ?? 0) + 10 : (s.housingGratitude ?? 0),
+        };
+      }
+      return { ...s, homeId: null };
+    });
+    set({ buildings, survivors });
+  },
+
+  setHomeReserved: (buildingId, reserved) => {
+    const st = get();
+    set({
+      buildings: st.buildings.map(b =>
+        b.id === buildingId ? { ...b, reserved } : b
+      ),
+    });
+  },
+
+  autoAssignHomeless: () => {
+    const st = get();
+    const buildings = st.buildings.map(b => ({ ...b, occupantIds: [...b.occupantIds] }));
+    const survivors = st.survivors.map(s => ({ ...s }));
+    // First re-seed occupantIds from homeIds
+    for (const b of buildings) b.occupantIds = [];
+    for (const s of survivors) {
+      if (s.health <= 0) continue;
+      if (s.homeId) {
+        const b = buildings.find(x => x.id === s.homeId);
+        if (b) b.occupantIds.push(s.id);
+        else s.homeId = null;
+      }
+    }
+    for (const s of survivors) {
+      if (s.health <= 0 || s.homeId) continue;
+      const home = findBestHomeFor(s, buildings, survivors);
+      if (home) {
+        home.occupantIds.push(s.id);
+        s.homeId = home.id;
+        s.lastHomeKind = home.kind;
+      }
+    }
+    set({ buildings, survivors });
+  },
+
 
 
 
@@ -399,6 +475,11 @@ export const useGame = create<GameState>((set, get) => ({
     const family = makeFounderFamily(founder, 1);
     founder.familyId = family.id;
     const homestead = makeHomesteadBuilding(homesteadTile);
+    // Founder lives in the homestead
+    founder.homeId = homestead.id;
+    founder.lastHomeKind = "homestead";
+    founder.arrivalTick = 0;
+    homestead.occupantIds = [founder.id];
     set({
       screen: "game",
       overlay: null,
@@ -459,7 +540,8 @@ export const useGame = create<GameState>((set, get) => ({
       buildings: save.buildings.map(b => ({
         assignedBuilderId: null,
         ...b,
-        // Repair legacy saves missing buildEffortTotal so progress never stalls
+        occupantIds: b.occupantIds ?? [],
+        stored: b.stored ?? {},
         buildEffortTotal: b.buildEffortTotal || Math.max(1, b.effortRemaining + (b.builtProgress > 0 ? 1 : 0)),
       })).map(b => {
         normalizeConstructionBuilding(b);
@@ -645,9 +727,27 @@ export const useGame = create<GameState>((set, get) => ({
     if (newlyUnlocked.length) {
       toast(`New crops unlocked: ${newlyUnlocked.map(c => CROPS[c as CropId]?.name ?? c).join(", ")}`);
     }
+    // Auto-assign homes to the newcomers.
+    const buildings = st.buildings.map(b => ({ ...b, occupantIds: [...b.occupantIds] }));
+    const allSurvivors = [...st.survivors, ...ev.survivors.map(s => ({
+      ...s,
+      arrivalTick: st.time.tick,
+      housingGratitude: 5, // small welcome bonus
+    }))];
+    for (const s of ev.survivors) {
+      const fresh = allSurvivors.find(x => x.id === s.id);
+      if (!fresh) continue;
+      const home = findBestHomeFor(fresh, buildings, allSurvivors);
+      if (home && (home.occupantIds?.length ?? 0) < homeCapacity(home)) {
+        fresh.homeId = home.id;
+        fresh.lastHomeKind = home.kind;
+        home.occupantIds.push(fresh.id);
+      }
+    }
     set({
-      survivors: [...st.survivors, ...ev.survivors],
+      survivors: allSurvivors,
       families: [...st.families, ev.family],
+      buildings,
       resources: newResources,
       chronicle: [newChronicle, ...st.chronicle],
       pendingArrival: null,
