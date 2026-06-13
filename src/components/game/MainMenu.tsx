@@ -135,6 +135,8 @@ export function MainMenu() {
               Settings
             </button>
           </motion.div>
+        </motion.div>
+      </div>
 
     </div>
   );
