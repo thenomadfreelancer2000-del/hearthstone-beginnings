@@ -278,6 +278,7 @@ export function Inspector() {
         ) : (
           <p className="ranch-data text-xs text-success">Complete · year {b.completedYear ?? "—"}</p>
         )}
+        {b.kind === "farm-plot" && b.builtProgress >= 1 && <FarmPanel b={b} />}
         <div className="divider-amber my-3" />
         <div className="ranch-data text-[10px] text-dust space-y-0.5">
           <div>
