@@ -247,6 +247,7 @@ export interface ArrivalEvent {
   survivors: Survivor[];
   family: Family;
   gifts: Partial<Record<ResourceKind, number>>;
+  cropKnowledge?: string[]; // CropIds unlocked by accepting this party
   arrivedTick: number;
 }
 
