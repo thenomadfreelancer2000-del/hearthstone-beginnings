@@ -151,7 +151,61 @@ export const useGame = create<GameState>((set, get) => ({
   selectTile: (x, y) => set({ selection: { kind: "tile", x, y } }),
   selectFamily: (id) => set({ selection: { kind: "family", id } }),
   clearSelection: () => set({ selection: { kind: "none" } }),
-  startBuild: (kind) => set({ buildPlacement: { kind }, selection: { kind: "none" } }),
+  startBuild: (kind) => {
+    const st = get();
+    // First-time fence during founding: auto-encircle the territory.
+    if (
+      kind === "fence" &&
+      st.foundingPhase &&
+      st.territory &&
+      st.territory.radius > 0 &&
+      !st.buildings.some((b) => b.kind === "fence")
+    ) {
+      const { cx, cy, radius } = st.territory;
+      const used = new Set<string>();
+      // Sample circle densely; round to integer tiles, dedupe.
+      const steps = Math.max(48, Math.ceil(2 * Math.PI * radius * 1.2));
+      const tiles: { x: number; y: number }[] = [];
+      for (let i = 0; i < steps; i++) {
+        const a = (i / steps) * Math.PI * 2;
+        const x = Math.round(cx + Math.cos(a) * radius - 0.5);
+        const y = Math.round(cy + Math.sin(a) * radius - 0.5);
+        if (x < 0 || y < 0 || x >= st.mapW || y >= st.mapH) continue;
+        const key = `${x},${y}`;
+        if (used.has(key)) continue;
+        // skip if collides with existing building
+        if (st.buildings.some((b) => x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h)) continue;
+        const t = st.tiles[y * st.mapW + x];
+        if (!t || t.kind === "water" || t.kind === "stone") continue;
+        used.add(key);
+        tiles.push({ x, y });
+      }
+      const newFences: Building[] = tiles.map((p) => ({
+        id: nanoid(10),
+        kind: "fence",
+        x: p.x, y: p.y, w: 1, h: 1,
+        builtProgress: 1,
+        effortRemaining: 0,
+        buildEffortTotal: BUILDINGS.fence.buildEffort,
+        completedYear: st.time.year,
+        assignedBuilderId: null,
+        resourcesDelivered: { wood: BUILDINGS.fence.cost.wood ?? 0 },
+        lastWorkedTick: null,
+        stalledTicks: 0,
+        occupantIds: [],
+        stored: {},
+        farm: null,
+      }));
+      set({
+        buildings: [...st.buildings, ...newFences],
+        buildPlacement: null,
+        selection: { kind: "none" },
+      });
+      toast.success(`Fence raised around the ranch (${newFences.length} segments)`);
+      return;
+    }
+    set({ buildPlacement: { kind }, selection: { kind: "none" } });
+  },
   cancelBuild: () => set({ buildPlacement: null }),
 
   placeBuilding: (x, y) => {
