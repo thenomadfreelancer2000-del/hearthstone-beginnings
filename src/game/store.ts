@@ -53,6 +53,7 @@ interface GameState {
   families: Family[];
   founderId: ID;
   currentLeaderId: ID;
+  preferredHeirId: ID | null;
   chronicle: ChronicleEntry[];
   stats: SettlementStats;
 
@@ -102,6 +103,8 @@ interface GameState {
   assignSurvivorToHome: (survivorId: ID, buildingId: ID | null) => void;
   setHomeReserved: (buildingId: ID, reserved: boolean) => void;
   autoAssignHomeless: () => void;
+  setPreferredHeir: (id: ID | null) => void;
+  setEducationFocus: (childId: ID, focus: "build" | "farm" | "lead" | "social" | "medic" | null) => void;
   newGame: (ranchName: string, founderInput: FounderInput) => void;
   setSurvivorPortrait: (survivorId: ID, portraitId: string) => void;
   resumeFromSave: () => boolean;
@@ -142,6 +145,7 @@ export const useGame = create<GameState>((set, get) => ({
   resources: emptyResources(),
   survivors: [], relationships: [], families: [],
   founderId: "", currentLeaderId: "",
+  preferredHeirId: null,
   chronicle: [],
   stats: emptyStats(1, ""),
   selection: { kind: "none" },
