@@ -10,8 +10,8 @@ export function LeaderProfile() {
   if (!leader) return null;
   const portraitUrl = getPortraitUrl(leader.portraitId) ?? getPortraitUrl(defaultPortraitFor(leader.gender));
 
-  // On mobile, anchor to top-left (below TopBar) so the bottom dock can't cover it.
-  const positionClass = isMobile ? "top-2 left-2" : "left-3 bottom-3";
+  // Anchor to bottom-left; smaller on mobile so it doesn't crowd the screen.
+  const positionClass = "left-2 bottom-2 sm:left-3 sm:bottom-3";
   const sizeClass = isMobile ? "w-12 h-12" : "w-16 h-16 sm:w-20 sm:h-20";
 
   return (
