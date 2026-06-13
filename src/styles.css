@@ -327,6 +327,18 @@
   100% { transform: translate(0, 0); }
 }
 
+/* Auto-rotate the entire app into landscape on portrait mobile devices.
+   We rotate #root 90deg and swap its width/height so the game always
+   renders in landscape regardless of how the phone is held. */
 @media (orientation: portrait) and (max-width: 900px) {
-  .rotate-prompt { display: flex !important; }
+  html, body { overflow: hidden; }
+  #root {
+    position: fixed;
+    top: 0;
+    left: 100vw;
+    width: 100vh;
+    height: 100vw;
+    transform: rotate(90deg);
+    transform-origin: top left;
+  }
 }
