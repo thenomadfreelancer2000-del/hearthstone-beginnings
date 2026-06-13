@@ -691,12 +691,28 @@ export function opinionLabel(score: number, tag?: import("../types").Relationshi
   if (tag === "spouse") return "Spouse";
   if (tag === "kin") return "Kin";
   if (score >= 80) return "Best Friend";
-  if (score >= 40) return "Friend";
-  if (score >= 10) return "Acquaintance";
-  if (score > -10) return "Neutral";
-  if (score > -40) return "Dislikes";
+  if (score >= 60) return "Friend";
+  if (score >= 30) return "Acquaintance";
+  if (score > -30) return "Neutral";
+  if (score > -60) return "Dislikes";
   if (score > -80) return "Rival";
   return "Enemy";
+}
+
+/** Bucket for social-circle grouping in UI. */
+export function opinionCategory(
+  score: number,
+  tag?: import("../types").RelationshipTag,
+): "spouse" | "kin" | "best-friend" | "friend" | "acquaintance" | "neutral" | "dislike" | "rival" | "enemy" {
+  if (tag === "spouse") return "spouse";
+  if (tag === "kin") return "kin";
+  if (score >= 80) return "best-friend";
+  if (score >= 60) return "friend";
+  if (score >= 30) return "acquaintance";
+  if (score > -30) return "neutral";
+  if (score > -60) return "dislike";
+  if (score > -80) return "rival";
+  return "enemy";
 }
 
 // ── Memory decay ─────────────────────────────────────────────────
