@@ -75,10 +75,6 @@ export function TopBar({ onToggleDock, dockOpen }: Props) {
 
   return (
     <header className="parchment-panel border-b border-amber/30 px-4 py-2 flex items-center gap-4 z-20 flex-wrap">
-      <div className="flex flex-col">
-        <span className="ranch-label text-[9px]">Chronicle of</span>
-        <span className="ranch-display text-lg leading-none">{ranchName}</span>
-      </div>
       <div className="w-px h-10 bg-amber/30" />
       <div className="flex flex-col">
         <span className="ranch-label text-[9px]">House</span>
