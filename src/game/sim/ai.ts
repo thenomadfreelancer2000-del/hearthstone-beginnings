@@ -380,14 +380,12 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
 
 
   {
-    // Leaders idle by the fire unless the player explicitly assigns them a job.
-    const isLeader = s.occupation === "leader";
+    // Occupation drives work. "Leader" is a title (currentLeaderId), not a job.
     const wants: ResourceKind | null =
       s.occupation === "woodcutter" ? "wood" :
       s.occupation === "miner" ? "stone" :
       s.occupation === "farmer" ? "food" :
       s.occupation === "forager" ? "food" :
-      isLeader ? null :
       s.isFounder ? null :
       "wood";
     const node = wants ? nearestNode(s, deps.nodes, wants) : null;
