@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useGame } from "@/game/store";
 import { BACKGROUNDS, FIRST_NAMES_F, FIRST_NAMES_M, SURNAMES, TRAITS, TRAIT_BLURBS } from "@/game/data/content";
 import type { Background, Trait } from "@/game/types";
+import type { CompanionsChoice } from "@/game/sim/world";
 
 const VALUES = ["Family", "Freedom", "Security", "Status", "Community"] as const;
 type Value = typeof VALUES[number];
@@ -12,6 +13,7 @@ const STEPS = [
   { id: 2, label: "Past" },
   { id: 3, label: "Traits" },
   { id: 4, label: "Values" },
+  { id: 5, label: "Company" },
 ] as const;
 
 const STEP_TITLES: Record<number, { eyebrow: string; title: string; sub: string }> = {
@@ -35,7 +37,13 @@ const STEP_TITLES: Record<number, { eyebrow: string; title: string; sub: string 
     title: "Two things you will not compromise.",
     sub: "When everything else is taken, this is what remains.",
   },
+  5: {
+    eyebrow: "Step V — Who Walks With You",
+    title: "Did you come to this porch alone?",
+    sub: "Some founders arrive with nothing but a name. Others bring a spouse, a family, or friends from the road.",
+  },
 };
+
 
 export function FounderCreation() {
   const setScreen = useGame((s) => s.setScreen);
