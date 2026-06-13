@@ -29,6 +29,8 @@ export interface Engine {
   chronicle: ChronicleEntry[];
   stats: SettlementStats;
   seed: number;
+  /** During the Founding Phase, needs do not decay and arrivals are paused. */
+  foundingPhase?: boolean;
 }
 
 function nextTime(t: GameTime): GameTime {
@@ -124,7 +126,7 @@ export function advance(eng: Engine, n: number, opts?: { onArrival?: (s: Survivo
 
     for (const s of eng.survivors) {
       if (s.health <= 0) continue;
-      decayNeeds(s, dt);
+      if (!eng.foundingPhase) decayNeeds(s, dt);
       tickSurvivor(s, dt, deps);
     }
 
@@ -177,7 +179,9 @@ function dailyTick(eng: Engine, opts?: { onArrival?: (s: Survivor) => Survivor |
   for (const b of eng.buildings) {
     if (b.builtProgress < 1) continue;
     if (b.kind === "well") eng.resources.water += 8;
+    if (b.kind === "water-collector") eng.resources.water += 5;
     if (b.kind === "field") eng.resources.food += 6;
+    if (b.kind === "foraging-camp") eng.resources.food += 4;
     if (b.kind === "workbench" && eng.resources.wood >= 2) {
       eng.resources.wood -= 2;
       eng.resources.tools += 1;

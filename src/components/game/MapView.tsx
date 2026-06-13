@@ -31,6 +31,10 @@ export function MapView() {
   const buildPlacement = useGame((s) => s.buildPlacement);
   const placeBuilding = useGame((s) => s.placeBuilding);
   const cancelBuild = useGame((s) => s.cancelBuild);
+  const territory = useGame((s) => s.territory);
+  const borderMode = useGame((s) => s.borderMode);
+  const exitBorderMode = useGame((s) => s.exitBorderMode);
+  const setBorderFromClick = useGame((s) => s.setBorderFromClick);
 
   const [hover, setHover] = useState<{ x: number; y: number } | null>(null);
   const ref = useRef<SVGSVGElement>(null);
@@ -70,6 +74,10 @@ export function MapView() {
         onClick={(e) => {
           const p = svgToTile(e);
           if (!p) return;
+          if (borderMode) {
+            setBorderFromClick(p.x + 0.5, p.y + 0.5);
+            return;
+          }
           if (buildPlacement) {
             placeBuilding(p.x, p.y);
             return;
@@ -83,9 +91,10 @@ export function MapView() {
         }}
         onContextMenu={(e) => {
           e.preventDefault();
+          if (borderMode) { exitBorderMode(); return; }
           if (buildPlacement) cancelBuild();
         }}
-        style={{ cursor: buildPlacement ? "crosshair" : "default" }}
+        style={{ cursor: (buildPlacement || borderMode) ? "crosshair" : "default" }}
       >
         {/* tiles */}
         {tiles.map((t) => (
@@ -108,6 +117,37 @@ export function MapView() {
             <line key={`h${i}`} x1={0} y1={i * TILE} x2={W} y2={i * TILE} />
           ))}
         </g>
+        {/* territory ring */}
+        {territory && territory.radius > 0 && (
+          <circle
+            cx={territory.cx * TILE}
+            cy={territory.cy * TILE}
+            r={territory.radius * TILE}
+            fill="rgba(196,135,42,0.05)"
+            stroke="#c4872a"
+            strokeWidth={2}
+            strokeDasharray="6 4"
+            pointerEvents="none"
+          />
+        )}
+        {/* border-mode hover preview */}
+        {borderMode && territory && hover && (() => {
+          const r = Math.max(3, Math.min(40, Math.round(
+            Math.hypot(hover.x + 0.5 - territory.cx, hover.y + 0.5 - territory.cy)
+          )));
+          return (
+            <circle
+              cx={territory.cx * TILE}
+              cy={territory.cy * TILE}
+              r={r * TILE}
+              fill="rgba(196,135,42,0.08)"
+              stroke="#f5d98a"
+              strokeWidth={1.5}
+              strokeDasharray="4 3"
+              pointerEvents="none"
+            />
+          );
+        })()}
         {/* resource nodes */}
         {nodes.map((n) => {
           const cx = n.x * TILE + TILE / 2;
@@ -183,6 +223,20 @@ export function MapView() {
                 }
                 return <g>{dots}</g>;
               })()}
+              {b.kind === "water-collector" && built && (
+                <g>
+                  <rect x={x + 6} y={y + 6} width={w - 12} height={h - 12} fill="#3a5868" opacity={0.85} />
+                  <circle cx={x + w/2} cy={y + h/2} r={2} fill="#9ec6d8" />
+                </g>
+              )}
+              {b.kind === "foraging-camp" && built && (
+                <g>
+                  <circle cx={x + w/2 - 4} cy={y + h/2} r={2} fill="#8b3a2a" />
+                  <circle cx={x + w/2 + 4} cy={y + h/2 - 2} r={2} fill="#b04d38" />
+                  <circle cx={x + w/2} cy={y + h/2 + 4} r={2} fill="#4a6741" />
+                </g>
+              )}
+
 
               {b.kind === "campfire" && (
                 <g>

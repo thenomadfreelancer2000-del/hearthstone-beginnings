@@ -9,6 +9,7 @@ import { DynastyOverlay } from "./DynastyOverlay";
 import { ArrivalEvent } from "./ArrivalEvent";
 import { AssignBuilderModal } from "./AssignBuilderModal";
 import { FarmSetupModal } from "./FarmSetupModal";
+import { FoundingPanel } from "./FoundingPanel";
 import { useGame } from "@/game/store";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -38,6 +39,7 @@ export function GameShell() {
 
       <div className="flex-1 flex min-h-0 relative">
         <MapView />
+        <FoundingPanel />
 
         {!isMobile && <Inspector />}
 

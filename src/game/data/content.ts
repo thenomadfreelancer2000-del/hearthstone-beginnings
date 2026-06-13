@@ -107,10 +107,23 @@ export const BUILDINGS: Record<BuildingKind, BuildingDef> = {
     cost: { wood: 4, fiber: 3 }, buildEffort: 30, housingCapacity: 0, storageCapacity: 0, social: false,
     produces: null,
   },
+  "water-collector": {
+    kind: "water-collector", name: "Water Collector", blurb: "Tarps and barrels to catch the rain. Quicker than a well.",
+    size: { w: 2, h: 2 },
+    cost: { wood: 6, fiber: 4 }, buildEffort: 35, housingCapacity: 0, storageCapacity: 0, social: false,
+    produces: { resource: "water", perDay: 5 },
+  },
+  "foraging-camp": {
+    kind: "foraging-camp", name: "Foraging Camp", blurb: "A base for gathering from the wild. Low yield, fast to build.",
+    size: { w: 2, h: 2 },
+    cost: { wood: 6, fiber: 3 }, buildEffort: 30, housingCapacity: 0, storageCapacity: 0, social: false,
+    produces: { resource: "food", perDay: 4 },
+  },
 };
 
 export const BUILDABLE_KINDS: BuildingKind[] = [
-  "tent", "cabin", "campfire", "stockpile", "workbench", "farm-plot", "well",
+  "tent", "cabin", "campfire", "stockpile", "workbench",
+  "farm-plot", "foraging-camp", "well", "water-collector",
 ];
 
 export const CHRONICLE_OPENERS = [
