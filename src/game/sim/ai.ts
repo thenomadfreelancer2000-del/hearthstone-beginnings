@@ -238,12 +238,26 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
   //    only interrupted by *critical* needs, and resume after eating/drinking.
   if (handleConstructionCommitment(s, dt, deps)) return;
 
+  // Clear stale work targets so "shift protection" doesn't pin non-builders.
+  if (s.workTarget?.kind === "building") {
+    const b = deps.buildings.find(x => x.id === s.workTarget!.id);
+    if (!b || b.builtProgress >= 1) s.workTarget = null;
+  }
 
-  if (s.needs.water < 28) {
+  // Work-shift protection: a survivor actively engaged in construction only
+  // breaks for *critical* needs. Combined with slower decay this keeps work
+  // shifts long and predictable.
+  const engagedInBuild = s.workTarget?.kind === "building";
+  const thirstLimit = engagedInBuild ? CRIT_WATER : 22;
+  const hungerLimit = engagedInBuild ? CRIT_FOOD : 24;
+  const restLimit   = engagedInBuild ? CRIT_REST  : 16;
+
+  if (s.needs.water < thirstLimit) {
     const w = nearestWater(s, deps.tiles, deps.mapW);
     if (w) {
       if (dist(s.x, s.y, w.x, w.y) < 1.2) {
-        s.needs.water = Math.min(100, s.needs.water + 60);
+        s.needs.water = Math.min(100, s.needs.water + 90);
+        s.lastDrinkTick = deps.tick;
         s.state = "drinking";
         s.action = "Drinking at the water's edge.";
       } else {
@@ -254,14 +268,15 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
     }
   }
 
-  if (s.needs.food < 30 && deps.resources.food > 0) {
+  if (s.needs.food < hungerLimit && deps.resources.food > 0) {
     const sp = nearestStockpile(s, deps.buildings);
     if (sp) {
       const cx = sp.x + sp.w / 2, cy = sp.y + sp.h / 2;
       if (dist(s.x, s.y, cx, cy) < 1.5) {
         const eat = Math.min(deps.resources.food, 6);
         deps.resources.food -= eat;
-        s.needs.food = Math.min(100, s.needs.food + eat * 10);
+        s.needs.food = Math.min(100, s.needs.food + eat * 14);
+        s.lastMealTick = deps.tick;
         s.state = "eating";
         s.action = "Eating from the stores.";
       } else {
@@ -272,13 +287,13 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
     }
   }
 
-  if (s.needs.rest < 22) {
+  if (s.needs.rest < restLimit) {
     const sh = nearestShelter(s, deps.buildings);
     if (sh) {
       const cx = sh.x + sh.w / 2, cy = sh.y + sh.h / 2;
       if (dist(s.x, s.y, cx, cy) < 1.0) {
-        s.needs.rest = Math.min(100, s.needs.rest + 4);
-        s.needs.shelter = Math.min(100, s.needs.shelter + 2);
+        s.needs.rest = Math.min(100, s.needs.rest + 6);
+        s.needs.shelter = Math.min(100, s.needs.shelter + 3);
         s.state = "resting";
         s.action = "Resting indoors.";
       } else {
@@ -287,7 +302,7 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
       }
       return;
     } else {
-      s.needs.rest = Math.min(100, s.needs.rest + 2);
+      s.needs.rest = Math.min(100, s.needs.rest + 3);
       s.state = "resting";
       s.action = "Sleeping on the ground.";
       return;
