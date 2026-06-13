@@ -13,6 +13,7 @@ import { CHRONICLE_OPENERS, FERTILE_MAX, FERTILE_MIN, NATURAL_DEATH_AGE } from "
 import { makeRng, chance, pick } from "./rng";
 import { makeChild, stageFromAge } from "./world";
 import { dailyHousingTick, findBestHome, homeCapacity, isResidential } from "./housing";
+import { BUILDINGS } from "../data/content";
 
 export interface Engine {
   time: GameTime;
