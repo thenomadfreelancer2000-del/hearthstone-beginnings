@@ -21,6 +21,7 @@ import { CROPS, STARTER_CROP_IDS, isCropId, type CropId } from "./data/crops";
 import { findBestHome as findBestHomeFor, homeCapacity } from "./sim/housing";
 import { getPortrait } from "./data/portraits";
 import { TRAIT_INFO, traitRefugeeBias } from "./data/traits";
+import { computeFounderEpithet, founderDeathTitle, founderDeathBody } from "./sim/legacy";
 
 export type Screen = "menu" | "founder" | "game";
 export type Overlay = "tree" | "family" | "chronicle" | null;
