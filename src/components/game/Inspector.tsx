@@ -460,3 +460,87 @@ function DebugNeedsPanel({ s }: { s: Survivor }) {
     </div>
   );
 }
+
+function FarmPanel({ b }: { b: Building }) {
+  const survivors = useGame((s) => s.survivors);
+  const unlockedCrops = useGame((s) => s.unlockedCrops);
+  const setFarmCrop = useGame((s) => s.setFarmCrop);
+  const assignFarmer = useGame((s) => s.assignFarmer);
+  const selectSurvivor = useGame((s) => s.selectSurvivor);
+  const farm = b.farm;
+  if (!farm) return null;
+  const crop = CROPS[farm.cropId as CropId] ?? CROPS.corn;
+  const farmer = farm.assignedFarmerId
+    ? survivors.find(s => s.id === farm.assignedFarmerId)
+    : null;
+  const skill = Math.round(farmer?.skills.farm ?? 0);
+  const yieldEst = expectedYield(crop, skill);
+  const rate = growthRateMultiplier(skill);
+  const daysLeft = farm.stage === "growing"
+    ? Math.max(0, Math.ceil((1 - farm.growth) * crop.growthDays / Math.max(0.1, rate)))
+    : farm.stage === "mature" ? 0 : crop.growthDays;
+  const stageLabel = farm.stage === "empty" ? "Empty Field"
+    : farm.stage === "growing" ? `${crop.name} – ${Math.round(farm.growth * 100)}% Grown`
+    : farm.stage === "mature" ? "Ready to Harvest"
+    : farm.stage;
+  const eligible = survivors.filter(s =>
+    s.health > 0 && (s.stage === "adult" || s.stage === "youth" || s.stage === "elder" || s.isFounder)
+  ).sort((a, c) => (c.skills.farm ?? 1) - (a.skills.farm ?? 1));
+
+  return (
+    <div className="parchment-panel-warm corner-brackets p-3 mt-3">
+      <div className="ranch-label text-[10px] text-amber mb-1">Farm Plot</div>
+      <div className="ranch-display text-lg text-parchment">{crop.name}</div>
+      <div className="ranch-handwritten text-xs text-dust-light mb-2">{stageLabel}</div>
+      {farm.stage === "growing" && (
+        <div className="h-1.5 bg-coal border border-amber/20 mb-2">
+          <div className="h-full" style={{ width: `${Math.round(farm.growth * 100)}%`, background: crop.color }} />
+        </div>
+      )}
+      <div className="ranch-data text-[10px] text-dust space-y-0.5 mb-2">
+        <div>Farmer: <span className="text-parchment">{farmer ? `${farmer.name} ${farmer.surname}` : "Unassigned"}</span></div>
+        <div>Farmer skill: <span className="text-amber">{skill}</span> · {skillTierLabel(skill)}</div>
+        <div>Expected yield: <span className="text-parchment">{yieldEst} food</span></div>
+        <div>Days until harvest: <span className="text-parchment">{daysLeft}</span></div>
+        {farm.lastYield != null && (
+          <div>Last harvest: <span className="text-success">{farm.lastYield} food</span>
+            {farm.lastHarvestYear ? <span> · Y{farm.lastHarvestYear} D{farm.lastHarvestDay}</span> : null}
+          </div>
+        )}
+        <div>Total harvests: {farm.totalHarvests ?? 0}</div>
+      </div>
+
+      <div className="ranch-label text-[10px] text-amber mb-1 mt-2">Crop</div>
+      <select
+        className="w-full bg-coal border border-amber/30 text-parchment text-xs px-2 py-1 mb-2"
+        value={farm.cropId}
+        onChange={(e) => setFarmCrop(b.id, e.target.value)}
+      >
+        {unlockedCrops.map((cid) => {
+          const c = CROPS[cid as CropId];
+          if (!c) return null;
+          return <option key={cid} value={cid}>{c.name} ({c.growthDays}d · {c.baseYield} food)</option>;
+        })}
+      </select>
+
+      <div className="ranch-label text-[10px] text-amber mb-1">Farmer</div>
+      <select
+        className="w-full bg-coal border border-amber/30 text-parchment text-xs px-2 py-1 mb-2"
+        value={farm.assignedFarmerId ?? ""}
+        onChange={(e) => assignFarmer(b.id, e.target.value || null)}
+      >
+        <option value="">— Unassigned —</option>
+        {eligible.map((s) => (
+          <option key={s.id} value={s.id}>
+            {s.name} {s.surname} (farm {Math.round(s.skills.farm ?? 1)})
+          </option>
+        ))}
+      </select>
+      {farmer && (
+        <button onClick={() => selectSurvivor(farmer.id)} className="btn-ranch btn-ranch-ghost w-full text-[10px]">
+          Inspect farmer
+        </button>
+      )}
+    </div>
+  );
+}
