@@ -100,6 +100,7 @@ interface GameState {
   setHomeReserved: (buildingId: ID, reserved: boolean) => void;
   autoAssignHomeless: () => void;
   newGame: (ranchName: string, founderInput: FounderInput) => void;
+  setSurvivorPortrait: (survivorId: ID, portraitId: string) => void;
   resumeFromSave: () => boolean;
   save: () => boolean;
   tickReal: (deltaMs: number) => void;
