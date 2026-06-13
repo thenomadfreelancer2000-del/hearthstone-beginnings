@@ -125,6 +125,8 @@ export const useGame = create<GameState>((set, get) => ({
   buildPlacement: null,
   pendingArrival: null,
   pendingBuildAssignment: null,
+  pendingFarmSetup: null,
+  unlockedCrops: [...STARTER_CROP_IDS],
   reputation: 0,
   lastChronicleId: null,
 
