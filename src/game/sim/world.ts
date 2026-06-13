@@ -156,20 +156,27 @@ export function stageFromAge(age: number): LifeStage {
 
 export function makeFounder(input: FounderInput, spawn: { x: number; y: number }): Survivor {
   const id = nanoid(10);
+  // Age comes from the chosen portrait when available, else a sensible default.
+  // Imported here to avoid a circular import at module init.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { getPortrait, defaultPortraitFor } = require("../data/portraits") as typeof import("../data/portraits");
+  const pid = input.portraitId ?? defaultPortraitFor(input.gender);
+  const portrait = getPortrait(pid);
+  const age = portrait?.age ?? 32;
   return {
     id,
     name: input.firstName,
     surname: input.surname,
-    age: 32,
-    stage: "adult",
+    age,
+    stage: stageFromAge(age),
     gender: input.gender,
     background: input.background,
     isFounder: true,
     bornTick: 0,
-    bornYear: 1 - 32, // for chronicle context
+    bornYear: 1 - Math.floor(age),
     deathTick: null,
     deathYear: null,
-    portraitId: input.portraitId ?? (input.gender === "m" ? "m1" : "f1"),
+    portraitId: pid,
     x: spawn.x, y: spawn.y,
     state: "idle",
     action: "Standing on the porch.",
