@@ -15,7 +15,7 @@ export function LeaderProfile() {
   const sizeClass = isMobile ? "w-12 h-12" : "w-16 h-16 sm:w-20 sm:h-20";
 
   return (
-    <div className={`absolute ${positionClass} z-20 pointer-events-auto`}>
+    <div className={`absolute ${positionClass} z-50 pointer-events-auto`}>
       <button
         type="button"
         onClick={() => selectSurvivor(leader.id)}
