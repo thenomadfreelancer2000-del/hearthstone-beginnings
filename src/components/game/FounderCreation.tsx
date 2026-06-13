@@ -230,7 +230,7 @@ export function FounderCreation() {
             disabled={!stepValid[step]}
             className="btn-ranch btn-ranch-primary flex-1 sm:flex-none"
           >
-            {step < 4 ? "Continue" : "Walk onto the porch"}
+            {step < 5 ? "Continue" : "Walk onto the porch"}
           </button>
         </div>
       </footer>
