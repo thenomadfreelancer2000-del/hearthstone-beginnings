@@ -15,6 +15,7 @@ import { makeChild, stageFromAge } from "./world";
 import { dailyHousingTick, findBestHome, homeCapacity, isResidential } from "./housing";
 import { dailyFamilyTick } from "./families";
 import { dailyEducationTick, pickSuccessor } from "./heirs";
+import { applyAgingEffects, applyLeadershipTransition, lifeStageLabel } from "./legacy";
 import { BUILDINGS } from "../data/content";
 
 export interface Engine {
