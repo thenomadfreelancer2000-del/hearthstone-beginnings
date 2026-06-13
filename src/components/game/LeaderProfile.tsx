@@ -31,70 +31,9 @@ export function LeaderProfile() {
               <div className="w-full h-full grid place-items-center text-amber text-xs">No face</div>
             )}
           </button>
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); setPicking(true); }}
-            className="absolute -top-1 -right-1 w-6 h-6 grid place-items-center bg-coal border border-amber/70 text-amber hover:bg-amber hover:text-ink transition"
-            title="Change face"
-            aria-label="Change face"
-          >
-            <Camera className="w-3.5 h-3.5" />
-          </button>
         </div>
       </div>
 
-      {picking && (
-        <div
-          className="fixed inset-0 z-50 bg-black/70 grid place-items-center p-4"
-          onClick={() => setPicking(false)}
-        >
-          <div
-            className="parchment-panel corner-brackets p-5 max-w-md w-full"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <p className="ranch-label text-amber">Choose a face</p>
-              <button
-                onClick={() => setPicking(false)}
-                className="text-dust-light hover:text-amber"
-                aria-label="Close"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="grid grid-cols-4 gap-2">
-              {available.map((p) => {
-                const active = p.id === leader.portraitId;
-                return (
-                  <button
-                    key={p.id}
-                    type="button"
-                    onClick={() => {
-                      setSurvivorPortrait(leader.id, p.id);
-                      setPicking(false);
-                    }}
-                    className={`aspect-square overflow-hidden border-2 transition ${
-                      active ? "border-amber" : "border-amber/20 hover:border-amber/60"
-                    }`}
-                  >
-                    <img
-                      src={p.url}
-                      alt="Portrait option"
-                      loading="lazy"
-                      width={128}
-                      height={128}
-                      className="w-full h-full object-cover pointer-events-none"
-                    />
-                  </button>
-                );
-              })}
-            </div>
-            <p className="ranch-handwritten text-xs text-dust-light mt-3">
-              The face by which {leader.name} will be remembered.
-            </p>
-          </div>
-        </div>
-      )}
     </>
   );
 }
