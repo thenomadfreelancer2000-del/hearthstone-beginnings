@@ -195,7 +195,8 @@ export interface Family {
 
 // ── Buildings ────────────────────────────────────────────────────
 export type BuildingKind =
-  | "homestead" | "tent" | "cabin" | "campfire" | "stockpile"
+  | "homestead" | "tent" | "cabin" | "house" | "large-house"
+  | "campfire" | "stockpile"
   | "workbench" | "well" | "watchtower" | "field" | "farm-plot"
   | "water-collector" | "foraging-camp" | "fence";
 
