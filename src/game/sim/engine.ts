@@ -222,7 +222,20 @@ function dailyTick(eng: Engine, opts?: { onArrival?: (s: Survivor) => Survivor |
   for (const s of eng.survivors) {
     if (s.health <= 0) continue;
     decayMemoriesDaily(s);
+    // Hardship memories — at most one per kind per 5 days.
+    const recentKind = (kind: string, withinTicks: number) =>
+      s.memories.some(m => m.kind === kind && (eng.time.tick - (m.tick ?? 0)) < withinTicks);
+    const FIVE_DAYS = 5 * 24; // TICKS_PER_DAY assumed 24
+    if (s.needs.food < 10 && !recentKind("starved", FIVE_DAYS)) {
+      emitMem(eng, s, `I went hungry. The ranch could not feed us.`, "fear", 40, eng.currentLeaderId,
+        { kind: "starved", floor: 15, decayRate: 0.5 });
+    }
+    if (s.needs.water < 10 && !recentKind("thirsted", FIVE_DAYS)) {
+      emitMem(eng, s, `I went thirsty. The wells ran dry.`, "fear", 35, eng.currentLeaderId,
+        { kind: "thirsted", floor: 12, decayRate: 0.5 });
+    }
   }
+
 
 
 
