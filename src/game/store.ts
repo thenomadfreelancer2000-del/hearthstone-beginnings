@@ -554,6 +554,7 @@ export const useGame = create<GameState>((set, get) => ({
       pendingArrival,
       lastChronicleId: lastId,
     });
+    if (st.foundingPhase) maybeCompleteFounding(get, set);
   },
 
   acceptArrival: () => {
