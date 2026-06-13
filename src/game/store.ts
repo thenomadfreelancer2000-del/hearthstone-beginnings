@@ -20,6 +20,7 @@ import { normalizeConstructionBuilding } from "./sim/construction";
 import { CROPS, STARTER_CROP_IDS, isCropId, type CropId } from "./data/crops";
 import { findBestHome as findBestHomeFor, homeCapacity } from "./sim/housing";
 import { getPortrait } from "./data/portraits";
+import { TRAIT_INFO, traitRefugeeBias } from "./data/traits";
 
 export type Screen = "menu" | "founder" | "game";
 export type Overlay = "tree" | "family" | "chronicle" | null;
