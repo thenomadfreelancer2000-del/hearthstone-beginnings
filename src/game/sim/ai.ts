@@ -184,6 +184,26 @@ export interface SimDeps {
   emitMemory: (s: Survivor, text: string, emotion: import("../types").Memory["emotion"], weight: number) => void;
 }
 
+/** Workers who dislike each other (opinion <= -30) drag down a shared build site. */
+function rivalryWorkMult(s: Survivor, b: Building, deps: SimDeps): number {
+  const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+  let worst = 0;
+  for (const o of deps.survivors) {
+    if (o.id === s.id || o.health <= 0) continue;
+    const sameSite =
+      (o.workTarget?.kind === "building" && o.workTarget.id === b.id) ||
+      dist(o.x, o.y, cx, cy) < 2.5;
+    if (!sameSite) continue;
+    const r = findRelationship(deps.relationships, s.id, o.id);
+    if (!r) continue;
+    const score = opinionScore(r);
+    if (score <= -30 && score < worst) worst = score;
+  }
+  if (worst === 0) return 1;
+  // -30 → 0.9, -60 → 0.75, -80+ → 0.65
+  return Math.max(0.6, 1 + worst * 0.005);
+}
+
 const CARRY_CAP = 12;
 
 export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
@@ -366,11 +386,14 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
         const roleMult = isAssigned ? 1.25 : isBuilder ? 0.85 : 0.6;
         const finishMult = nearDone ? 1.4 : 1.0;
         const traitMult = traitWorkSpeed(s.traits);
-        const work = skillMult * roleMult * finishMult * traitMult * (dt / 24);
+        const rivalMult = rivalryWorkMult(s, b, deps);
+        const work = skillMult * roleMult * finishMult * traitMult * rivalMult * (dt / 24);
         applyConstructionWork(b, work, deps.tick);
         s.skills.build = Math.min(30, (s.skills.build ?? 1) + 0.003 * dt);
         s.state = "working";
-        s.action = isAssigned ? `Building — ${b.kind}.` : `Lending hands at the ${b.kind}.`;
+        s.action = rivalMult < 1
+          ? `Bickering through work on the ${b.kind}.`
+          : isAssigned ? `Building — ${b.kind}.` : `Lending hands at the ${b.kind}.`;
         if (b.builtProgress >= 1 && s.commitment?.buildingId === b.id) s.commitment = null;
       } else {
         setTarget(s, cx, cy);
@@ -434,12 +457,17 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
           if (dist(s.x, s.y, o.x, o.y) < 2) {
             // friendship + trust drift, modulated by trait compatibility
             const bias = traitPairBias(s.traits, o.traits);
+            // Friends gain opinion more easily; rivals decay further apart.
+            const existing = findRelationship(deps.relationships, s.id, o.id);
+            const existingScore = existing ? opinionScore(existing) : 0;
+            const friendMult = existingScore >= 60 ? 1.6 : existingScore >= 30 ? 1.2 : 1.0;
+            const rivalDrag = existingScore <= -30 ? -0.02 : 0;
             touchRelationship(deps.relationships, s.id, o.id, {
-              affection: (+0.02 + bias * 0.01) * dt,
-              trust: +0.005 * dt,
-              friendship: (+0.025 + bias * 0.008) * dt,
+              affection: ((+0.02 + bias * 0.01) * friendMult + rivalDrag) * dt,
+              trust: +0.005 * friendMult * dt,
+              friendship: (+0.025 + bias * 0.008) * friendMult * dt,
               respect: +0.005 * dt,
-              rivalry: bias < -0.6 ? +0.02 * dt : 0,
+              rivalry: bias < -0.6 || existingScore <= -60 ? +0.02 * dt : 0,
             });
             // attraction only between fertile adults of opposite gender, both single
             const bothAdults =
@@ -588,11 +616,12 @@ function handleBuildPhase(s: Survivor, dt: number, deps: SimDeps, b: Building, c
   }
   const skillMult = 1 + (s.skills.build ?? 1) * 0.18;
   const finishMult = b.builtProgress >= 0.75 ? 1.4 : 1.0;
-  const work = skillMult * 1.25 * finishMult * traitWorkSpeed(s.traits) * (dt / 24);
+  const rivalMult = rivalryWorkMult(s, b, deps);
+  const work = skillMult * 1.25 * finishMult * traitWorkSpeed(s.traits) * rivalMult * (dt / 24);
   applyConstructionWork(b, work, deps.tick);
   s.skills.build = Math.min(30, (s.skills.build ?? 1) + 0.003 * dt);
   s.state = "working";
-  s.action = "Building.";
+  s.action = rivalMult < 1 ? "Bickering through work." : "Building.";
   if (b.builtProgress >= 1) s.commitment = null;
   return true;
 }
@@ -691,12 +720,28 @@ export function opinionLabel(score: number, tag?: import("../types").Relationshi
   if (tag === "spouse") return "Spouse";
   if (tag === "kin") return "Kin";
   if (score >= 80) return "Best Friend";
-  if (score >= 40) return "Friend";
-  if (score >= 10) return "Acquaintance";
-  if (score > -10) return "Neutral";
-  if (score > -40) return "Dislikes";
+  if (score >= 60) return "Friend";
+  if (score >= 30) return "Acquaintance";
+  if (score > -30) return "Neutral";
+  if (score > -60) return "Dislikes";
   if (score > -80) return "Rival";
   return "Enemy";
+}
+
+/** Bucket for social-circle grouping in UI. */
+export function opinionCategory(
+  score: number,
+  tag?: import("../types").RelationshipTag,
+): "spouse" | "kin" | "best-friend" | "friend" | "acquaintance" | "neutral" | "dislike" | "rival" | "enemy" {
+  if (tag === "spouse") return "spouse";
+  if (tag === "kin") return "kin";
+  if (score >= 80) return "best-friend";
+  if (score >= 60) return "friend";
+  if (score >= 30) return "acquaintance";
+  if (score > -30) return "neutral";
+  if (score > -60) return "dislike";
+  if (score > -80) return "rival";
+  return "enemy";
 }
 
 // ── Memory decay ─────────────────────────────────────────────────
