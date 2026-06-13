@@ -231,6 +231,8 @@ export interface BuildingDef {
   cost: Partial<Record<ResourceKind, number>>;
   buildEffort: number;
   housingCapacity: number;
+  /** 0 = non-residential, 1..5 = housing tier (1 tent → 5 manor). */
+  housingQuality?: number;
   storageCapacity: number;
   social: boolean;
   produces?: { resource: ResourceKind; perDay: number } | null;
