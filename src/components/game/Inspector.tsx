@@ -14,6 +14,7 @@ import type { Building, Occupation, Relationship, Survivor } from "@/game/types"
 import { AuthorityPanel } from "./AuthorityPanel";
 import { FamilyPanel } from "./FamilyPanel";
 import { rankHeirs, heirRating, EDUCATION_LABEL, type EducationFocus } from "@/game/sim/heirs";
+import { lifeStageLabel } from "@/game/sim/legacy";
 
 const OCCUPATIONS: Occupation[] = [
   "idle", "forager", "woodcutter", "miner", "farmer", "builder", "hauler",
