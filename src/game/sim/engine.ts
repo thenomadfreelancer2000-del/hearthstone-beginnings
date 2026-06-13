@@ -415,6 +415,11 @@ function marry(eng: Engine, a: Survivor, b: Survivor) {
 
   markAsSpouses(eng.relationships, a.id, b.id, eng.time.tick);
 
+  // Couples prefer to share a home. If one already has a home with room, the
+  // other moves in; otherwise auto-assign the best available together.
+  assignSpousesToShared(eng, a, b);
+
+
   a.mood = Math.min(100, a.mood + 30);
   b.mood = Math.min(100, b.mood + 30);
   a.needs.belonging = 100;
