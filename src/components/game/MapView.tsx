@@ -1,6 +1,7 @@
-import { useMemo, useRef, useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { useGame } from "@/game/store";
 import { BUILDINGS } from "@/game/data/content";
+import { CROPS, type CropId } from "@/game/data/crops";
 import type { Tile } from "@/game/types";
 
 const TILE = 24;
@@ -163,6 +164,26 @@ export function MapView() {
                   fill="#8b3a2a"
                 />
               )}
+              {b.kind === "farm-plot" && built && b.farm && (() => {
+                const crop = CROPS[b.farm.cropId as CropId] ?? CROPS.corn;
+                const growth = b.farm.stage === "mature" ? 1 : b.farm.stage === "growing" ? b.farm.growth : 0;
+                const dots: React.ReactElement[] = [];
+                for (let r = 0; r < 3; r++) {
+                  for (let cc = 0; cc < 3; cc++) {
+                    const dx = x + 6 + cc * ((w - 12) / 2);
+                    const dy = y + 6 + r * ((h - 12) / 2);
+                    dots.push(
+                      <circle key={`${r}-${cc}`} cx={dx} cy={dy}
+                        r={1 + growth * 2.5}
+                        fill={crop.color}
+                        opacity={0.3 + growth * 0.7}
+                      />
+                    );
+                  }
+                }
+                return <g>{dots}</g>;
+              })()}
+
               {b.kind === "campfire" && (
                 <g>
                   <circle cx={x + w/2} cy={y + h/2} r={4} fill="#c4872a" className="pulse-amber" />

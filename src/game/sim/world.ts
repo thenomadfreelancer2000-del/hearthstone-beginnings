@@ -340,6 +340,10 @@ export function makeHomesteadBuilding(spawn: { x: number; y: number }): Building
 
 // ── Arrival event generator ─────────────────────────────────────
 import type { ArrivalEvent, ArrivalKind } from "../types";
+import { ALL_CROP_IDS, CROPS, STARTER_CROP_IDS, type CropId } from "../data/crops";
+
+const NON_STARTER_CROPS: CropId[] = ALL_CROP_IDS.filter(id => !STARTER_CROP_IDS.includes(id));
+
 
 
 const ARRIVAL_KINDS: { kind: ArrivalKind; weight: number; title: string; blurb: string }[] = [
@@ -451,6 +455,20 @@ export function generateArrival(
   // Reassign family.founderId to first survivor
   if (survivors.length > 0) family.founderId = survivors[0].id;
 
+  // Crop knowledge: ~30% of arrivals (40% if any farmer/rancher) bring a non-starter crop.
+  const hasFarmer = survivors.some(s => s.background === "farmer" || s.background === "rancher");
+  const knowledgeChance = hasFarmer ? 0.45 : 0.22;
+  const cropKnowledge: CropId[] = [];
+  if (chance(rng, knowledgeChance) && NON_STARTER_CROPS.length > 0) {
+    const c = pick(rng, NON_STARTER_CROPS);
+    cropKnowledge.push(c);
+    // Attach the knowledge to a survivor for the inspector / chronicle.
+    const carrier = survivors.find(s => s.background === "farmer" || s.background === "rancher")
+      ?? survivors[0];
+    if (carrier) carrier.cropKnowledge = [...(carrier.cropKnowledge ?? []), c];
+    void CROPS;
+  }
+
   return {
     id: nanoid(8),
     kind,
@@ -459,6 +477,7 @@ export function generateArrival(
     survivors,
     family,
     gifts,
+    cropKnowledge,
     arrivedTick: bornTick,
   };
 }

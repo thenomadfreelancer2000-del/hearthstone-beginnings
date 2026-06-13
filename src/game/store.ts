@@ -15,6 +15,7 @@ import { BUILDINGS } from "./data/content";
 import { saveToLocal, loadFromLocal } from "./persistence";
 import { makeRng } from "./sim/rng";
 import { normalizeConstructionBuilding } from "./sim/construction";
+import { CROPS, STARTER_CROP_IDS, isCropId, type CropId } from "./data/crops";
 
 export type Screen = "menu" | "founder" | "game";
 export type Overlay = "tree" | "family" | "chronicle" | null;
@@ -57,6 +58,10 @@ interface GameState {
   pendingArrival: ArrivalEvent | null;
   // Building awaiting builder assignment (transient)
   pendingBuildAssignment: ID | null;
+  // Farm plot awaiting crop+farmer selection (transient)
+  pendingFarmSetup: ID | null;
+  // Crops the settlement currently knows how to grow.
+  unlockedCrops: string[];
   reputation: number; // -100..100, affects future arrivals
   lastChronicleId: ID | null;
 
@@ -76,6 +81,10 @@ interface GameState {
   assignBuilder: (buildingId: ID, survivorId: ID | null) => void;
   autoAssignBuilder: (buildingId: ID) => void;
   closeBuildAssignment: () => void;
+  configureFarm: (buildingId: ID, cropId: string, farmerId: ID | null) => void;
+  assignFarmer: (buildingId: ID, farmerId: ID | null) => void;
+  setFarmCrop: (buildingId: ID, cropId: string) => void;
+  closeFarmSetup: () => void;
   newGame: (ranchName: string, founderInput: FounderInput) => void;
   resumeFromSave: () => boolean;
   save: () => boolean;
@@ -116,6 +125,8 @@ export const useGame = create<GameState>((set, get) => ({
   buildPlacement: null,
   pendingArrival: null,
   pendingBuildAssignment: null,
+  pendingFarmSetup: null,
+  unlockedCrops: [...STARTER_CROP_IDS],
   reputation: 0,
   lastChronicleId: null,
 
@@ -174,13 +185,27 @@ export const useGame = create<GameState>((set, get) => ({
       stalledTicks: 0,
       occupantIds: [],
       stored: {},
+      farm: bp.kind === "farm-plot"
+        ? {
+            cropId: "corn",
+            stage: "empty",
+            growth: 0,
+            plantedTick: null,
+            plantedYear: null,
+            assignedFarmerId: null,
+            lastYield: null,
+            totalHarvests: 0,
+          }
+        : null,
     };
     set({
       buildings: [...st.buildings, b],
       resources: newResources,
       buildPlacement: null,
       // Open assignment modal only for buildings that actually need labor.
-      pendingBuildAssignment: isInstant ? null : b.id,
+      pendingBuildAssignment: isInstant || bp.kind === "farm-plot" ? null : b.id,
+      // Open farm setup once a plot is placed.
+      pendingFarmSetup: bp.kind === "farm-plot" ? b.id : st.pendingFarmSetup,
     });
     return true;
   },
@@ -229,6 +254,66 @@ export const useGame = create<GameState>((set, get) => ({
 
   closeBuildAssignment: () => set({ pendingBuildAssignment: null }),
 
+  configureFarm: (buildingId, cropId, farmerId) => {
+    const st = get();
+    const finalCrop = isCropId(cropId) && st.unlockedCrops.includes(cropId) ? cropId : "corn";
+    set({
+      buildings: st.buildings.map(b => {
+        if (b.id !== buildingId) return b;
+        const farm = b.farm ?? {
+          cropId: finalCrop, stage: "empty" as const, growth: 0,
+          plantedTick: null, plantedYear: null, assignedFarmerId: null,
+          lastYield: null, totalHarvests: 0,
+        };
+        return {
+          ...b,
+          farm: {
+            ...farm,
+            cropId: finalCrop,
+            assignedFarmerId: farmerId ?? null,
+          },
+        };
+      }),
+      pendingFarmSetup: st.pendingFarmSetup === buildingId ? null : st.pendingFarmSetup,
+    });
+  },
+
+  assignFarmer: (buildingId, farmerId) => {
+    const st = get();
+    set({
+      buildings: st.buildings.map(b =>
+        b.id === buildingId && b.farm
+          ? { ...b, farm: { ...b.farm, assignedFarmerId: farmerId } }
+          : b
+      ),
+    });
+  },
+
+  setFarmCrop: (buildingId, cropId) => {
+    const st = get();
+    if (!isCropId(cropId) || !st.unlockedCrops.includes(cropId)) return;
+    set({
+      buildings: st.buildings.map(b => {
+        if (b.id !== buildingId || !b.farm) return b;
+        // Changing crop on a non-empty plot resets growth (replanting).
+        const reset = b.farm.stage !== "empty";
+        return {
+          ...b,
+          farm: {
+            ...b.farm,
+            cropId,
+            stage: reset ? "empty" : b.farm.stage,
+            growth: reset ? 0 : b.farm.growth,
+            plantedTick: reset ? null : b.farm.plantedTick,
+          },
+        };
+      }),
+    });
+  },
+
+  closeFarmSetup: () => set({ pendingFarmSetup: null }),
+
+
 
 
   newGame: (ranchName, founderInput) => {
@@ -267,6 +352,12 @@ export const useGame = create<GameState>((set, get) => ({
       stats: { ...emptyStats(1, family.name), population: 1, morale: 20, prestige: family.prestige },
       selection: { kind: "survivor", id: founder.id },
       buildPlacement: null,
+      pendingArrival: null,
+      pendingBuildAssignment: null,
+      pendingFarmSetup: null,
+      unlockedCrops: [...STARTER_CROP_IDS],
+      reputation: 0,
+      lastChronicleId: null,
     });
   },
 
@@ -304,6 +395,9 @@ export const useGame = create<GameState>((set, get) => ({
       stats: save.stats,
       selection: { kind: "none" },
       buildPlacement: null,
+      unlockedCrops: (save.unlockedCrops && save.unlockedCrops.length > 0)
+        ? save.unlockedCrops
+        : [...STARTER_CROP_IDS],
     });
     return true;
   },
@@ -328,6 +422,7 @@ export const useGame = create<GameState>((set, get) => ({
       resources: st.resources,
       chronicle: st.chronicle,
       stats: st.stats,
+      unlockedCrops: [...st.unlockedCrops],
       factions: [], laws: [], externalSettlements: [],
     };
     return saveToLocal(data);
@@ -349,6 +444,7 @@ export const useGame = create<GameState>((set, get) => ({
         stored: { ...b.stored },
         occupantIds: [...b.occupantIds],
         resourcesDelivered: { ...(b.resourcesDelivered ?? {}) },
+        farm: b.farm ? { ...b.farm } : null,
       })),
       resources: { ...st.resources },
       survivors: st.survivors.map(s => ({
@@ -437,17 +533,28 @@ export const useGame = create<GameState>((set, get) => ({
     for (const [r, amt] of Object.entries(ev.gifts)) {
       (newResources as any)[r] = ((newResources as any)[r] ?? 0) + (amt ?? 0);
     }
+    const newKnown = new Set(st.unlockedCrops);
+    const newlyUnlocked: string[] = [];
+    for (const cid of ev.cropKnowledge ?? []) {
+      if (!newKnown.has(cid)) { newKnown.add(cid); newlyUnlocked.push(cid); }
+    }
+    const unlockedSummary = newlyUnlocked.length
+      ? ` New crops to plant: ${newlyUnlocked.map(c => CROPS[c as CropId]?.name ?? c).join(", ")}.`
+      : "";
     const newChronicle: ChronicleEntry = {
       id: nanoid(8),
       tick: st.time.tick,
       year: st.time.year, season: st.time.season, day: st.time.day,
       category: "arrival",
       title: `${ev.title} — welcomed in`,
-      body: `${ev.survivors.length} new soul${ev.survivors.length === 1 ? "" : "s"} joined the ranch. ${ev.blurb}`,
+      body: `${ev.survivors.length} new soul${ev.survivors.length === 1 ? "" : "s"} joined the ranch. ${ev.blurb}${unlockedSummary}`,
       involvedIds: ev.survivors.map(s => s.id),
       involvedFamilyIds: [ev.family.id],
     };
     toast.success(`Welcomed ${ev.survivors.length} to the ranch`);
+    if (newlyUnlocked.length) {
+      toast(`New crops unlocked: ${newlyUnlocked.map(c => CROPS[c as CropId]?.name ?? c).join(", ")}`);
+    }
     set({
       survivors: [...st.survivors, ...ev.survivors],
       families: [...st.families, ev.family],
@@ -456,6 +563,7 @@ export const useGame = create<GameState>((set, get) => ({
       pendingArrival: null,
       reputation: Math.min(100, st.reputation + 4),
       lastChronicleId: newChronicle.id,
+      unlockedCrops: Array.from(newKnown),
     });
   },
 

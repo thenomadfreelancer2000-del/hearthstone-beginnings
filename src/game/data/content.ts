@@ -96,15 +96,21 @@ export const BUILDINGS: Record<BuildingKind, BuildingDef> = {
     produces: null,
   },
   field: {
-    kind: "field", name: "Tilled Field", blurb: "Furrows opened by hand and sweat.",
+    kind: "field", name: "Tilled Field", blurb: "Furrows opened by hand and sweat. Replaced by the Farm Plot.",
     size: { w: 3, h: 3 },
     cost: { wood: 6, fiber: 4 }, buildEffort: 60, housingCapacity: 0, storageCapacity: 0, social: false,
     produces: { resource: "food", perDay: 6 },
   },
+  "farm-plot": {
+    kind: "farm-plot", name: "Farm Plot", blurb: "Tilled soil ready for seed. Choose a crop and assign a farmer.",
+    size: { w: 2, h: 2 },
+    cost: { wood: 4, fiber: 3 }, buildEffort: 30, housingCapacity: 0, storageCapacity: 0, social: false,
+    produces: null,
+  },
 };
 
 export const BUILDABLE_KINDS: BuildingKind[] = [
-  "tent", "cabin", "campfire", "stockpile", "workbench", "field", "well",
+  "tent", "cabin", "campfire", "stockpile", "workbench", "farm-plot", "well",
 ];
 
 export const CHRONICLE_OPENERS = [

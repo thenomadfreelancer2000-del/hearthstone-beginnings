@@ -138,6 +138,9 @@ export interface Survivor {
 
   // achievements & legacy
   achievements?: string[];
+  // Crops this survivor knows how to cultivate. Unioned into the
+  // settlement's unlockedCrops when they're welcomed in.
+  cropKnowledge?: string[];
 
   // ── Phase 3+ placeholders (nullable for forward-compat) ──
   factionId?: ID | null;
@@ -181,7 +184,24 @@ export interface Family {
 // ── Buildings ────────────────────────────────────────────────────
 export type BuildingKind =
   | "homestead" | "tent" | "cabin" | "campfire" | "stockpile"
-  | "workbench" | "well" | "watchtower" | "field";
+  | "workbench" | "well" | "watchtower" | "field" | "farm-plot";
+
+// ── Farm plots ───────────────────────────────────────────────────
+export type FarmStage =
+  | "empty" | "planting" | "growing" | "mature" | "harvesting";
+
+export interface FarmState {
+  cropId: string;               // CropId from data/crops.ts
+  stage: FarmStage;
+  growth: number;               // 0..1, 1 = mature
+  plantedTick: number | null;
+  plantedYear?: number | null;
+  assignedFarmerId: ID | null;
+  lastYield: number | null;
+  lastHarvestYear?: number | null;
+  lastHarvestDay?: number | null;
+  totalHarvests: number;
+}
 
 export interface BuildingDef {
   kind: BuildingKind;
@@ -211,6 +231,7 @@ export interface Building {
   stalledTicks?: number;
   occupantIds: ID[];
   stored: Partial<Record<ResourceKind, number>>;
+  farm?: FarmState | null;
 }
 
 // ── Arrival events (transient, not persisted) ───────────────────
@@ -226,6 +247,7 @@ export interface ArrivalEvent {
   survivors: Survivor[];
   family: Family;
   gifts: Partial<Record<ResourceKind, number>>;
+  cropKnowledge?: string[]; // CropIds unlocked by accepting this party
   arrivedTick: number;
 }
 
@@ -280,6 +302,7 @@ export interface SaveGame {
   resources: Record<ResourceKind, number>;
   chronicle: ChronicleEntry[];
   stats: SettlementStats;
+  unlockedCrops?: string[];
   // Phase 3+ reservations (always present, empty for now):
   factions: unknown[];
   laws: unknown[];
