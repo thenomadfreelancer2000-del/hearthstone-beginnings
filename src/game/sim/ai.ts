@@ -2,6 +2,7 @@ import type {
   Building, Relationship, ResourceKind, ResourceNode, Survivor, Tile,
 } from "../types";
 import { applyConstructionWork, hasConstructionResources, normalizeConstructionBuilding } from "./construction";
+import { traitPairBias, traitMarriageScore, traitWorkSpeed } from "../data/traits";
 
 export const TICKS_PER_DAY = 240;
 export const DAYS_PER_SEASON = 12;
@@ -364,7 +365,8 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
         // makes everyone push to finish the last quarter.
         const roleMult = isAssigned ? 1.25 : isBuilder ? 0.85 : 0.6;
         const finishMult = nearDone ? 1.4 : 1.0;
-        const work = skillMult * roleMult * finishMult * (dt / 24);
+        const traitMult = traitWorkSpeed(s.traits);
+        const work = skillMult * roleMult * finishMult * traitMult * (dt / 24);
         applyConstructionWork(b, work, deps.tick);
         s.skills.build = Math.min(30, (s.skills.build ?? 1) + 0.003 * dt);
         s.state = "working";
@@ -396,7 +398,7 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
           wants === "stone" ? s.skills.mine :
           wants === "food" ? s.skills.forage :
           1;
-        const yieldAmt = Math.min(node.amount, Math.max(1, Math.floor((1 + skill * 0.4) * (dt / 24))));
+        const yieldAmt = Math.min(node.amount, Math.max(1, Math.floor((1 + skill * 0.4) * traitWorkSpeed(s.traits) * (dt / 24))));
         node.amount -= yieldAmt;
         s.carrying = {
           resource: wants,
@@ -430,12 +432,14 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
           if (o.id === s.id) continue;
           if (o.health <= 0) continue;
           if (dist(s.x, s.y, o.x, o.y) < 2) {
-            // friendship + trust drift
+            // friendship + trust drift, modulated by trait compatibility
+            const bias = traitPairBias(s.traits, o.traits);
             touchRelationship(deps.relationships, s.id, o.id, {
-              affection: +0.02 * dt,
+              affection: (+0.02 + bias * 0.01) * dt,
               trust: +0.005 * dt,
-              friendship: +0.025 * dt,
+              friendship: (+0.025 + bias * 0.008) * dt,
               respect: +0.005 * dt,
+              rivalry: bias < -0.6 ? +0.02 * dt : 0,
             });
             // attraction only between fertile adults of opposite gender, both single
             const bothAdults =
@@ -447,8 +451,9 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
               && !(s.parentIds.length > 0 && o.parentIds.length > 0
                    && s.parentIds.some(p => o.parentIds.includes(p)));
             if (bothAdults && oppositeGender && bothSingle && notKin) {
+              const matchBoost = Math.max(0, traitMarriageScore(s.traits, o.traits)) * 0.0005;
               touchRelationship(deps.relationships, s.id, o.id, {
-                attraction: +0.04 * dt,
+                attraction: (+0.04 + matchBoost) * dt,
               });
             }
           }
@@ -583,7 +588,7 @@ function handleBuildPhase(s: Survivor, dt: number, deps: SimDeps, b: Building, c
   }
   const skillMult = 1 + (s.skills.build ?? 1) * 0.18;
   const finishMult = b.builtProgress >= 0.75 ? 1.4 : 1.0;
-  const work = skillMult * 1.25 * finishMult * (dt / 24);
+  const work = skillMult * 1.25 * finishMult * traitWorkSpeed(s.traits) * (dt / 24);
   applyConstructionWork(b, work, deps.tick);
   s.skills.build = Math.min(30, (s.skills.build ?? 1) + 0.003 * dt);
   s.state = "working";
@@ -685,11 +690,27 @@ export function opinionScore(r: import("../types").Relationship): number {
 export function opinionLabel(score: number, tag?: import("../types").RelationshipTag): string {
   if (tag === "spouse") return "Spouse";
   if (tag === "kin") return "Kin";
-  if (score >= 75) return "Best Friend";
+  if (score >= 80) return "Best Friend";
   if (score >= 40) return "Friend";
   if (score >= 10) return "Acquaintance";
   if (score > -10) return "Neutral";
   if (score > -40) return "Dislikes";
-  if (score > -75) return "Rival";
+  if (score > -80) return "Rival";
   return "Enemy";
+}
+
+// ── Memory decay ─────────────────────────────────────────────────
+// Run once per day from the engine. Each memory loses `decayRate` weight
+// (default 2/day) toward its `floor` (default 0). Memories whose weight
+// drops to zero are dropped from the list.
+export function decayMemoriesDaily(s: import("../types").Survivor) {
+  if (!s.memories || s.memories.length === 0) return;
+  const next: import("../types").Memory[] = [];
+  for (const m of s.memories) {
+    const rate = m.decayRate ?? 2;
+    const floor = m.floor ?? 0;
+    const w = Math.max(floor, m.weight - rate);
+    if (w > 0) next.push({ ...m, weight: w });
+  }
+  s.memories = next;
 }

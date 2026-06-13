@@ -6,7 +6,7 @@ import type {
 import {
   DAYS_PER_SEASON, SEASONS, TICKS_PER_DAY,
   decayNeeds, tickSurvivor, touchRelationship, markAsSpouses, markAsKin,
-  findRelationship,
+  findRelationship, decayMemoriesDaily,
 } from "./ai";
 import { normalizeConstructionBuilding, recoverStalledConstruction } from "./construction";
 import { CHRONICLE_OPENERS, FERTILE_MAX, FERTILE_MIN, NATURAL_DEATH_AGE } from "../data/content";
@@ -79,14 +79,18 @@ export function emitMemory(
   emotion: Memory["emotion"],
   weight: number,
   aboutId?: string,
+  opts?: { kind?: string; decayRate?: number; floor?: number },
 ) {
   s.memories.unshift({
     id: nanoid(6),
     tick: 0,
     text, emotion, weight,
     aboutSurvivorId: aboutId ?? null,
+    kind: opts?.kind,
+    decayRate: opts?.decayRate,
+    floor: opts?.floor,
   });
-  if (s.memories.length > 24) s.memories.pop();
+  if (s.memories.length > 32) s.memories.pop();
 }
 
 function recomputeStats(eng: Engine) {
@@ -192,6 +196,12 @@ function dailyTick(eng: Engine, opts?: { onArrival?: (s: Survivor) => Survivor |
 
   processFarms(eng);
   dailyHousingTick({ buildings: eng.buildings, survivors: eng.survivors, tick: eng.time.tick });
+
+  // Memories decay daily — major events have a floor that keeps them alive.
+  for (const s of eng.survivors) {
+    if (s.health <= 0) continue;
+    decayMemoriesDaily(s);
+  }
 
 
 
@@ -307,6 +317,31 @@ function killSurvivor(eng: Engine, s: Survivor, cause: string) {
     [s.id], [s.familyId],
   );
   eng.stats.totalDied += 1;
+  // Grief memories with high floor — these scar.
+  if (s.spouseId) {
+    const sp = eng.survivors.find(x => x.id === s.spouseId);
+    if (sp && sp.health > 0) {
+      emitMemory(sp, `${s.name} died. The bed is cold.`, "grief", 100, s.id,
+        { kind: "spouse-died", floor: 50, decayRate: 0.3 });
+      sp.mood = Math.max(-100, sp.mood - 35);
+    }
+  }
+  for (const pid of s.parentIds) {
+    const p = eng.survivors.find(x => x.id === pid);
+    if (p && p.health > 0) {
+      emitMemory(p, `Lost ${s.name}. A child should outlive their parents.`, "grief", 100, s.id,
+        { kind: "child-died", floor: 60, decayRate: 0.2 });
+      p.mood = Math.max(-100, p.mood - 45);
+    }
+  }
+  for (const cid of s.childrenIds) {
+    const c = eng.survivors.find(x => x.id === cid);
+    if (c && c.health > 0) {
+      emitMemory(c, `${s.name} is gone.`, "grief", 90, s.id,
+        { kind: "parent-died", floor: 40, decayRate: 0.3 });
+      c.mood = Math.max(-100, c.mood - 25);
+    }
+  }
   // Mark family extinct if no living members
   const fam = eng.families.find(f => f.id === s.familyId);
   if (fam) {
@@ -425,8 +460,10 @@ function marry(eng: Engine, a: Survivor, b: Survivor) {
   b.mood = Math.min(100, b.mood + 30);
   a.needs.belonging = 100;
   b.needs.belonging = 100;
-  emitMemory(a, `Married ${b.name} ${b.surname}.`, "love", 90, b.id);
-  emitMemory(b, `Married ${a.name} ${a.surname}.`, "love", 90, a.id);
+  emitMemory(a, `Married ${b.name} ${b.surname}.`, "love", 95, b.id,
+    { kind: "married", floor: 40, decayRate: 0.5 });
+  emitMemory(b, `Married ${a.name} ${a.surname}.`, "love", 95, a.id,
+    { kind: "married", floor: 40, decayRate: 0.5 });
 
   addChronicle(
     eng, "marriage",

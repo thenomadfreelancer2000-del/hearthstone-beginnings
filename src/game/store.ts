@@ -67,6 +67,7 @@ interface GameState {
   // Crops the settlement currently knows how to grow.
   unlockedCrops: string[];
   reputation: number; // -100..100, affects future arrivals
+  reputationProfile: import("./sim/reputation").ReputationProfile;
   lastChronicleId: ID | null;
 
   // ── Founding Phase ────────────────────────────────────────────
@@ -149,6 +150,7 @@ export const useGame = create<GameState>((set, get) => ({
   pendingFarmSetup: null,
   unlockedCrops: [...STARTER_CROP_IDS],
   reputation: 0,
+  reputationProfile: { compassionate: 0, ruthless: 0, builder: 0, provider: 0, honest: 0 },
   lastChronicleId: null,
   foundingPhase: false,
   territory: null,
@@ -659,6 +661,7 @@ export const useGame = create<GameState>((set, get) => ({
       pendingFarmSetup: null,
       unlockedCrops: [...STARTER_CROP_IDS],
       reputation: 0,
+      reputationProfile: { compassionate: 0, ruthless: 0, builder: 0, provider: 0, honest: 0 },
       lastChronicleId: null,
       foundingPhase: true,
       territory: {
@@ -874,12 +877,38 @@ export const useGame = create<GameState>((set, get) => ({
     if (newlyUnlocked.length) {
       toast(`New crops unlocked: ${newlyUnlocked.map(c => CROPS[c as CropId]?.name ?? c).join(", ")}`);
     }
-    // Auto-assign homes to the newcomers.
+    // Auto-assign homes to the newcomers + emit memories for existing survivors.
     const buildings = st.buildings.map(b => ({ ...b, occupantIds: [...b.occupantIds] }));
-    const allSurvivors = [...st.survivors, ...ev.survivors.map(s => ({
+    const bias0 = (traits: string[] | undefined) =>
+      (traits ?? []).reduce((m, t) => m + (TRAIT_INFO[t]?.refugeeBias ?? 0), 0);
+    const nid = nanoid;
+      if (s.health <= 0) return s;
+      const bias = traitRefugeeBias(s.traits);
+      const moodShift = 2 + Math.max(0, bias) * 0.3;
+      const memText = bias > 4
+        ? `The founder welcomed strangers. That is who we are.`
+        : bias < -4
+          ? `More mouths to feed. The founder says yes too easily.`
+          : `New faces at the gate. Welcomed in.`;
+      const memories = [
+        { id: nid(6), tick: st.time.tick, text: memText,
+          emotion: (bias >= 0 ? "trust" : "anger") as "trust" | "anger",
+          weight: 30 + Math.abs(bias),
+          kind: "founder-accepted", decayRate: 1, floor: 5 },
+        ...s.memories,
+      ].slice(0, 32);
+      return { ...s, memories, mood: Math.max(-100, Math.min(100, s.mood + moodShift)) };
+    });
+    const allSurvivors = [...existing, ...ev.survivors.map(s => ({
       ...s,
       arrivalTick: st.time.tick,
       housingGratitude: 5, // small welcome bonus
+      memories: [
+        { id: nid(6), tick: st.time.tick, text: `The founder welcomed me in.`,
+          emotion: "trust" as const, weight: 80, aboutSurvivorId: st.founderId,
+          kind: "founder-accepted-me", decayRate: 0.4, floor: 35 },
+        ...s.memories,
+      ],
     }))];
     for (const s of ev.survivors) {
       const fresh = allSurvivors.find(x => x.id === s.id);
@@ -899,6 +928,11 @@ export const useGame = create<GameState>((set, get) => ({
       chronicle: [newChronicle, ...st.chronicle],
       pendingArrival: null,
       reputation: Math.min(100, st.reputation + 4),
+      reputationProfile: {
+        ...st.reputationProfile,
+        compassionate: Math.min(100, st.reputationProfile.compassionate + 8),
+        ruthless: Math.max(0, st.reputationProfile.ruthless - 2),
+      },
       lastChronicleId: newChronicle.id,
       unlockedCrops: Array.from(newKnown),
     });
@@ -922,6 +956,11 @@ export const useGame = create<GameState>((set, get) => ({
       chronicle: [newChronicle, ...st.chronicle],
       pendingArrival: null,
       reputation: Math.max(-100, st.reputation - 3),
+      reputationProfile: {
+        ...st.reputationProfile,
+        ruthless: Math.min(100, st.reputationProfile.ruthless + 8),
+        compassionate: Math.max(0, st.reputationProfile.compassionate - 2),
+      },
       lastChronicleId: newChronicle.id,
     });
   },

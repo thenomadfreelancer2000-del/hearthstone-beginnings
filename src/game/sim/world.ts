@@ -5,9 +5,10 @@ import type {
   LifeStage, Building, Family, ID,
 } from "../types";
 import {
-  BACKGROUNDS, FIRST_NAMES_F, FIRST_NAMES_M, SURNAMES, TRAITS, BUILDINGS,
+  BACKGROUNDS, FIRST_NAMES_F, FIRST_NAMES_M, SURNAMES, BUILDINGS,
   LIFE_STAGE_THRESHOLDS,
 } from "../data/content";
+import { pickTraits } from "../data/traits";
 import { getPortrait, defaultPortraitFor } from "../data/portraits";
 
 export const MAP_W = 36;
@@ -240,7 +241,7 @@ export function makeWanderer(
   const surname = pick(rng, SURNAMES);
   const bgList = BACKGROUNDS.filter(b => b.id !== "native-born");
   const bg = pick(rng, bgList).id;
-  const traits = pickN(rng, TRAITS, 2 + Math.floor(rng() * 2));
+  const traits = pickTraits(rng, 2 + Math.floor(rng() * 3));
   const values = pickN(rng, ["Family", "Freedom", "Security", "Status", "Community"] as const, 2);
   const age = rangeInt(rng, 17, 44);
   return {
@@ -285,11 +286,11 @@ export function makeChild(
   const name = pick(rng, gender === "m" ? FIRST_NAMES_M : FIRST_NAMES_F);
 
   // Trait inheritance: pick a mix from both parents + small chance of a fresh trait
-  const pool = Array.from(new Set([...parents[0].traits, ...parents[1].traits]));
-  const inherited = pickN(rng, pool, Math.min(2, pool.length));
+  const pool: string[] = Array.from(new Set<string>([...parents[0].traits, ...parents[1].traits]));
+  const inherited: string[] = pool.length ? pickN(rng, pool, Math.min(2, pool.length)) : [];
   if (chance(rng, 0.35) && inherited.length < 3) {
-    const fresh = pick(rng, TRAITS);
-    if (!inherited.includes(fresh)) inherited.push(fresh);
+    const fresh = pickTraits(rng, 1)[0];
+    if (fresh && !inherited.includes(fresh)) inherited.push(fresh);
   }
 
   // Value inheritance: pick one from each parent

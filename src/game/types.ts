@@ -42,9 +42,9 @@ export interface ResourceNode {
 }
 
 // ── Survivors ────────────────────────────────────────────────────
-export type Trait =
-  | "Ambitious" | "Loyal" | "Generous" | "Greedy" | "Principled"
-  | "Paranoid" | "Traditional" | "Idealistic" | "Bitter" | "Brave";
+// Trait names are open-ended strings; the catalog in
+// src/game/data/traits.ts owns the canonical list + metadata.
+export type Trait = string;
 
 export type Background =
   | "rancher" | "soldier" | "medic" | "scholar" | "carpenter"
@@ -74,6 +74,12 @@ export interface Memory {
   emotion: "joy" | "fear" | "grief" | "pride" | "anger" | "trust" | "betrayal" | "love";
   weight: number;
   aboutSurvivorId?: ID | null;
+  /** Optional categorical kind: "founder-accepted", "founder-rejected", "spouse-died", etc. */
+  kind?: string;
+  /** Weight drained per day. Defaults to 2 when absent. */
+  decayRate?: number;
+  /** Minimum weight a memory can decay to. Defaults to 0. */
+  floor?: number;
 }
 
 export type AIState =

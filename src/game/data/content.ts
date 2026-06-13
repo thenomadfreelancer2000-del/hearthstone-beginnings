@@ -1,4 +1,5 @@
 import type { Background, BuildingDef, BuildingKind, Trait } from "../types";
+import { ALL_TRAITS, TRAIT_BLURBS as CATALOG_BLURBS } from "./traits";
 
 export const FIRST_NAMES_M = [
   "Eli", "Jonah", "Caleb", "Marcus", "Silas", "Owen", "Wyatt", "Bishop",
@@ -16,23 +17,9 @@ export const SURNAMES = [
   "Reyes", "Okafor", "Sato", "Calder", "Mendel", "Voss",
 ];
 
-export const TRAITS: Trait[] = [
-  "Ambitious", "Loyal", "Generous", "Greedy", "Principled",
-  "Paranoid", "Traditional", "Idealistic", "Bitter", "Brave",
-];
-
-export const TRAIT_BLURBS: Record<Trait, string> = {
-  Ambitious: "Seeks advancement. Resents being passed over.",
-  Loyal: "Slow to change allegiances. Defends allies at cost.",
-  Generous: "Shares freely. Builds trust through gifts.",
-  Greedy: "Accumulates. Resists taxation and redistribution.",
-  Principled: "Will not act against stated values, whatever the cost.",
-  Paranoid: "Sees threats in neutral events. Builds personal security.",
-  Traditional: "Resists change. Values custom and precedent.",
-  Idealistic: "Believes in collective good. Easily disillusioned.",
-  Bitter: "Holds grudges. Interprets events through past injustice.",
-  Brave: "Volunteers for danger. Confronts problems directly.",
-};
+// Re-export the trait catalog for back-compat with existing imports.
+export const TRAITS: Trait[] = ALL_TRAITS;
+export const TRAIT_BLURBS: Record<string, string> = CATALOG_BLURBS;
 
 export const BACKGROUNDS: { id: Background; name: string; blurb: string; skills: Partial<Record<keyof import("../types").Skills, number>> }[] = [
   { id: "rancher", name: "Rancher", blurb: "Knew this land before the world ended.", skills: { farm: 5, build: 3, lead: 2 } },
