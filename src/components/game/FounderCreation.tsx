@@ -146,7 +146,7 @@ export function FounderCreation() {
         </div>
 
         <div className="ranch-label text-[9px] sm:text-[10px] text-dust-light shrink-0">
-          {step}<span className="opacity-50">/4</span>
+          {step}<span className="opacity-50">/5</span>
         </div>
       </header>
 
