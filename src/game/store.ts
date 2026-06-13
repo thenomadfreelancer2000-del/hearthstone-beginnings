@@ -726,9 +726,27 @@ export const useGame = create<GameState>((set, get) => ({
     if (newlyUnlocked.length) {
       toast(`New crops unlocked: ${newlyUnlocked.map(c => CROPS[c as CropId]?.name ?? c).join(", ")}`);
     }
+    // Auto-assign homes to the newcomers.
+    const buildings = st.buildings.map(b => ({ ...b, occupantIds: [...b.occupantIds] }));
+    const allSurvivors = [...st.survivors, ...ev.survivors.map(s => ({
+      ...s,
+      arrivalTick: st.time.tick,
+      housingGratitude: 5, // small welcome bonus
+    }))];
+    for (const s of ev.survivors) {
+      const fresh = allSurvivors.find(x => x.id === s.id);
+      if (!fresh) continue;
+      const home = findBestHomeFor(fresh, buildings, allSurvivors);
+      if (home && (home.occupantIds?.length ?? 0) < homeCapacity(home)) {
+        fresh.homeId = home.id;
+        fresh.lastHomeKind = home.kind;
+        home.occupantIds.push(fresh.id);
+      }
+    }
     set({
-      survivors: [...st.survivors, ...ev.survivors],
+      survivors: allSurvivors,
       families: [...st.families, ev.family],
+      buildings,
       resources: newResources,
       chronicle: [newChronicle, ...st.chronicle],
       pendingArrival: null,
