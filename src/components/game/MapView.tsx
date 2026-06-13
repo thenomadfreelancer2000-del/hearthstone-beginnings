@@ -31,6 +31,10 @@ export function MapView() {
   const buildPlacement = useGame((s) => s.buildPlacement);
   const placeBuilding = useGame((s) => s.placeBuilding);
   const cancelBuild = useGame((s) => s.cancelBuild);
+  const territory = useGame((s) => s.territory);
+  const borderMode = useGame((s) => s.borderMode);
+  const exitBorderMode = useGame((s) => s.exitBorderMode);
+  const setBorderFromClick = useGame((s) => s.setBorderFromClick);
 
   const [hover, setHover] = useState<{ x: number; y: number } | null>(null);
   const ref = useRef<SVGSVGElement>(null);
@@ -70,6 +74,10 @@ export function MapView() {
         onClick={(e) => {
           const p = svgToTile(e);
           if (!p) return;
+          if (borderMode) {
+            setBorderFromClick(p.x + 0.5, p.y + 0.5);
+            return;
+          }
           if (buildPlacement) {
             placeBuilding(p.x, p.y);
             return;
@@ -83,9 +91,10 @@ export function MapView() {
         }}
         onContextMenu={(e) => {
           e.preventDefault();
+          if (borderMode) { exitBorderMode(); return; }
           if (buildPlacement) cancelBuild();
         }}
-        style={{ cursor: buildPlacement ? "crosshair" : "default" }}
+        style={{ cursor: (buildPlacement || borderMode) ? "crosshair" : "default" }}
       >
         {/* tiles */}
         {tiles.map((t) => (
