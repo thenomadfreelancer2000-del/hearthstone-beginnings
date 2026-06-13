@@ -185,13 +185,27 @@ export const useGame = create<GameState>((set, get) => ({
       stalledTicks: 0,
       occupantIds: [],
       stored: {},
+      farm: bp.kind === "farm-plot"
+        ? {
+            cropId: "corn",
+            stage: "empty",
+            growth: 0,
+            plantedTick: null,
+            plantedYear: null,
+            assignedFarmerId: null,
+            lastYield: null,
+            totalHarvests: 0,
+          }
+        : null,
     };
     set({
       buildings: [...st.buildings, b],
       resources: newResources,
       buildPlacement: null,
       // Open assignment modal only for buildings that actually need labor.
-      pendingBuildAssignment: isInstant ? null : b.id,
+      pendingBuildAssignment: isInstant || bp.kind === "farm-plot" ? null : b.id,
+      // Open farm setup once a plot is placed.
+      pendingFarmSetup: bp.kind === "farm-plot" ? b.id : st.pendingFarmSetup,
     });
     return true;
   },
