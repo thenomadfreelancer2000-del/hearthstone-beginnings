@@ -12,6 +12,7 @@ import { computeHousingSatisfaction, homeCapacity, homeQuality, isResidential } 
 import { BUILDINGS as BUILDINGS_DATA } from "@/game/data/content";
 import type { Building, Occupation, Relationship, Survivor } from "@/game/types";
 import { AuthorityPanel } from "./AuthorityPanel";
+import { FamilyPanel } from "./FamilyPanel";
 
 const OCCUPATIONS: Occupation[] = [
   "idle", "forager", "woodcutter", "miner", "farmer", "builder", "hauler",
@@ -31,6 +32,7 @@ export function Inspector() {
   const clearSelection = useGame((s) => s.clearSelection);
   const selectSurvivor = useGame((s) => s.selectSurvivor);
   const setOverlay = useGame((s) => s.setOverlay);
+  const selectFamily = useGame((s) => s.selectFamily);
 
   if (sel.kind === "none") {
     return (
@@ -69,7 +71,7 @@ export function Inspector() {
         </p>
         {fam && (
           <p className="ranch-data text-[10px] mt-1">
-            House of <button onClick={() => setOverlay("tree")} className="text-amber hover:underline">{fam.name}</button>
+            House of <button onClick={() => selectFamily(fam.id)} className="text-amber hover:underline">{fam.name}</button>
             <span className="text-dust"> · Prestige {Math.round(fam.prestige)}</span>
             <span className="text-dust"> · Gen {s.generation + 1}</span>
           </p>
@@ -361,6 +363,10 @@ export function Inspector() {
 
   if (sel.kind === "tile") {
     return <TilePanel x={sel.x} y={sel.y} />;
+  }
+
+  if (sel.kind === "family") {
+    return <FamilyPanel familyId={sel.id} />;
   }
 
   return null;

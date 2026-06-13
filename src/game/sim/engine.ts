@@ -13,6 +13,7 @@ import { CHRONICLE_OPENERS, FERTILE_MAX, FERTILE_MIN, NATURAL_DEATH_AGE } from "
 import { makeRng, chance, pick } from "./rng";
 import { makeChild, stageFromAge } from "./world";
 import { dailyHousingTick, findBestHome, homeCapacity, isResidential } from "./housing";
+import { dailyFamilyTick } from "./families";
 import { BUILDINGS } from "../data/content";
 
 export interface Engine {
@@ -217,6 +218,14 @@ function dailyTick(eng: Engine, opts?: { onArrival?: (s: Survivor) => Survivor |
 
   processFarms(eng);
   dailyHousingTick({ buildings: eng.buildings, survivors: eng.survivors, tick: eng.time.tick });
+  dailyFamilyTick({
+    families: eng.families,
+    survivors: eng.survivors,
+    buildings: eng.buildings,
+    currentLeaderId: eng.currentLeaderId,
+    founderId: eng.founderId,
+    time: { year: eng.time.year },
+  });
 
   // Memories decay daily — major events have a floor that keeps them alive.
   for (const s of eng.survivors) {
