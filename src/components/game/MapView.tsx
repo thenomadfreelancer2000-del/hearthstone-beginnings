@@ -117,6 +117,37 @@ export function MapView() {
             <line key={`h${i}`} x1={0} y1={i * TILE} x2={W} y2={i * TILE} />
           ))}
         </g>
+        {/* territory ring */}
+        {territory && territory.radius > 0 && (
+          <circle
+            cx={territory.cx * TILE}
+            cy={territory.cy * TILE}
+            r={territory.radius * TILE}
+            fill="rgba(196,135,42,0.05)"
+            stroke="#c4872a"
+            strokeWidth={2}
+            strokeDasharray="6 4"
+            pointerEvents="none"
+          />
+        )}
+        {/* border-mode hover preview */}
+        {borderMode && territory && hover && (() => {
+          const r = Math.max(3, Math.min(40, Math.round(
+            Math.hypot(hover.x + 0.5 - territory.cx, hover.y + 0.5 - territory.cy)
+          )));
+          return (
+            <circle
+              cx={territory.cx * TILE}
+              cy={territory.cy * TILE}
+              r={r * TILE}
+              fill="rgba(196,135,42,0.08)"
+              stroke="#f5d98a"
+              strokeWidth={1.5}
+              strokeDasharray="4 3"
+              pointerEvents="none"
+            />
+          );
+        })()}
         {/* resource nodes */}
         {nodes.map((n) => {
           const cx = n.x * TILE + TILE / 2;
