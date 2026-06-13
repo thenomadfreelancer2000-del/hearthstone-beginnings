@@ -454,11 +454,36 @@ function succeed(eng: Engine) {
   heir.achievements = [...(heir.achievements ?? []), `Inherited the ranch in Year ${eng.time.year}`];
   const fam = familyOf(eng, heir.id);
   if (fam) fam.prestige = Math.min(200, fam.prestige + 10);
+
+  // Transition: every soul reassesses the new leader.
+  const tr = applyLeadershipTransition({
+    survivors: eng.survivors,
+    relationships: eng.relationships,
+    families: eng.families,
+    newLeader: heir,
+    oldLeader: oldLeader ?? null,
+    wasPreferred,
+    emitMemory: (s, text, emotion, weight, aboutId, opts) =>
+      emitMem(eng, s, text, emotion, weight, aboutId, opts),
+  });
+
+  const reign = oldLeader
+    ? `${oldLeader.epithet ? `, ${oldLeader.epithet},` : ""}`
+    : "";
+  const moodNote =
+    tr.swearings > tr.rejections * 2
+      ? `Most of the ranch swears to the new line.`
+      : tr.rejections > tr.swearings
+        ? `Doubt walks the porch — not all welcome the change.`
+        : `The settlement watches in silence to see what kind of leader stands here.`;
+
   addChronicle(
     eng, "succession",
     `${heir.name} ${heir.surname} takes the porch`,
-    `With ${oldLeader?.name ?? "the leader"} gone, ${heir.name} ${heir.surname} stands at the door of the homestead and the dust settles around them.` +
-      (wasPreferred ? ` Named heir by ${oldLeader?.name ?? "the late leader"}.` : ""),
+    `With ${oldLeader?.name ?? "the leader"}${reign} gone, ${heir.name} ${heir.surname} ` +
+      `stands at the door of the homestead and the dust settles around them.` +
+      (wasPreferred ? ` Named heir by ${oldLeader?.name ?? "the late leader"}.` : "") +
+      ` ${moodNote}`,
     [heir.id, ...(oldLeader ? [oldLeader.id] : [])],
     [heir.familyId],
   );
