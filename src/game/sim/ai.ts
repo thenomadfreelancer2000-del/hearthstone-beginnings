@@ -68,15 +68,21 @@ function nearestStockpile(s: Survivor, buildings: Building[]): Building | null {
 }
 
 function nearestUnfinished(s: Survivor, buildings: Building[]): Building | null {
-  let best: Building | null = null;
-  let bestD = Infinity;
+  // Completion-priority boost: prefer sites at >=75% progress so nearly-done
+  // buildings get finished before new ones are started.
+  let bestNear: Building | null = null; let bestNearD = Infinity;
+  let bestFar: Building | null = null; let bestFarD = Infinity;
   for (const b of buildings) {
     if (b.builtProgress >= 1) continue;
     const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
     const d = dist(s.x, s.y, cx, cy);
-    if (d < bestD) { bestD = d; best = b; }
+    if (b.builtProgress >= 0.75) {
+      if (d < bestNearD) { bestNearD = d; bestNear = b; }
+    } else {
+      if (d < bestFarD) { bestFarD = d; bestFar = b; }
+    }
   }
-  return best;
+  return bestNear ?? bestFar;
 }
 
 function nearestWater(s: Survivor, tiles: Tile[], mapW: number): Tile | null {
