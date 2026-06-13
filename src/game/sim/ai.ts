@@ -685,11 +685,27 @@ export function opinionScore(r: import("../types").Relationship): number {
 export function opinionLabel(score: number, tag?: import("../types").RelationshipTag): string {
   if (tag === "spouse") return "Spouse";
   if (tag === "kin") return "Kin";
-  if (score >= 75) return "Best Friend";
+  if (score >= 80) return "Best Friend";
   if (score >= 40) return "Friend";
   if (score >= 10) return "Acquaintance";
   if (score > -10) return "Neutral";
   if (score > -40) return "Dislikes";
-  if (score > -75) return "Rival";
+  if (score > -80) return "Rival";
   return "Enemy";
+}
+
+// ── Memory decay ─────────────────────────────────────────────────
+// Run once per day from the engine. Each memory loses `decayRate` weight
+// (default 2/day) toward its `floor` (default 0). Memories whose weight
+// drops to zero are dropped from the list.
+export function decayMemoriesDaily(s: import("../types").Survivor) {
+  if (!s.memories || s.memories.length === 0) return;
+  const next: import("../types").Memory[] = [];
+  for (const m of s.memories) {
+    const rate = m.decayRate ?? 2;
+    const floor = m.floor ?? 0;
+    const w = Math.max(floor, m.weight - rate);
+    if (w > 0) next.push({ ...m, weight: w });
+  }
+  s.memories = next;
 }
