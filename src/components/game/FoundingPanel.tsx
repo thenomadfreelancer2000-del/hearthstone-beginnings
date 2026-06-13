@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useGame, computeFoundingObjectives } from "@/game/store";
 
 export function FoundingPanel() {
@@ -6,7 +7,12 @@ export function FoundingPanel() {
   const enterBorderMode = useGame((s) => s.enterBorderMode);
   const exitBorderMode = useGame((s) => s.exitBorderMode);
   const territory = useGame((s) => s.territory);
-  const objectives = useGame(computeFoundingObjectives);
+  const buildings = useGame((s) => s.buildings);
+  const survivors = useGame((s) => s.survivors);
+  const objectives = useMemo(
+    () => computeFoundingObjectives({ buildings, survivors, territory, foundingPhase } as never),
+    [buildings, survivors, territory, foundingPhase],
+  );
 
   if (!foundingPhase) return null;
 
