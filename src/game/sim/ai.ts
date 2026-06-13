@@ -129,19 +129,38 @@ function setTarget(s: Survivor, x: number, y: number) {
 }
 
 // ── Needs decay ──────────────────────────────────────────────────
+// Per-day decay rates (exported for debug UI). Tuned so a survivor can work
+// most of the day and only break for food/water once or twice per day.
+export const DECAY_PER_DAY = {
+  food: 5,
+  water: 7,
+  rest: 5,
+  shelter: 3,
+  belonging: 3,
+  purpose: 2,
+} as const;
+
+export function decayRateForSurvivor(s: Survivor) {
+  const ageMod = s.stage === "child" ? 0.55 : s.stage === "elder" ? 1.1 : 1;
+  return {
+    food: DECAY_PER_DAY.food * ageMod,
+    water: DECAY_PER_DAY.water * ageMod,
+    rest: DECAY_PER_DAY.rest,
+  };
+}
+
 export function decayNeeds(s: Survivor, dt: number) {
   const k = dt / TICKS_PER_DAY;
-  // Children consume less, elders more
-  const ageMod = s.stage === "child" ? 0.55 : s.stage === "elder" ? 1.1 : 1;
-  s.needs.food = Math.max(0, s.needs.food - 13 * k * ageMod);
-  s.needs.water = Math.max(0, s.needs.water - 18 * k * ageMod);
-  s.needs.rest = Math.max(0, s.needs.rest - 11 * k);
-  s.needs.shelter = Math.max(0, s.needs.shelter - 6 * k);
-  s.needs.belonging = Math.max(0, s.needs.belonging - 5 * k);
-  s.needs.purpose = Math.max(0, s.needs.purpose - 4 * k);
+  const r = decayRateForSurvivor(s);
+  s.needs.food = Math.max(0, s.needs.food - r.food * k);
+  s.needs.water = Math.max(0, s.needs.water - r.water * k);
+  s.needs.rest = Math.max(0, s.needs.rest - r.rest * k);
+  s.needs.shelter = Math.max(0, s.needs.shelter - DECAY_PER_DAY.shelter * k);
+  s.needs.belonging = Math.max(0, s.needs.belonging - DECAY_PER_DAY.belonging * k);
+  s.needs.purpose = Math.max(0, s.needs.purpose - DECAY_PER_DAY.purpose * k);
 
-  if (s.needs.food < 10 || s.needs.water < 10) {
-    s.health = Math.max(0, s.health - 6 * k);
+  if (s.needs.food < 8 || s.needs.water < 8) {
+    s.health = Math.max(0, s.health - 5 * k);
   } else if (s.health < 100 && s.needs.food > 50 && s.needs.water > 50 && s.needs.rest > 40) {
     s.health = Math.min(100, s.health + 4 * k);
   }
@@ -219,12 +238,26 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
   //    only interrupted by *critical* needs, and resume after eating/drinking.
   if (handleConstructionCommitment(s, dt, deps)) return;
 
+  // Clear stale work targets so "shift protection" doesn't pin non-builders.
+  if (s.workTarget?.kind === "building") {
+    const b = deps.buildings.find(x => x.id === s.workTarget!.id);
+    if (!b || b.builtProgress >= 1) s.workTarget = null;
+  }
 
-  if (s.needs.water < 28) {
+  // Work-shift protection: a survivor actively engaged in construction only
+  // breaks for *critical* needs. Combined with slower decay this keeps work
+  // shifts long and predictable.
+  const engagedInBuild = s.workTarget?.kind === "building";
+  const thirstLimit = engagedInBuild ? CRIT_WATER : 22;
+  const hungerLimit = engagedInBuild ? CRIT_FOOD : 24;
+  const restLimit   = engagedInBuild ? CRIT_REST  : 16;
+
+  if (s.needs.water < thirstLimit) {
     const w = nearestWater(s, deps.tiles, deps.mapW);
     if (w) {
       if (dist(s.x, s.y, w.x, w.y) < 1.2) {
-        s.needs.water = Math.min(100, s.needs.water + 60);
+        s.needs.water = Math.min(100, s.needs.water + 90);
+        s.lastDrinkTick = deps.tick;
         s.state = "drinking";
         s.action = "Drinking at the water's edge.";
       } else {
@@ -235,14 +268,15 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
     }
   }
 
-  if (s.needs.food < 30 && deps.resources.food > 0) {
+  if (s.needs.food < hungerLimit && deps.resources.food > 0) {
     const sp = nearestStockpile(s, deps.buildings);
     if (sp) {
       const cx = sp.x + sp.w / 2, cy = sp.y + sp.h / 2;
       if (dist(s.x, s.y, cx, cy) < 1.5) {
         const eat = Math.min(deps.resources.food, 6);
         deps.resources.food -= eat;
-        s.needs.food = Math.min(100, s.needs.food + eat * 10);
+        s.needs.food = Math.min(100, s.needs.food + eat * 14);
+        s.lastMealTick = deps.tick;
         s.state = "eating";
         s.action = "Eating from the stores.";
       } else {
@@ -253,13 +287,13 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
     }
   }
 
-  if (s.needs.rest < 22) {
+  if (s.needs.rest < restLimit) {
     const sh = nearestShelter(s, deps.buildings);
     if (sh) {
       const cx = sh.x + sh.w / 2, cy = sh.y + sh.h / 2;
       if (dist(s.x, s.y, cx, cy) < 1.0) {
-        s.needs.rest = Math.min(100, s.needs.rest + 4);
-        s.needs.shelter = Math.min(100, s.needs.shelter + 2);
+        s.needs.rest = Math.min(100, s.needs.rest + 6);
+        s.needs.shelter = Math.min(100, s.needs.shelter + 3);
         s.state = "resting";
         s.action = "Resting indoors.";
       } else {
@@ -268,7 +302,7 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
       }
       return;
     } else {
-      s.needs.rest = Math.min(100, s.needs.rest + 2);
+      s.needs.rest = Math.min(100, s.needs.rest + 3);
       s.state = "resting";
       s.action = "Sleeping on the ground.";
       return;
@@ -476,7 +510,8 @@ function handleConstructionCommitment(s: Survivor, dt: number, deps: SimDeps): b
       return true;
     }
     case "drinking": {
-      s.needs.water = Math.min(100, s.needs.water + 80);
+      s.needs.water = Math.min(100, s.needs.water + 90);
+      s.lastDrinkTick = deps.tick;
       s.state = "drinking"; s.action = "Drinking.";
       if (s.needs.water >= RESUME_WATER) { c.phase = "returning"; c.sinceTick = deps.tick; }
       return true;
@@ -495,7 +530,8 @@ function handleConstructionCommitment(s: Survivor, dt: number, deps: SimDeps): b
     case "eating": {
       const eat = Math.min(deps.resources.food, 6);
       deps.resources.food -= eat;
-      s.needs.food = Math.min(100, s.needs.food + eat * 12);
+      s.needs.food = Math.min(100, s.needs.food + eat * 14);
+      s.lastMealTick = deps.tick;
       s.state = "eating"; s.action = "Eating.";
       if (s.needs.food >= RESUME_FOOD || deps.resources.food <= 0) {
         c.phase = "returning"; c.sinceTick = deps.tick;

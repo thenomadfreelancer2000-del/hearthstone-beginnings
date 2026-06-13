@@ -112,6 +112,8 @@ export interface Survivor {
     sinceTick: number;
   } | null;
   action: string;
+  lastMealTick?: number | null;
+  lastDrinkTick?: number | null;
 
   traits: Trait[];
   values: ("Family" | "Freedom" | "Security" | "Status" | "Community")[];
