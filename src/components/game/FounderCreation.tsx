@@ -93,7 +93,13 @@ export function FounderCreation() {
   }
   function begin() {
     if (!stepValid[5]) return;
-    newGame(ranchName, { firstName, surname, gender, background, traits, values, companions });
+    newGame(ranchName, { firstName, surname, gender, background, traits, values, companions, portraitId });
+  }
+
+  function handleSetGender(g: "m" | "f") {
+    setGender(g);
+    const current = PORTRAITS.find((p) => p.id === portraitId);
+    if (!current || current.gender !== g) setPortraitId(defaultPortraitFor(g));
   }
 
 
