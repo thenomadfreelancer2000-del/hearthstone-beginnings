@@ -12,6 +12,7 @@ import { normalizeConstructionBuilding, recoverStalledConstruction } from "./con
 import { CHRONICLE_OPENERS, FERTILE_MAX, FERTILE_MIN, NATURAL_DEATH_AGE } from "../data/content";
 import { makeRng, chance, pick } from "./rng";
 import { makeChild, stageFromAge } from "./world";
+import { dailyHousingTick, findBestHome, homeCapacity, isResidential } from "./housing";
 
 export interface Engine {
   time: GameTime;
