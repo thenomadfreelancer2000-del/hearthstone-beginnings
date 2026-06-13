@@ -263,7 +263,12 @@ function StepIdentity(props: {
   setPortraitId: (id: string) => void;
 }) {
   const { gender, setGender, firstName, setFirstName, surname, setSurname, ranchName, setRanchName, firstNames, portraitId, setPortraitId } = props;
-  const availablePortraits = PORTRAITS.filter((p) => p.gender === gender);
+
+  function pickPortrait(p: typeof PORTRAITS[number]) {
+    setPortraitId(p.id);
+    if (p.gender !== gender) setGender(p.gender);
+  }
+
   return (
     <section className="grid md:grid-cols-2 gap-4 md:gap-5 items-start">
 
@@ -271,37 +276,25 @@ function StepIdentity(props: {
       <div className="parchment-panel corner-brackets p-5 sm:p-7">
         <div className="flex items-baseline justify-between mb-4">
           <p className="ranch-label text-[10px]">A — Choose a Face</p>
-          <span className="ranch-data text-[10px] text-dust-light">{availablePortraits.length} options</span>
-        </div>
-
-        <div className="flex gap-2 mb-4">
-          {(["m", "f"] as const).map((g) => (
-            <button
-              key={g}
-              type="button"
-              onClick={() => setGender(g)}
-              className={`btn-ranch flex-1 ${gender === g ? "btn-ranch-primary" : ""}`}
-            >
-              {g === "m" ? "He" : "She"}
-            </button>
-          ))}
+          <span className="ranch-data text-[10px] text-dust-light">{PORTRAITS.length} options</span>
         </div>
 
         <div className="grid grid-cols-4 gap-2 sm:gap-3">
-          {availablePortraits.map((p) => {
+          {PORTRAITS.map((p) => {
             const active = p.id === portraitId;
             return (
               <button
                 key={p.id}
-                onClick={() => setPortraitId(p.id)}
+                onClick={() => pickPortrait(p)}
                 className={`relative aspect-square overflow-hidden border-2 transition ${
                   active ? "border-amber shadow-[0_0_0_2px_rgba(201,161,74,0.25)]" : "border-amber/20 hover:border-amber/60"
                 }`}
                 type="button"
+                title={`${p.ethnicity} · ${p.gender === "m" ? "he" : "she"}`}
               >
                 <img
                   src={p.url}
-                  alt="Portrait option"
+                  alt={`${p.ethnicity} portrait`}
                   loading="lazy"
                   width={128}
                   height={128}
@@ -311,6 +304,10 @@ function StepIdentity(props: {
             );
           })}
         </div>
+
+        <p className="ranch-handwritten text-xs mt-4 text-dust-light">
+          Selecting a face sets whether the founder is a he or a she.
+        </p>
       </div>
 
       {/* Panel B — Name */}
