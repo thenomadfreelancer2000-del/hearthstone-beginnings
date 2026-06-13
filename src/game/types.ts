@@ -198,7 +198,8 @@ export type BuildingKind =
   | "homestead" | "tent" | "cabin" | "house" | "large-house"
   | "campfire" | "stockpile"
   | "workbench" | "well" | "watchtower" | "field" | "farm-plot"
-  | "water-collector" | "foraging-camp" | "fence";
+  | "water-collector" | "foraging-camp"
+  | "fence" | "palisade" | "stone-wall" | "gate" | "guard-post";
 
 export interface Territory {
   cx: number;     // center tile x (usually homestead center)

@@ -137,12 +137,37 @@ export const BUILDINGS: Record<BuildingKind, BuildingDef> = {
     cost: { wood: 4 }, buildEffort: 10, housingCapacity: 0, storageCapacity: 0, social: false,
     produces: null,
   },
+  palisade: {
+    kind: "palisade", name: "Palisade Wall", blurb: "Sharpened logs driven into the earth. Slows raiders.",
+    size: { w: 1, h: 1 },
+    cost: { wood: 10 }, buildEffort: 28, housingCapacity: 0, storageCapacity: 0, social: false,
+    produces: null,
+  },
+  "stone-wall": {
+    kind: "stone-wall", name: "Stone Wall", blurb: "Mortared stone. The kind of wall that outlives the mason.",
+    size: { w: 1, h: 1 },
+    cost: { stone: 14, wood: 2 }, buildEffort: 70, housingCapacity: 0, storageCapacity: 0, social: false,
+    produces: null,
+  },
+  gate: {
+    kind: "gate", name: "Reinforced Gate", blurb: "A heavy timber gate. Swings shut when night falls.",
+    size: { w: 2, h: 1 },
+    cost: { wood: 16, stone: 4 }, buildEffort: 60, housingCapacity: 0, storageCapacity: 0, social: false,
+    produces: null,
+  },
+  "guard-post": {
+    kind: "guard-post", name: "Guard Post", blurb: "A small shack where a sentry waits out the cold.",
+    size: { w: 2, h: 2 },
+    cost: { wood: 14, stone: 4 }, buildEffort: 55, housingCapacity: 0, storageCapacity: 0, social: false,
+    produces: null,
+  },
 };
 
 export const BUILDABLE_KINDS: BuildingKind[] = [
   "tent", "cabin", "house", "large-house",
   "campfire", "stockpile", "workbench",
-  "farm-plot", "foraging-camp", "well", "water-collector", "fence",
+  "farm-plot", "foraging-camp", "well", "water-collector",
+  "fence", "palisade", "stone-wall", "gate", "watchtower", "guard-post",
 ];
 
 export const CHRONICLE_OPENERS = [

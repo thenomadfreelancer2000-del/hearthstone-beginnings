@@ -211,6 +211,148 @@ function BuildingArt({ kind, w, h, farmStage, farmGrowth }: { kind: string; w: n
         </g>
       );
     }
+    case "fence": {
+      // Post and rail
+      return (
+        <g>
+          <ellipse cx={cx} cy={h - 1.5} rx={w * 0.45} ry={1.6} fill={PAL.shadow} />
+          <rect x={1.5} y={h * 0.35} width={w - 3} height={1.3} fill="#7a5028" stroke={PAL.ink} strokeWidth={0.5} />
+          <rect x={1.5} y={h * 0.62} width={w - 3} height={1.3} fill="#7a5028" stroke={PAL.ink} strokeWidth={0.5} />
+          {[0.18, 0.5, 0.82].map((p, i) => (
+            <rect key={i} x={w * p - 0.7} y={h * 0.2} width={1.5} height={h * 0.7} fill="#5a3820" stroke={PAL.ink} strokeWidth={0.5} />
+          ))}
+        </g>
+      );
+    }
+    case "palisade": {
+      // Row of sharpened upright logs
+      const count = 4;
+      const stepW = (w - 2) / count;
+      return (
+        <g>
+          <ellipse cx={cx} cy={h - 1.5} rx={w * 0.45} ry={1.6} fill={PAL.shadow} />
+          {Array.from({ length: count }).map((_, i) => {
+            const x0 = 1 + stepW * i + stepW * 0.1;
+            const lw = stepW * 0.8;
+            const topY = h * 0.12;
+            const baseY = h - 2;
+            return (
+              <g key={i}>
+                <polygon
+                  points={`${x0},${topY + 3} ${x0 + lw / 2},${topY} ${x0 + lw},${topY + 3} ${x0 + lw},${baseY} ${x0},${baseY}`}
+                  fill="#7a5028"
+                  stroke={PAL.ink}
+                  strokeWidth={0.7}
+                />
+                <line x1={x0 + lw / 2} y1={topY + 3} x2={x0 + lw / 2} y2={baseY} stroke={PAL.inkSoft} strokeWidth={0.4} opacity={0.6} />
+              </g>
+            );
+          })}
+          {/* binding rope */}
+          <line x1={1.5} y1={h * 0.55} x2={w - 1.5} y2={h * 0.55} stroke="#3d2810" strokeWidth={0.6} opacity={0.8} />
+        </g>
+      );
+    }
+    case "stone-wall": {
+      // Stacked masonry
+      return (
+        <g>
+          <ellipse cx={cx} cy={h - 1.5} rx={w * 0.45} ry={1.6} fill={PAL.shadow} />
+          <rect x={1.5} y={h * 0.18} width={w - 3} height={h * 0.74} fill="#8a8078" stroke={PAL.ink} strokeWidth={1} />
+          {/* crenellation notches */}
+          {[0.18, 0.42, 0.66].map((p, i) => (
+            <rect key={`cr${i}`} x={w * p} y={h * 0.12} width={w * 0.16} height={h * 0.1} fill="#8a8078" stroke={PAL.ink} strokeWidth={0.8} />
+          ))}
+          {/* mortar */}
+          <line x1={2} y1={h * 0.42} x2={w - 2} y2={h * 0.42} stroke={PAL.inkSoft} strokeWidth={0.5} opacity={0.7} />
+          <line x1={2} y1={h * 0.66} x2={w - 2} y2={h * 0.66} stroke={PAL.inkSoft} strokeWidth={0.5} opacity={0.7} />
+          <line x1={w * 0.35} y1={h * 0.22} x2={w * 0.35} y2={h * 0.42} stroke={PAL.inkSoft} strokeWidth={0.4} opacity={0.6} />
+          <line x1={w * 0.65} y1={h * 0.42} x2={w * 0.65} y2={h * 0.66} stroke={PAL.inkSoft} strokeWidth={0.4} opacity={0.6} />
+          <line x1={w * 0.45} y1={h * 0.66} x2={w * 0.45} y2={h * 0.9} stroke={PAL.inkSoft} strokeWidth={0.4} opacity={0.6} />
+        </g>
+      );
+    }
+    case "gate": {
+      // Two stone pillars + heavy timber doors
+      const pillarW = w * 0.16;
+      return (
+        <g>
+          <ellipse cx={cx} cy={h - 1.5} rx={w * 0.48} ry={2} fill={PAL.shadow} />
+          {/* pillars */}
+          <rect x={1} y={h * 0.08} width={pillarW} height={h * 0.86} fill="#8a8078" stroke={PAL.ink} strokeWidth={1} />
+          <rect x={w - 1 - pillarW} y={h * 0.08} width={pillarW} height={h * 0.86} fill="#8a8078" stroke={PAL.ink} strokeWidth={1} />
+          <line x1={1} y1={h * 0.45} x2={1 + pillarW} y2={h * 0.45} stroke={PAL.inkSoft} strokeWidth={0.4} opacity={0.7} />
+          <line x1={w - 1 - pillarW} y1={h * 0.45} x2={w - 1} y2={h * 0.45} stroke={PAL.inkSoft} strokeWidth={0.4} opacity={0.7} />
+          {/* doors */}
+          <rect x={1 + pillarW} y={h * 0.22} width={(w - 2 - pillarW * 2) / 2} height={h * 0.72} fill="#5a3820" stroke={PAL.ink} strokeWidth={1} />
+          <rect x={cx} y={h * 0.22} width={(w - 2 - pillarW * 2) / 2} height={h * 0.72} fill="#5a3820" stroke={PAL.ink} strokeWidth={1} />
+          {/* plank lines */}
+          {[0.35, 0.55, 0.75].map((p, i) => (
+            <line key={`pl${i}`} x1={1 + pillarW + 0.5} y1={h * p} x2={w - 1 - pillarW - 0.5} y2={h * p} stroke={PAL.inkSoft} strokeWidth={0.4} opacity={0.65} />
+          ))}
+          {/* iron bands */}
+          <rect x={1 + pillarW} y={h * 0.32} width={w - 2 - pillarW * 2} height={1.2} fill="#3a3530" />
+          <rect x={1 + pillarW} y={h * 0.78} width={w - 2 - pillarW * 2} height={1.2} fill="#3a3530" />
+          {/* knockers */}
+          <circle cx={cx - w * 0.06} cy={h * 0.58} r={1} fill="#3a3530" stroke={PAL.ink} strokeWidth={0.3} />
+          <circle cx={cx + w * 0.06} cy={h * 0.58} r={1} fill="#3a3530" stroke={PAL.ink} strokeWidth={0.3} />
+        </g>
+      );
+    }
+    case "watchtower": {
+      // Tall scaffolded tower with platform + roof
+      const baseY = h - 2;
+      const platY = h * 0.42;
+      const roofY = h * 0.12;
+      return (
+        <g>
+          <ellipse cx={cx} cy={h - 1.5} rx={w * 0.45} ry={2.5} fill={PAL.shadow} />
+          {/* legs */}
+          <line x1={w * 0.22} y1={baseY} x2={w * 0.32} y2={platY} stroke="#5a3820" strokeWidth={1.4} />
+          <line x1={w * 0.78} y1={baseY} x2={w * 0.68} y2={platY} stroke="#5a3820" strokeWidth={1.4} />
+          <line x1={w * 0.32} y1={platY} x2={w * 0.22} y2={baseY} stroke={PAL.ink} strokeWidth={0.4} />
+          {/* cross braces */}
+          <line x1={w * 0.22} y1={baseY} x2={w * 0.68} y2={platY} stroke="#7a5028" strokeWidth={0.8} opacity={0.8} />
+          <line x1={w * 0.78} y1={baseY} x2={w * 0.32} y2={platY} stroke="#7a5028" strokeWidth={0.8} opacity={0.8} />
+          {/* platform */}
+          <rect x={w * 0.18} y={platY} width={w * 0.64} height={h * 0.08} fill="#7a5028" stroke={PAL.ink} strokeWidth={1} />
+          {/* railing posts */}
+          <rect x={w * 0.22} y={platY - h * 0.12} width={1.2} height={h * 0.12} fill="#3d2810" />
+          <rect x={w * 0.5 - 0.6} y={platY - h * 0.12} width={1.2} height={h * 0.12} fill="#3d2810" />
+          <rect x={w * 0.78 - 1.2} y={platY - h * 0.12} width={1.2} height={h * 0.12} fill="#3d2810" />
+          <line x1={w * 0.22} y1={platY - h * 0.06} x2={w * 0.78} y2={platY - h * 0.06} stroke="#5a3820" strokeWidth={0.8} />
+          {/* roof */}
+          <polygon points={`${w * 0.16},${platY - h * 0.12} ${cx},${roofY} ${w * 0.84},${platY - h * 0.12}`} fill="#5a3820" stroke={PAL.ink} strokeWidth={1.2} />
+          <line x1={cx} y1={roofY + 1.5} x2={cx} y2={platY - h * 0.12} stroke={PAL.inkSoft} strokeWidth={0.5} opacity={0.6} />
+          {/* flag */}
+          <line x1={cx} y1={roofY} x2={cx} y2={roofY - h * 0.08} stroke={PAL.ink} strokeWidth={0.6} />
+          <polygon points={`${cx},${roofY - h * 0.08} ${cx + w * 0.12},${roofY - h * 0.06} ${cx},${roofY - h * 0.03}`} fill="#a83a3a" stroke={PAL.ink} strokeWidth={0.4} />
+        </g>
+      );
+    }
+    case "guard-post": {
+      // Small shack with a window and torch
+      const wallY = h * 0.38;
+      return (
+        <g>
+          <ellipse cx={cx} cy={h - 2} rx={w * 0.45} ry={2.5} fill={PAL.shadow} />
+          {/* wall */}
+          <rect x={w * 0.18} y={wallY} width={w * 0.64} height={h - wallY - 2} fill="#7a5028" stroke={PAL.ink} strokeWidth={1.1} />
+          {/* plank lines */}
+          <line x1={w * 0.2} y1={wallY + (h - wallY) * 0.5} x2={w * 0.8} y2={wallY + (h - wallY) * 0.5} stroke={PAL.inkSoft} strokeWidth={0.5} opacity={0.6} />
+          {/* window */}
+          <rect x={cx - w * 0.1} y={wallY + h * 0.08} width={w * 0.2} height={h * 0.14} fill="#1f2a30" stroke={PAL.ink} strokeWidth={0.8} />
+          <line x1={cx} y1={wallY + h * 0.08} x2={cx} y2={wallY + h * 0.22} stroke={PAL.inkSoft} strokeWidth={0.4} />
+          <line x1={cx - w * 0.1} y1={wallY + h * 0.15} x2={cx + w * 0.1} y2={wallY + h * 0.15} stroke={PAL.inkSoft} strokeWidth={0.4} />
+          {/* slanted roof */}
+          <polygon points={`${w * 0.12},${wallY + 1} ${cx},${h * 0.08} ${w * 0.88},${wallY + 1}`} fill="#5a3820" stroke={PAL.ink} strokeWidth={1.1} />
+          {/* torch on the side */}
+          <line x1={w * 0.86} y1={wallY + h * 0.05} x2={w * 0.94} y2={wallY - h * 0.05} stroke="#3d2810" strokeWidth={1} />
+          <circle cx={w * 0.95} cy={wallY - h * 0.07} r={1.4} fill="#e8a04a" stroke={PAL.ink} strokeWidth={0.4} />
+          <circle cx={w * 0.95} cy={wallY - h * 0.08} r={0.7} fill="#f5d98a" />
+        </g>
+      );
+    }
     default:
       return <rect x={2} y={2} width={w - 4} height={h - 4} fill="#6b4a24" stroke={PAL.ink} strokeWidth={1} />;
   }
