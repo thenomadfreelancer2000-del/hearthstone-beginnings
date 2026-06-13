@@ -176,7 +176,10 @@ export function FounderCreation() {
               >
                 {t.eyebrow}
               </p>
-              <h1 className="ranch-display text-[26px] sm:text-5xl md:text-6xl leading-[1.05] mb-2 sm:mb-4">
+              <h1
+                className="ranch-display leading-[1.05] mb-2 sm:mb-4"
+                style={{ fontSize: "clamp(22px, 5.5vw, 60px)" }}
+              >
                 {t.title}
               </h1>
               <p className="ranch-display italic text-dust-light text-sm sm:text-lg max-w-2xl leading-snug">
