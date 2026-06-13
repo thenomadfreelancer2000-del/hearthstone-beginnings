@@ -223,6 +223,20 @@ export function MapView() {
                 }
                 return <g>{dots}</g>;
               })()}
+              {b.kind === "water-collector" && built && (
+                <g>
+                  <rect x={x + 6} y={y + 6} width={w - 12} height={h - 12} fill="#3a5868" opacity={0.85} />
+                  <circle cx={x + w/2} cy={y + h/2} r={2} fill="#9ec6d8" />
+                </g>
+              )}
+              {b.kind === "foraging-camp" && built && (
+                <g>
+                  <circle cx={x + w/2 - 4} cy={y + h/2} r={2} fill="#8b3a2a" />
+                  <circle cx={x + w/2 + 4} cy={y + h/2 - 2} r={2} fill="#b04d38" />
+                  <circle cx={x + w/2} cy={y + h/2 + 4} r={2} fill="#4a6741" />
+                </g>
+              )}
+
 
               {b.kind === "campfire" && (
                 <g>
