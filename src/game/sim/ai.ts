@@ -311,21 +311,31 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
       normalizeConstructionBuilding(b);
       const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
       s.workTarget = { kind: "building", id: b.id };
+      const isAssigned = assigned?.id === b.id;
+      // Establish a long-running commitment for the assigned builder so they
+      // stop thrashing between tasks each tick.
+      if (isAssigned && (!s.commitment || s.commitment.buildingId !== b.id)) {
+        s.commitment = { kind: "construction", buildingId: b.id, phase: "building", sinceTick: deps.tick };
+      }
       if (!hasConstructionResources(b)) {
         s.action = `Waiting on materials for the ${b.kind}.`;
         s.state = "idle";
         return;
       }
       if (dist(s.x, s.y, cx, cy) < 1.6) {
-        const isAssigned = assigned?.id === b.id;
         const isBuilder = s.occupation === "builder";
-        const skillMult = 1 + (s.skills.build ?? 1) * 0.18; // 0..~6.4x at skill 30
-        const roleMult = isAssigned ? 1.25 : isBuilder ? 1.0 : 0.7;
-        const work = skillMult * roleMult * (dt / 24);
+        const nearDone = b.builtProgress >= 0.75;
+        const skillMult = 1 + (s.skills.build ?? 1) * 0.18;
+        // Assigned = 100% priority. Helpers = lower. Near-completion bonus
+        // makes everyone push to finish the last quarter.
+        const roleMult = isAssigned ? 1.25 : isBuilder ? 0.85 : 0.6;
+        const finishMult = nearDone ? 1.4 : 1.0;
+        const work = skillMult * roleMult * finishMult * (dt / 24);
         applyConstructionWork(b, work, deps.tick);
         s.skills.build = Math.min(30, (s.skills.build ?? 1) + 0.003 * dt);
         s.state = "working";
-        s.action = isAssigned ? `Working their site — the ${b.kind}.` : `Lending hands at the ${b.kind}.`;
+        s.action = isAssigned ? `Building — ${b.kind}.` : `Lending hands at the ${b.kind}.`;
+        if (b.builtProgress >= 1 && s.commitment?.buildingId === b.id) s.commitment = null;
       } else {
         setTarget(s, cx, cy);
         s.action = `Walking to the ${b.kind} build site.`;
@@ -333,6 +343,7 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
       return;
     }
   }
+
 
   {
     // Leaders do not chop wood themselves — they walk, talk, and tend the line.
