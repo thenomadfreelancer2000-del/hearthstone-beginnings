@@ -189,6 +189,11 @@ function dailyTick(eng: Engine, opts?: { onArrival?: (s: Survivor) => Survivor |
   }
 
   processFarms(eng);
+  dailyHousingTick({ buildings: eng.buildings, survivors: eng.survivors, tick: eng.time.tick });
+  applyHousingGratitudeChronicle(eng);
+
+
+
 
 
   // ── Lifecycle: aging happens at season change ─────────────────
