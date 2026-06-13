@@ -4,25 +4,37 @@ import { useGame } from "@/game/store";
 import { BUILDABLE_KINDS, BUILDINGS } from "@/game/data/content";
 
 export function BottomDock() {
-  const [tab, setTab] = useState<"build" | "people" | "chronicle">("build");
+  const [tab, setTab] = useState<"build" | "people" | "chronicle" | null>(null);
+  const open = tab !== null;
   return (
     <div className="parchment-panel border-t border-amber/30">
-      <div className="flex border-b border-amber/15">
+      <div className="flex border-b border-amber/15 items-center">
         {(["build", "people", "chronicle"] as const).map((t) => (
           <button
             key={t}
-            onClick={() => setTab(t)}
+            onClick={() => setTab(tab === t ? null : t)}
             className={`px-3 sm:px-4 py-2 ranch-label text-[11px] ${tab === t ? "text-amber border-b-2 border-amber" : "text-dust hover:text-parchment"}`}
           >
             {t}
           </button>
         ))}
+        {open && (
+          <button
+            onClick={() => setTab(null)}
+            className="ml-auto mr-2 ranch-label text-[10px] text-dust hover:text-amber px-2 py-1"
+            title="Collapse"
+          >
+            ▼ collapse
+          </button>
+        )}
       </div>
-      <div className="p-2 sm:p-3 max-h-[45vh] sm:max-h-[200px] overflow-auto scroll-amber">
-        {tab === "build" && <BuildMenu />}
-        {tab === "people" && <PeopleList />}
-        {tab === "chronicle" && <ChronicleList />}
-      </div>
+      {open && (
+        <div className="p-2 sm:p-3 max-h-[45vh] sm:max-h-[200px] overflow-auto scroll-amber">
+          {tab === "build" && <BuildMenu />}
+          {tab === "people" && <PeopleList />}
+          {tab === "chronicle" && <ChronicleList />}
+        </div>
+      )}
     </div>
   );
 }
