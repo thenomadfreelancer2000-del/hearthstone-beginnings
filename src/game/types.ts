@@ -138,6 +138,9 @@ export interface Survivor {
 
   // achievements & legacy
   achievements?: string[];
+  // Crops this survivor knows how to cultivate. Unioned into the
+  // settlement's unlockedCrops when they're welcomed in.
+  cropKnowledge?: string[];
 
   // ── Phase 3+ placeholders (nullable for forward-compat) ──
   factionId?: ID | null;
