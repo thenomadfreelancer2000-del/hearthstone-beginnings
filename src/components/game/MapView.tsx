@@ -1,8 +1,25 @@
 import React, { useMemo, useRef, useState } from "react";
 import { useGame } from "@/game/store";
 import { BUILDINGS } from "@/game/data/content";
-import { CROPS, type CropId } from "@/game/data/crops";
 import type { Tile } from "@/game/types";
+import treeSprite from "@/assets/sprites/tree.png";
+import rockSprite from "@/assets/sprites/rock.png";
+import berriesSprite from "@/assets/sprites/berries.png";
+import homesteadSprite from "@/assets/sprites/homestead.png";
+import campfireSprite from "@/assets/sprites/campfire.png";
+import farmSprite from "@/assets/sprites/farm.png";
+import waterCollectorSprite from "@/assets/sprites/water-collector.png";
+import foragingCampSprite from "@/assets/sprites/foraging-camp.png";
+import survivorSprite from "@/assets/sprites/survivor.png";
+import survivorFounderSprite from "@/assets/sprites/survivor-founder.png";
+
+const BUILDING_SPRITES: Record<string, string> = {
+  homestead: homesteadSprite,
+  campfire: campfireSprite,
+  "farm-plot": farmSprite,
+  "water-collector": waterCollectorSprite,
+  "foraging-camp": foragingCampSprite,
+};
 
 const TILE = 28;
 
@@ -243,53 +260,34 @@ export function MapView() {
           );
         })()}
 
-        {/* Resource nodes */}
+        {/* Resource nodes (sprite-based) */}
         {nodes.map((n) => {
-          const cx = n.x * TILE + TILE / 2;
-          const cy = n.y * TILE + TILE / 2;
           if (n.amount <= 0) return null;
           const depleted = n.amount < 30;
-          if (n.kind === "trees") {
-            return (
-              <g key={n.id} opacity={depleted ? 0.7 : 1}>
-                <ellipse cx={cx} cy={cy + 10} rx={9} ry={2.5} fill="url(#shadow)" />
-                <rect x={cx - 1.5} y={cy + 2} width={3} height={7} fill="#3d2a10" />
-                <rect x={cx - 1.5} y={cy + 2} width={1} height={7} fill="#5a3d1c" opacity={0.6} />
-                <circle cx={cx} cy={cy - 2} r={10} fill="url(#foliage)" />
-                <circle cx={cx - 4} cy={cy - 5} r={5} fill="#6a8a4e" opacity={0.7} />
-                <circle cx={cx + 5} cy={cy - 3} r={4} fill="#7a9a5e" opacity={0.6} />
-                <circle cx={cx - 2} cy={cy - 7} r={2} fill="#a8c878" opacity={0.5} />
-              </g>
-            );
-          }
-          if (n.kind === "rocks") {
-            return (
-              <g key={n.id} opacity={depleted ? 0.7 : 1}>
-                <ellipse cx={cx} cy={cy + 8} rx={10} ry={2.5} fill="url(#shadow)" />
-                <polygon points={`${cx-9},${cy+7} ${cx-5},${cy-5} ${cx+2},${cy-7} ${cx+8},${cy-2} ${cx+9},${cy+6}`}
-                  fill="url(#rock)" stroke="#3d3528" strokeWidth={0.6} strokeLinejoin="round" />
-                <polygon points={`${cx-4},${cy+5} ${cx-2},${cy-1} ${cx+3},${cy-3} ${cx+5},${cy+3}`}
-                  fill="#c4bea8" opacity={0.6} />
-                <path d={`M${cx-6} ${cy+2} L${cx-3} ${cy-3}`} stroke="#3d3528" strokeWidth={0.5} opacity={0.7} />
-              </g>
-            );
-          }
-          // berries
+          const cx = n.x * TILE + TILE / 2;
+          const cy = n.y * TILE + TILE / 2;
+          const sprite =
+            n.kind === "trees" ? treeSprite :
+            n.kind === "rocks" ? rockSprite :
+            berriesSprite;
+          const seed = (n.id.charCodeAt(0) + n.id.charCodeAt(n.id.length - 1)) % 100;
+          const scale = (n.kind === "trees" ? 1.55 : n.kind === "rocks" ? 1.25 : 1.15) * (0.92 + (seed % 17) / 100);
+          const size = TILE * scale;
           return (
-            <g key={n.id} opacity={depleted ? 0.7 : 1}>
-              <ellipse cx={cx} cy={cy + 7} rx={8} ry={2} fill="url(#shadow)" />
-              <circle cx={cx} cy={cy + 2} r={6} fill="#3a5230" />
-              <circle cx={cx - 4} cy={cy} r={4} fill="#4a6840" opacity={0.85} />
-              <circle cx={cx + 4} cy={cy + 1} r={4} fill="#4a6840" opacity={0.85} />
-              <circle cx={cx - 2} cy={cy} r={1.5} fill="#b04d38" />
-              <circle cx={cx + 3} cy={cy + 2} r={1.5} fill="#c25540" />
-              <circle cx={cx} cy={cy + 4} r={1.3} fill="#8b3a2a" />
-              <circle cx={cx - 3} cy={cy + 3} r={1.2} fill="#b04d38" />
-            </g>
+            <image
+              key={n.id}
+              href={sprite}
+              x={cx - size / 2}
+              y={cy - size * (n.kind === "trees" ? 0.7 : 0.55)}
+              width={size}
+              height={size}
+              opacity={depleted ? 0.7 : 1}
+              preserveAspectRatio="xMidYMid meet"
+            />
           );
         })}
 
-        {/* Buildings */}
+        {/* Buildings (sprite-based) */}
         {buildings.map((b) => {
           const sel = selection.kind === "building" && selection.id === b.id;
           const x = b.x * TILE;
@@ -297,14 +295,12 @@ export function MapView() {
           const w = b.w * TILE;
           const h = b.h * TILE;
           const built = b.builtProgress >= 1;
-          const opacity = built ? 1 : 0.6;
 
-          // Scaffolding / ghost frame
           if (!built) {
             return (
-              <g key={b.id} opacity={opacity}>
+              <g key={b.id} opacity={0.7}>
                 <rect x={x + 2} y={y + 2} width={w - 4} height={h - 4}
-                  fill="rgba(60,42,16,0.5)" stroke="#8b6a1a" strokeWidth={1} strokeDasharray="3 2" />
+                  fill="rgba(60,42,16,0.55)" stroke="#8b6a1a" strokeWidth={1} strokeDasharray="3 2" />
                 <line x1={x + 2} y1={y + 2} x2={x + w - 2} y2={y + h - 2} stroke="#8b6a1a" strokeWidth={0.5} opacity={0.5} />
                 <line x1={x + w - 2} y1={y + 2} x2={x + 2} y2={y + h - 2} stroke="#8b6a1a" strokeWidth={0.5} opacity={0.5} />
                 <rect x={x + 3} y={y + h - 5} width={(w - 6) * b.builtProgress} height={2} fill="#c9a14a" />
@@ -314,79 +310,20 @@ export function MapView() {
             );
           }
 
-          // Built renderers per kind
+          const sprite = BUILDING_SPRITES[b.kind] ?? homesteadSprite;
+          const pad = 0.15;
+          const sx = x - w * pad;
+          const sy = y - h * (b.kind === "homestead" ? 0.35 : 0.2);
+          const sw = w * (1 + pad * 2);
+          const sh = h * (1 + (b.kind === "homestead" ? 0.5 : 0.3));
+
           return (
             <g key={b.id}>
-              <ellipse cx={x + w/2} cy={y + h - 1} rx={w/2 - 2} ry={3} fill="url(#shadow)" />
-              {b.kind === "homestead" && (
-                <g>
-                  <rect x={x + 2} y={y + h/3} width={w - 4} height={(h * 2)/3 - 2} fill="url(#planks)" stroke="#2a1a08" strokeWidth={0.8} />
-                  <polygon points={`${x},${y + h/3 + 2} ${x + w/2},${y + 2} ${x + w},${y + h/3 + 2}`}
-                    fill="url(#shingle)" stroke="#2a1a08" strokeWidth={0.8} />
-                  <rect x={x + w/2 - 3} y={y + h - 8} width={6} height={7} fill="#3a2a10" stroke="#1a1208" strokeWidth={0.5} />
-                  <circle cx={x + w/2 + 1.5} cy={y + h - 4} r={0.6} fill="#c9a14a" />
-                  <rect x={x + 5} y={y + h/3 + 5} width={4} height={4} fill="#2a3a4a" stroke="#1a1208" strokeWidth={0.5} />
-                  <rect x={x + w - 9} y={y + h/3 + 5} width={4} height={4} fill="#2a3a4a" stroke="#1a1208" strokeWidth={0.5} />
-                  <rect x={x + w - 7} y={y + 4} width={2.5} height={6} fill="#5a4030" />
-                </g>
-              )}
-              {b.kind === "campfire" && (
-                <g>
-                  <circle cx={x + w/2} cy={y + h/2} r={w/2 - 3} fill="#2a1a08" opacity={0.6} />
-                  <path d={`M${x + w/2 - 5} ${y + h/2 + 3} L${x + w/2} ${y + h/2 - 1} L${x + w/2 + 5} ${y + h/2 + 3}`}
-                    stroke="#4a2a10" strokeWidth={1.5} fill="none" />
-                  <ellipse cx={x + w/2} cy={y + h/2 - 1} rx={4} ry={5} fill="#e8a040" className="pulse-amber" />
-                  <ellipse cx={x + w/2} cy={y + h/2 - 2} rx={2} ry={3} fill="#f5d98a" />
-                </g>
-              )}
-              {b.kind === "farm-plot" && b.farm && (() => {
-                const crop = CROPS[b.farm.cropId as CropId] ?? CROPS.corn;
-                const growth = b.farm.stage === "mature" ? 1 : b.farm.stage === "growing" ? b.farm.growth : 0.05;
-                const rows = 4, cols = 4;
-                const els: React.ReactElement[] = [];
-                els.push(<rect key="soil" x={x + 2} y={y + 2} width={w - 4} height={h - 4} fill="#4a3018" stroke="#2a1a08" strokeWidth={0.6} />);
-                for (let r = 0; r < rows; r++) {
-                  els.push(<line key={`fr${r}`} x1={x + 3} y1={y + 4 + r * ((h - 6) / (rows - 1))} x2={x + w - 3} y2={y + 4 + r * ((h - 6) / (rows - 1))} stroke="#3a2410" strokeWidth={0.5} />);
-                }
-                for (let r = 0; r < rows; r++) {
-                  for (let cc = 0; cc < cols; cc++) {
-                    const dx = x + 4 + cc * ((w - 8) / (cols - 1));
-                    const dy = y + 4 + r * ((h - 8) / (rows - 1));
-                    els.push(
-                      <circle key={`c${r}-${cc}`} cx={dx} cy={dy} r={0.6 + growth * 2}
-                        fill={crop.color} opacity={0.4 + growth * 0.6} />
-                    );
-                    if (growth > 0.6) {
-                      els.push(<line key={`s${r}-${cc}`} x1={dx} y1={dy} x2={dx} y2={dy + 2 + growth * 2} stroke="#4a6735" strokeWidth={0.4} />);
-                    }
-                  }
-                }
-                return <g>{els}</g>;
-              })()}
-              {b.kind === "water-collector" && (
-                <g>
-                  <rect x={x + 3} y={y + 3} width={w - 6} height={h - 6} fill="#3a2a10" stroke="#1a1208" strokeWidth={0.8} />
-                  <rect x={x + 5} y={y + 5} width={w - 10} height={h - 10} fill="url(#water-pat)" />
-                  <rect x={x + 5} y={y + 5} width={w - 10} height={2} fill="#9ec6d8" opacity={0.5} />
-                </g>
-              )}
-              {b.kind === "foraging-camp" && (
-                <g>
-                  <polygon points={`${x + w/2},${y + 3} ${x + 4},${y + h - 4} ${x + w - 4},${y + h - 4}`}
-                    fill="#5a4230" stroke="#2a1a08" strokeWidth={0.8} />
-                  <line x1={x + w/2} y1={y + 3} x2={x + w/2} y2={y + h - 4} stroke="#3a2a10" strokeWidth={0.5} />
-                  <circle cx={x + w/2 - 3} cy={y + h - 7} r={1.5} fill="#b04d38" />
-                  <circle cx={x + w/2 + 2} cy={y + h - 6} r={1.2} fill="#c9a14a" />
-                </g>
-              )}
-              {/* Generic fallback for any other kind */}
-              {!["homestead","campfire","farm-plot","water-collector","foraging-camp"].includes(b.kind) && (
-                <g>
-                  <rect x={x + 2} y={y + h/3} width={w - 4} height={(h * 2)/3 - 2} fill="url(#planks)" stroke="#2a1a08" strokeWidth={0.6} />
-                  <polygon points={`${x},${y + h/3 + 2} ${x + w/2},${y + 2} ${x + w},${y + h/3 + 2}`} fill="url(#shingle)" stroke="#2a1a08" strokeWidth={0.6} />
-                </g>
-              )}
-              {/* Selection ring */}
+              <image
+                href={sprite}
+                x={sx} y={sy} width={sw} height={sh}
+                preserveAspectRatio="xMidYMid meet"
+              />
               {sel && (
                 <rect x={x + 1} y={y + 1} width={w - 2} height={h - 2}
                   fill="none" stroke="#c9a14a" strokeWidth={1.5} strokeDasharray="3 2" />
@@ -399,42 +336,31 @@ export function MapView() {
           );
         })}
 
-        {/* Survivors */}
+        {/* Survivors (sprite-based) */}
         {survivors.map((s) => {
           const sel = selection.kind === "survivor" && selection.id === s.id;
           const cx = s.x * TILE + TILE / 2;
           const cy = s.y * TILE + TILE / 2;
           const dead = s.health <= 0;
-          const skin = dead ? "#5a4a3a" : "#d8b896";
-          const shirt = s.isFounder ? "#8b3a2a" : "#4a6741";
-          const pants = "#3a2a18";
-          const hat = s.isFounder ? "#3a2a18" : "#5a4230";
+          const sprite = s.isFounder ? survivorFounderSprite : survivorSprite;
+          const size = TILE * 1.05;
           return (
             <g key={s.id} style={{ pointerEvents: "all", cursor: "pointer" }}>
-              <ellipse cx={cx} cy={cy + 7} rx={4} ry={1.5} fill="url(#shadow)" />
+              <ellipse cx={cx} cy={cy + 7} rx={5} ry={1.8} fill="url(#shadow)" />
               {sel && (
-                <circle cx={cx} cy={cy + 1} r={9} fill="none" stroke="#c9a14a" strokeWidth={1.2} strokeDasharray="2 2" />
+                <circle cx={cx} cy={cy + 1} r={11} fill="none" stroke="#c9a14a" strokeWidth={1.3} strokeDasharray="2 2" />
               )}
-              {/* Legs */}
-              <rect x={cx - 2} y={cy + 3} width={1.6} height={4} fill={pants} />
-              <rect x={cx + 0.4} y={cy + 3} width={1.6} height={4} fill={pants} />
-              {/* Body */}
-              <rect x={cx - 2.5} y={cy - 1} width={5} height={5} rx={1} fill={shirt} />
-              {/* Belt */}
-              <rect x={cx - 2.5} y={cy + 2.4} width={5} height={0.8} fill="#2a1a08" />
-              {/* Arms hint */}
-              <rect x={cx - 3.2} y={cy} width={0.8} height={3} fill={shirt} />
-              <rect x={cx + 2.4} y={cy} width={0.8} height={3} fill={shirt} />
-              {/* Head */}
-              <circle cx={cx} cy={cy - 3} r={2.3} fill={skin} />
-              {/* Hat brim & crown */}
-              <ellipse cx={cx} cy={cy - 4.3} rx={3.5} ry={0.7} fill={hat} />
-              <rect x={cx - 1.6} y={cy - 6.2} width={3.2} height={2} rx={0.4} fill={hat} />
-              {s.isFounder && (
-                <rect x={cx - 1.6} y={cy - 4.8} width={3.2} height={0.4} fill="#c9a14a" />
-              )}
+              <image
+                href={sprite}
+                x={cx - size / 2}
+                y={cy - size * 0.72}
+                width={size}
+                height={size}
+                opacity={dead ? 0.4 : 1}
+                preserveAspectRatio="xMidYMid meet"
+              />
               {dead && (
-                <line x1={cx - 3} y1={cy - 3} x2={cx + 3} y2={cy + 3} stroke="#1a1208" strokeWidth={0.6} />
+                <line x1={cx - 4} y1={cy - 3} x2={cx + 4} y2={cy + 3} stroke="#1a1208" strokeWidth={0.8} />
               )}
             </g>
           );
