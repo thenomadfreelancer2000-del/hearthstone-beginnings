@@ -7,7 +7,8 @@ import {
   missingConstructionResources,
   requiredConstructionResources,
 } from "@/game/sim/construction";
-import type { Occupation, Relationship, Survivor } from "@/game/types";
+import { CROPS, expectedYield, growthRateMultiplier, skillTierLabel, type CropId } from "@/game/data/crops";
+import type { Building, Occupation, Relationship, Survivor } from "@/game/types";
 
 const OCCUPATIONS: Occupation[] = [
   "idle", "leader", "forager", "woodcutter", "miner", "farmer", "builder", "hauler",
