@@ -352,6 +352,12 @@ export const useGame = create<GameState>((set, get) => ({
       stats: { ...emptyStats(1, family.name), population: 1, morale: 20, prestige: family.prestige },
       selection: { kind: "survivor", id: founder.id },
       buildPlacement: null,
+      pendingArrival: null,
+      pendingBuildAssignment: null,
+      pendingFarmSetup: null,
+      unlockedCrops: [...STARTER_CROP_IDS],
+      reputation: 0,
+      lastChronicleId: null,
     });
   },
 
