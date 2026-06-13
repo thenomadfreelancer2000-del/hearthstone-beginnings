@@ -20,6 +20,7 @@ import { normalizeConstructionBuilding } from "./sim/construction";
 import { CROPS, STARTER_CROP_IDS, isCropId, type CropId } from "./data/crops";
 import { findBestHome as findBestHomeFor, homeCapacity } from "./sim/housing";
 import { getPortrait } from "./data/portraits";
+import { TRAIT_INFO, traitRefugeeBias } from "./data/traits";
 
 export type Screen = "menu" | "founder" | "game";
 export type Overlay = "tree" | "family" | "chronicle" | null;
@@ -882,6 +883,7 @@ export const useGame = create<GameState>((set, get) => ({
     const bias0 = (traits: string[] | undefined) =>
       (traits ?? []).reduce((m, t) => m + (TRAIT_INFO[t]?.refugeeBias ?? 0), 0);
     const nid = nanoid;
+    const existing = st.survivors.map((s) => {
       if (s.health <= 0) return s;
       const bias = traitRefugeeBias(s.traits);
       const moodShift = 2 + Math.max(0, bias) * 0.3;
