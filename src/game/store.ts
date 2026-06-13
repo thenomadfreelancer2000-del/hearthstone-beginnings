@@ -879,9 +879,9 @@ export const useGame = create<GameState>((set, get) => ({
     }
     // Auto-assign homes to the newcomers + emit memories for existing survivors.
     const buildings = st.buildings.map(b => ({ ...b, occupantIds: [...b.occupantIds] }));
-    const { traitRefugeeBias } = await import("@/game/data/traits");
-    const { nanoid: nid } = await import("nanoid");
-    const existing = st.survivors.map(s => {
+    const bias0 = (traits: string[] | undefined) =>
+      (traits ?? []).reduce((m, t) => m + (TRAIT_INFO[t]?.refugeeBias ?? 0), 0);
+    const nid = nanoid;
       if (s.health <= 0) return s;
       const bias = traitRefugeeBias(s.traits);
       const moodShift = 2 + Math.max(0, bias) * 0.3;
