@@ -1,5 +1,6 @@
 import { useGame } from "@/game/store";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { SettingsMenu } from "./SettingsMenu";
 
 const SEASON_LABEL: Record<string, string> = {
   spring: "Spring", summer: "Summer", autumn: "Autumn", winter: "Winter",
@@ -47,6 +48,7 @@ export function TopBar({ onToggleDock, dockOpen }: Props) {
               </button>
             ))}
           </div>
+          <SettingsMenu compact />
           <button
             onClick={onToggleDock}
             className="btn-ranch btn-ranch-ghost text-[10px] px-2 py-1"
@@ -120,6 +122,7 @@ export function TopBar({ onToggleDock, dockOpen }: Props) {
           <button className="btn-ranch btn-ranch-ghost !py-0.5 !px-1.5 text-[10px]" onClick={() => setOverlay("tree")} title="Dynasty">Dynasty</button>
           <button className="btn-ranch btn-ranch-ghost !py-0.5 !px-1.5 text-[10px]" onClick={() => save()} title="Save">Save</button>
           <button className="btn-ranch btn-ranch-ghost !py-0.5 !px-1.5 text-[10px]" onClick={() => setScreen("menu")} title="Menu">Menu</button>
+          <SettingsMenu />
         </div>
       </div>
     </header>
