@@ -31,7 +31,7 @@ export function GameShell() {
 
 
   return (
-    <div className="h-screen w-screen flex flex-col overflow-hidden">
+    <div className="h-full w-full flex flex-col overflow-hidden">
       <GameLoop />
       <TopBar
         onToggleDock={() => setDockOpen((v) => !v)}
@@ -41,7 +41,7 @@ export function GameShell() {
       <div className="flex-1 flex min-h-0 relative">
         <MapView />
         <FoundingPanel />
-        <LeaderProfile />
+        <LeaderProfile dockOpen={dockOpen} />
 
         {!isMobile && <Inspector />}
 

@@ -2,7 +2,11 @@ import { useGame } from "@/game/store";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { getPortraitUrl, defaultPortraitFor } from "@/game/data/portraits";
 
-export function LeaderProfile() {
+interface LeaderProfileProps {
+  dockOpen?: boolean;
+}
+
+export function LeaderProfile({ dockOpen = false }: LeaderProfileProps) {
   const leader = useGame((s) => s.survivors.find((x) => x.id === s.currentLeaderId));
   const selectSurvivor = useGame((s) => s.selectSurvivor);
   const isMobile = useIsMobile();
@@ -11,7 +15,7 @@ export function LeaderProfile() {
   const portraitUrl = getPortraitUrl(leader.portraitId) ?? getPortraitUrl(defaultPortraitFor(leader.gender));
 
   // Anchor to bottom-left; smaller on mobile so it doesn't crowd the screen.
-  const positionClass = "left-2 bottom-2 sm:left-3 sm:bottom-3";
+  const positionClass = isMobile && dockOpen ? "left-2 bottom-14" : "left-2 bottom-2 sm:left-3 sm:bottom-3";
   const sizeClass = isMobile ? "w-12 h-12" : "w-16 h-16 sm:w-20 sm:h-20";
 
   return (
