@@ -365,7 +365,8 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
         // makes everyone push to finish the last quarter.
         const roleMult = isAssigned ? 1.25 : isBuilder ? 0.85 : 0.6;
         const finishMult = nearDone ? 1.4 : 1.0;
-        const work = skillMult * roleMult * finishMult * (dt / 24);
+        const traitMult = traitWorkSpeed(s.traits);
+        const work = skillMult * roleMult * finishMult * traitMult * (dt / 24);
         applyConstructionWork(b, work, deps.tick);
         s.skills.build = Math.min(30, (s.skills.build ?? 1) + 0.003 * dt);
         s.state = "working";
@@ -397,7 +398,7 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
           wants === "stone" ? s.skills.mine :
           wants === "food" ? s.skills.forage :
           1;
-        const yieldAmt = Math.min(node.amount, Math.max(1, Math.floor((1 + skill * 0.4) * (dt / 24))));
+        const yieldAmt = Math.min(node.amount, Math.max(1, Math.floor((1 + skill * 0.4) * traitWorkSpeed(s.traits) * (dt / 24))));
         node.amount -= yieldAmt;
         s.carrying = {
           resource: wants,
