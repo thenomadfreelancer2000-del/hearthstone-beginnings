@@ -543,32 +543,8 @@ function NeedBar({ label, v, warn }: { label: string; v: number; warn?: boolean 
   );
 }
 
-function DebugNeedsPanel({ s }: { s: Survivor }) {
-  const tick = useGame((g) => g.time.tick);
-  const r = decayRateForSurvivor(s);
-  const fmtAgo = (t?: number | null) => {
-    if (t == null) return "—";
-    const ticks = Math.max(0, tick - t);
-    const days = ticks / TICKS_PER_DAY;
-    if (days < 1) return `${Math.round(days * 24)}h ago`;
-    return `${days.toFixed(1)}d ago`;
-  };
-  return (
-    <div className="parchment-panel-warm corner-brackets p-2 mt-3">
-      <h5 className="ranch-label text-[9px] mb-1 text-amber">Debug · Needs</h5>
-      <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 ranch-data text-[10px] text-parchment">
-        <span className="text-dust">Hunger</span><span>{Math.round(s.needs.food)} / 100</span>
-        <span className="text-dust">Thirst</span><span>{Math.round(s.needs.water)} / 100</span>
-        <span className="text-dust">Food decay</span><span>{r.food.toFixed(1)}/day</span>
-        <span className="text-dust">Water decay</span><span>{r.water.toFixed(1)}/day</span>
-        <span className="text-dust">Last meal</span><span>{fmtAgo(s.lastMealTick)}</span>
-        <span className="text-dust">Last drink</span><span>{fmtAgo(s.lastDrinkTick)}</span>
-        <span className="text-dust col-span-2 mt-1">Task</span>
-        <span className="col-span-2 text-amber">{s.action || "—"}</span>
-      </div>
-    </div>
-  );
-}
+
+
 
 function FarmPanel({ b }: { b: Building }) {
   const survivors = useGame((s) => s.survivors);
