@@ -1,8 +1,25 @@
 import React, { useMemo, useRef, useState } from "react";
 import { useGame } from "@/game/store";
 import { BUILDINGS } from "@/game/data/content";
-import { CROPS, type CropId } from "@/game/data/crops";
 import type { Tile } from "@/game/types";
+import treeSprite from "@/assets/sprites/tree.png";
+import rockSprite from "@/assets/sprites/rock.png";
+import berriesSprite from "@/assets/sprites/berries.png";
+import homesteadSprite from "@/assets/sprites/homestead.png";
+import campfireSprite from "@/assets/sprites/campfire.png";
+import farmSprite from "@/assets/sprites/farm.png";
+import waterCollectorSprite from "@/assets/sprites/water-collector.png";
+import foragingCampSprite from "@/assets/sprites/foraging-camp.png";
+import survivorSprite from "@/assets/sprites/survivor.png";
+import survivorFounderSprite from "@/assets/sprites/survivor-founder.png";
+
+const BUILDING_SPRITES: Record<string, string> = {
+  homestead: homesteadSprite,
+  campfire: campfireSprite,
+  "farm-plot": farmSprite,
+  "water-collector": waterCollectorSprite,
+  "foraging-camp": foragingCampSprite,
+};
 
 const TILE = 28;
 
