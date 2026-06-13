@@ -3,6 +3,7 @@ import { useGame } from "@/game/store";
 import { MainMenu } from "@/components/game/MainMenu";
 import { FounderCreation } from "@/components/game/FounderCreation";
 import { GameShell } from "@/components/game/GameShell";
+import { RotateDevicePrompt } from "@/components/game/RotateDevicePrompt";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -18,7 +19,10 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const screen = useGame((s) => s.screen);
-  if (screen === "menu") return <MainMenu />;
-  if (screen === "founder") return <FounderCreation />;
-  return <GameShell />;
+  return (
+    <>
+      <RotateDevicePrompt />
+      {screen === "menu" ? <MainMenu /> : screen === "founder" ? <FounderCreation /> : <GameShell />}
+    </>
+  );
 }
