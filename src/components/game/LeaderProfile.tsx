@@ -1,17 +1,13 @@
-import { useState } from "react";
-import { Camera, X } from "lucide-react";
 import { useGame } from "@/game/store";
-import { PORTRAITS, getPortraitUrl, defaultPortraitFor } from "@/game/data/portraits";
+import { getPortraitUrl, defaultPortraitFor } from "@/game/data/portraits";
 
 export function LeaderProfile() {
   const leader = useGame((s) => s.survivors.find((x) => x.id === s.currentLeaderId));
   const selectSurvivor = useGame((s) => s.selectSurvivor);
-  const setSurvivorPortrait = useGame((s) => s.setSurvivorPortrait);
-  const [picking, setPicking] = useState(false);
 
   if (!leader) return null;
   const portraitUrl = getPortraitUrl(leader.portraitId) ?? getPortraitUrl(defaultPortraitFor(leader.gender));
-  const available = PORTRAITS.filter((p) => p.gender === leader.gender);
+
 
   return (
     <>
