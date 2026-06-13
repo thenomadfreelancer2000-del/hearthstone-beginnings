@@ -18,6 +18,7 @@ export function LeaderProfile() {
       <div className="absolute left-3 bottom-3 z-20 pointer-events-auto">
         <div className="relative group">
           <button
+            type="button"
             onClick={() => selectSurvivor(leader.id)}
             className="block w-16 h-16 sm:w-20 sm:h-20 border-2 border-amber/70 shadow-[0_4px_16px_rgba(0,0,0,0.6)] overflow-hidden bg-coal hover:border-amber transition"
             title={`${leader.name} ${leader.surname} — view`}
@@ -28,14 +29,15 @@ export function LeaderProfile() {
                 alt={`${leader.name} ${leader.surname}`}
                 width={128}
                 height={128}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover pointer-events-none"
               />
             ) : (
               <div className="w-full h-full grid place-items-center text-amber text-xs">No face</div>
             )}
           </button>
           <button
-            onClick={() => setPicking(true)}
+            type="button"
+            onClick={(e) => { e.stopPropagation(); setPicking(true); }}
             className="absolute -top-1 -right-1 w-6 h-6 grid place-items-center bg-coal border border-amber/70 text-amber hover:bg-amber hover:text-ink transition"
             title="Change face"
             aria-label="Change face"
@@ -70,6 +72,7 @@ export function LeaderProfile() {
                 return (
                   <button
                     key={p.id}
+                    type="button"
                     onClick={() => {
                       setSurvivorPortrait(leader.id, p.id);
                       setPicking(false);
@@ -84,7 +87,7 @@ export function LeaderProfile() {
                       loading="lazy"
                       width={128}
                       height={128}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover pointer-events-none"
                     />
                   </button>
                 );
