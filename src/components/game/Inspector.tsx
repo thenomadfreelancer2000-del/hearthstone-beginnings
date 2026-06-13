@@ -109,6 +109,7 @@ export function Inspector() {
             <NeedBar label="Belonging" v={s.needs.belonging} />
             <NeedBar label="Purpose" v={s.needs.purpose} />
             <NeedBar label="Health" v={s.health} warn />
+            <DebugNeedsPanel s={s} />
           </>
         )}
 
