@@ -161,6 +161,14 @@ export const useGame = create<GameState>((set, get) => ({
   selectTile: (x, y) => set({ selection: { kind: "tile", x, y } }),
   selectFamily: (id) => set({ selection: { kind: "family", id } }),
   clearSelection: () => set({ selection: { kind: "none" } }),
+  setSurvivorPortrait: (survivorId, portraitId) => {
+    const st = get();
+    set({
+      survivors: st.survivors.map(s =>
+        s.id === survivorId ? { ...s, portraitId } : s
+      ),
+    });
+  },
   startBuild: (kind) => {
     const st = get();
     // First-time fence during founding: auto-encircle the territory.
