@@ -254,6 +254,66 @@ export const useGame = create<GameState>((set, get) => ({
 
   closeBuildAssignment: () => set({ pendingBuildAssignment: null }),
 
+  configureFarm: (buildingId, cropId, farmerId) => {
+    const st = get();
+    const finalCrop = isCropId(cropId) && st.unlockedCrops.includes(cropId) ? cropId : "corn";
+    set({
+      buildings: st.buildings.map(b => {
+        if (b.id !== buildingId) return b;
+        const farm = b.farm ?? {
+          cropId: finalCrop, stage: "empty" as const, growth: 0,
+          plantedTick: null, plantedYear: null, assignedFarmerId: null,
+          lastYield: null, totalHarvests: 0,
+        };
+        return {
+          ...b,
+          farm: {
+            ...farm,
+            cropId: finalCrop,
+            assignedFarmerId: farmerId ?? null,
+          },
+        };
+      }),
+      pendingFarmSetup: st.pendingFarmSetup === buildingId ? null : st.pendingFarmSetup,
+    });
+  },
+
+  assignFarmer: (buildingId, farmerId) => {
+    const st = get();
+    set({
+      buildings: st.buildings.map(b =>
+        b.id === buildingId && b.farm
+          ? { ...b, farm: { ...b.farm, assignedFarmerId: farmerId } }
+          : b
+      ),
+    });
+  },
+
+  setFarmCrop: (buildingId, cropId) => {
+    const st = get();
+    if (!isCropId(cropId) || !st.unlockedCrops.includes(cropId)) return;
+    set({
+      buildings: st.buildings.map(b => {
+        if (b.id !== buildingId || !b.farm) return b;
+        // Changing crop on a non-empty plot resets growth (replanting).
+        const reset = b.farm.stage !== "empty";
+        return {
+          ...b,
+          farm: {
+            ...b.farm,
+            cropId,
+            stage: reset ? "empty" : b.farm.stage,
+            growth: reset ? 0 : b.farm.growth,
+            plantedTick: reset ? null : b.farm.plantedTick,
+          },
+        };
+      }),
+    });
+  },
+
+  closeFarmSetup: () => set({ pendingFarmSetup: null }),
+
+
 
 
   newGame: (ranchName, founderInput) => {
