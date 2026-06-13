@@ -15,6 +15,7 @@ import { makeChild, stageFromAge } from "./world";
 import { dailyHousingTick, findBestHome, homeCapacity, isResidential } from "./housing";
 import { dailyFamilyTick } from "./families";
 import { dailyEducationTick, pickSuccessor } from "./heirs";
+import { applyAgingEffects, applyLeadershipTransition, lifeStageLabel } from "./legacy";
 import { BUILDINGS } from "../data/content";
 
 export interface Engine {
@@ -261,6 +262,7 @@ function dailyTick(eng: Engine, opts?: { onArrival?: (s: Survivor) => Survivor |
     for (const s of eng.survivors) {
       if (s.health <= 0) continue;
       const prevStage = s.stage;
+      const prevLabel = lifeStageLabel(s);
       s.age += 0.25;
       const newStage = stageFromAge(s.age);
       if (newStage !== prevStage) {
@@ -274,6 +276,17 @@ function dailyTick(eng: Engine, opts?: { onArrival?: (s: Survivor) => Survivor |
           );
         }
       }
+      // Sub-tier crossings (Mature Adult, Elder, Very Elderly).
+      const newLabel = lifeStageLabel(s);
+      if (newLabel !== prevLabel && (newLabel === "Mature Adult" || newLabel === "Elder" || newLabel === "Very Elderly")) {
+        addChronicle(
+          eng, "coming-of-age",
+          `${s.name} ${s.surname} grows into ${newLabel}`,
+          `Year ${eng.time.year}. The years have settled on their shoulders.`,
+          [s.id], [s.familyId],
+        );
+      }
+      applyAgingEffects(s);
     }
   }
 
@@ -441,11 +454,36 @@ function succeed(eng: Engine) {
   heir.achievements = [...(heir.achievements ?? []), `Inherited the ranch in Year ${eng.time.year}`];
   const fam = familyOf(eng, heir.id);
   if (fam) fam.prestige = Math.min(200, fam.prestige + 10);
+
+  // Transition: every soul reassesses the new leader.
+  const tr = applyLeadershipTransition({
+    survivors: eng.survivors,
+    relationships: eng.relationships,
+    families: eng.families,
+    newLeader: heir,
+    oldLeader: oldLeader ?? null,
+    wasPreferred,
+    emitMemory: (s, text, emotion, weight, aboutId, opts) =>
+      emitMem(eng, s, text, emotion, weight, aboutId, opts),
+  });
+
+  const reign = oldLeader
+    ? `${oldLeader.epithet ? `, ${oldLeader.epithet},` : ""}`
+    : "";
+  const moodNote =
+    tr.swearings > tr.rejections * 2
+      ? `Most of the ranch swears to the new line.`
+      : tr.rejections > tr.swearings
+        ? `Doubt walks the porch — not all welcome the change.`
+        : `The settlement watches in silence to see what kind of leader stands here.`;
+
   addChronicle(
     eng, "succession",
     `${heir.name} ${heir.surname} takes the porch`,
-    `With ${oldLeader?.name ?? "the leader"} gone, ${heir.name} ${heir.surname} stands at the door of the homestead and the dust settles around them.` +
-      (wasPreferred ? ` Named heir by ${oldLeader?.name ?? "the late leader"}.` : ""),
+    `With ${oldLeader?.name ?? "the leader"}${reign} gone, ${heir.name} ${heir.surname} ` +
+      `stands at the door of the homestead and the dust settles around them.` +
+      (wasPreferred ? ` Named heir by ${oldLeader?.name ?? "the late leader"}.` : "") +
+      ` ${moodNote}`,
     [heir.id, ...(oldLeader ? [oldLeader.id] : [])],
     [heir.familyId],
   );

@@ -21,6 +21,7 @@ import { CROPS, STARTER_CROP_IDS, isCropId, type CropId } from "./data/crops";
 import { findBestHome as findBestHomeFor, homeCapacity } from "./sim/housing";
 import { getPortrait } from "./data/portraits";
 import { TRAIT_INFO, traitRefugeeBias } from "./data/traits";
+import { computeFounderEpithet, founderDeathTitle, founderDeathBody } from "./sim/legacy";
 
 export type Screen = "menu" | "founder" | "game";
 export type Overlay = "tree" | "family" | "chronicle" | null;
@@ -826,8 +827,30 @@ export const useGame = create<GameState>((set, get) => ({
     };
 
     const prevTick = st.time.tick;
+    const prevFounderAlive = (st.survivors.find(s => s.id === st.founderId)?.health ?? 0) > 0;
     advance(eng, n);
     const newTick = eng.time.tick;
+
+    // Founder legacy — bestow an epithet at the moment of death and add a
+    // dedicated chronicle entry remembered by future generations.
+    const founder = eng.survivors.find(s => s.id === eng.founderId);
+    if (prevFounderAlive && founder && founder.health <= 0 && !founder.epithet) {
+      const epithet = computeFounderEpithet(founder, st.reputationProfile, eng.stats, eng.families);
+      founder.epithet = epithet;
+      eng.chronicle.unshift({
+        id: nanoid(8),
+        tick: eng.time.tick,
+        year: eng.time.year, season: eng.time.season, day: eng.time.day,
+        category: "death",
+        title: founderDeathTitle(founder, epithet),
+        body: founderDeathBody(founder, epithet, eng.time.year),
+        involvedIds: [founder.id],
+        involvedFamilyIds: [founder.familyId],
+      });
+      toast(`${founder.name} ${founder.surname} — ${epithet} — has died`, {
+        description: "The Ranch enters a transition.",
+      });
+    }
 
     // Notifications for new chronicle entries
     let lastId = st.lastChronicleId;

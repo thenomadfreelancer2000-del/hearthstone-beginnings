@@ -14,6 +14,7 @@ import type { Building, Occupation, Relationship, Survivor } from "@/game/types"
 import { AuthorityPanel } from "./AuthorityPanel";
 import { FamilyPanel } from "./FamilyPanel";
 import { rankHeirs, heirRating, EDUCATION_LABEL, type EducationFocus } from "@/game/sim/heirs";
+import { lifeStageLabel } from "@/game/sim/legacy";
 
 const OCCUPATIONS: Occupation[] = [
   "idle", "forager", "woodcutter", "miner", "farmer", "builder", "hauler",
@@ -65,9 +66,12 @@ export function Inspector() {
         <h3 className="ranch-display text-2xl mt-3 leading-tight">
           {s.name} <span className="text-amber">{s.surname}</span>
         </h3>
+        {s.epithet && (
+          <p className="ranch-display text-sm text-amber italic mt-0.5">— {s.epithet} —</p>
+        )}
         <p className="ranch-handwritten text-sm mt-1">
           {s.isFounder ? "★ Founder · " : isLeader ? "◆ Leader · " : ""}
-          {cap(s.stage)} · {cap(s.background)} · age {Math.floor(s.age)}
+          {lifeStageLabel(s)} · {cap(s.background)} · age {Math.floor(s.age)}
           {isDead && <span className="text-danger"> · Deceased Y{s.deathYear}</span>}
         </p>
         {fam && (
