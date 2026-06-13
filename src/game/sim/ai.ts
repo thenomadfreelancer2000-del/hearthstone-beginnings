@@ -2,6 +2,7 @@ import type {
   Building, Relationship, ResourceKind, ResourceNode, Survivor, Tile,
 } from "../types";
 import { applyConstructionWork, hasConstructionResources, normalizeConstructionBuilding } from "./construction";
+import { traitPairBias, traitMarriageScore, traitWorkSpeed } from "../data/traits";
 
 export const TICKS_PER_DAY = 240;
 export const DAYS_PER_SEASON = 12;
@@ -430,12 +431,14 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
           if (o.id === s.id) continue;
           if (o.health <= 0) continue;
           if (dist(s.x, s.y, o.x, o.y) < 2) {
-            // friendship + trust drift
+            // friendship + trust drift, modulated by trait compatibility
+            const bias = traitPairBias(s.traits, o.traits);
             touchRelationship(deps.relationships, s.id, o.id, {
-              affection: +0.02 * dt,
+              affection: (+0.02 + bias * 0.01) * dt,
               trust: +0.005 * dt,
-              friendship: +0.025 * dt,
+              friendship: (+0.025 + bias * 0.008) * dt,
               respect: +0.005 * dt,
+              rivalry: bias < -0.6 ? +0.02 * dt : 0,
             });
             // attraction only between fertile adults of opposite gender, both single
             const bothAdults =
@@ -447,8 +450,9 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
               && !(s.parentIds.length > 0 && o.parentIds.length > 0
                    && s.parentIds.some(p => o.parentIds.includes(p)));
             if (bothAdults && oppositeGender && bothSingle && notKin) {
+              const matchBoost = Math.max(0, traitMarriageScore(s.traits, o.traits)) * 0.0005;
               touchRelationship(deps.relationships, s.id, o.id, {
-                attraction: +0.04 * dt,
+                attraction: (+0.04 + matchBoost) * dt,
               });
             }
           }
