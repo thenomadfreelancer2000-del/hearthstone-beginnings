@@ -29,6 +29,7 @@ export interface Engine {
   families: Family[];
   founderId: ID;
   currentLeaderId: ID;
+  preferredHeirId?: ID | null;
   chronicle: ChronicleEntry[];
   stats: SettlementStats;
   seed: number;
