@@ -238,9 +238,14 @@ export function FounderCreation() {
           <button
             onClick={next}
             disabled={!stepValid[step]}
-            className="btn-ranch btn-ranch-primary flex-1 sm:flex-none"
+            className="btn-ranch btn-ranch-primary flex-1 sm:flex-none whitespace-nowrap"
           >
-            {step < 5 ? "Continue" : "Walk onto the porch"}
+            {step < 5 ? "Continue" : (
+              <>
+                <span className="sm:hidden">Begin</span>
+                <span className="hidden sm:inline">Walk onto the porch</span>
+              </>
+            )}
           </button>
         </div>
       </footer>
