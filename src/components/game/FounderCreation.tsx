@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGame } from "@/game/store";
 import { BACKGROUNDS, FIRST_NAMES_F, FIRST_NAMES_M, SURNAMES, TRAITS, TRAIT_BLURBS } from "@/game/data/content";
+import { PORTRAITS, defaultPortraitFor } from "@/game/data/portraits";
 import type { Background, Trait } from "@/game/types";
 import type { CompanionsChoice } from "@/game/sim/world";
 
@@ -58,6 +59,7 @@ export function FounderCreation() {
   const [traits, setTraits] = useState<Trait[]>(["Brave", "Principled", "Traditional"]);
   const [values, setValues] = useState<Value[]>(["Family", "Community"]);
   const [companions, setCompanions] = useState<CompanionsChoice>("alone");
+  const [portraitId, setPortraitId] = useState<string>(defaultPortraitFor("m"));
 
   const firstNames = useMemo(() => (gender === "m" ? FIRST_NAMES_M : FIRST_NAMES_F), [gender]);
 
