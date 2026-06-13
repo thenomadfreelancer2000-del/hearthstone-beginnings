@@ -393,6 +393,77 @@ export const useGame = create<GameState>((set, get) => ({
 
   closeFarmSetup: () => set({ pendingFarmSetup: null }),
 
+  assignSurvivorToHome: (survivorId, buildingId) => {
+    const st = get();
+    let buildings = st.buildings;
+    const survivors = st.survivors.map(s => {
+      if (s.id !== survivorId) return s;
+      const prev = s.homeId;
+      if (prev === buildingId) return s;
+      // remove from old
+      if (prev) {
+        buildings = buildings.map(b => b.id === prev ? { ...b, occupantIds: b.occupantIds.filter(id => id !== s.id) } : b);
+      }
+      // add to new (capacity check)
+      if (buildingId) {
+        const tgt = buildings.find(b => b.id === buildingId);
+        if (!tgt) return s;
+        const cap = BUILDINGS[tgt.kind]?.housingCapacity ?? 0;
+        if ((tgt.occupantIds?.length ?? 0) >= cap) {
+          toast.warning("Home is full");
+          return s;
+        }
+        buildings = buildings.map(b => b.id === buildingId ? { ...b, occupantIds: [...b.occupantIds, s.id] } : b);
+        const prevKind = s.lastHomeKind ?? null;
+        const prevQ = prevKind ? (BUILDINGS[prevKind]?.housingQuality ?? 0) : 0;
+        const newQ = BUILDINGS[tgt.kind]?.housingQuality ?? 0;
+        return {
+          ...s,
+          homeId: buildingId,
+          lastHomeKind: tgt.kind,
+          housingGratitude: newQ > prevQ ? (s.housingGratitude ?? 0) + 10 : (s.housingGratitude ?? 0),
+        };
+      }
+      return { ...s, homeId: null };
+    });
+    set({ buildings, survivors });
+  },
+
+  setHomeReserved: (buildingId, reserved) => {
+    const st = get();
+    set({
+      buildings: st.buildings.map(b =>
+        b.id === buildingId ? { ...b, reserved } : b
+      ),
+    });
+  },
+
+  autoAssignHomeless: () => {
+    const st = get();
+    const buildings = st.buildings.map(b => ({ ...b, occupantIds: [...b.occupantIds] }));
+    const survivors = st.survivors.map(s => ({ ...s }));
+    // First re-seed occupantIds from homeIds
+    for (const b of buildings) b.occupantIds = [];
+    for (const s of survivors) {
+      if (s.health <= 0) continue;
+      if (s.homeId) {
+        const b = buildings.find(x => x.id === s.homeId);
+        if (b) b.occupantIds.push(s.id);
+        else s.homeId = null;
+      }
+    }
+    for (const s of survivors) {
+      if (s.health <= 0 || s.homeId) continue;
+      const home = findBestHomeFor(s, buildings, survivors);
+      if (home) {
+        home.occupantIds.push(s.id);
+        s.homeId = home.id;
+        s.lastHomeKind = home.kind;
+      }
+    }
+    set({ buildings, survivors });
+  },
+
 
 
 
