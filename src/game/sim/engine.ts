@@ -197,6 +197,12 @@ function dailyTick(eng: Engine, opts?: { onArrival?: (s: Survivor) => Survivor |
   processFarms(eng);
   dailyHousingTick({ buildings: eng.buildings, survivors: eng.survivors, tick: eng.time.tick });
 
+  // Memories decay daily — major events have a floor that keeps them alive.
+  for (const s of eng.survivors) {
+    if (s.health <= 0) continue;
+    decayMemoriesDaily(s);
+  }
+
 
 
 
@@ -429,8 +435,10 @@ function marry(eng: Engine, a: Survivor, b: Survivor) {
   b.mood = Math.min(100, b.mood + 30);
   a.needs.belonging = 100;
   b.needs.belonging = 100;
-  emitMemory(a, `Married ${b.name} ${b.surname}.`, "love", 90, b.id);
-  emitMemory(b, `Married ${a.name} ${a.surname}.`, "love", 90, a.id);
+  emitMemory(a, `Married ${b.name} ${b.surname}.`, "love", 95, b.id,
+    { kind: "married", floor: 40, decayRate: 0.5 });
+  emitMemory(b, `Married ${a.name} ${a.surname}.`, "love", 95, a.id,
+    { kind: "married", floor: 40, decayRate: 0.5 });
 
   addChronicle(
     eng, "marriage",
