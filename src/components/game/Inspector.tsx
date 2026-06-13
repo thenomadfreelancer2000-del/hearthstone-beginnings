@@ -11,6 +11,7 @@ import { CROPS, expectedYield, growthRateMultiplier, skillTierLabel, type CropId
 import { computeHousingSatisfaction, homeCapacity, homeQuality, isResidential } from "@/game/sim/housing";
 import { BUILDINGS as BUILDINGS_DATA } from "@/game/data/content";
 import type { Building, Occupation, Relationship, Survivor } from "@/game/types";
+import { AuthorityPanel } from "./AuthorityPanel";
 
 const OCCUPATIONS: Occupation[] = [
   "idle", "forager", "woodcutter", "miner", "farmer", "builder", "hauler",
@@ -191,7 +192,10 @@ export function Inspector() {
         )}
 
         {s.id === currentLeaderId && !isDead && (
-          <HeirPanel leader={s} />
+          <>
+            <AuthorityPanel />
+            <HeirPanel leader={s} />
+          </>
         )}
 
         {s.memories.length > 0 && (
