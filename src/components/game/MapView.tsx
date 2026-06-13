@@ -557,7 +557,7 @@ export function MapView() {
           return (
             <g key={b.id}>
               <g transform={`translate(${x}, ${y})`}>
-                <BuildingArt kind={b.kind} w={w} h={h} />
+                <BuildingArt kind={b.kind} w={w} h={h} farmStage={b.farm?.stage} farmGrowth={b.farm?.growth} />
               </g>
               {sel && (
                 <rect x={x + 1} y={y + 1} width={w - 2} height={h - 2}
