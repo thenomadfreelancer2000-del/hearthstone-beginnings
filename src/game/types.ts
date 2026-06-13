@@ -42,9 +42,9 @@ export interface ResourceNode {
 }
 
 // ── Survivors ────────────────────────────────────────────────────
-export type Trait =
-  | "Ambitious" | "Loyal" | "Generous" | "Greedy" | "Principled"
-  | "Paranoid" | "Traditional" | "Idealistic" | "Bitter" | "Brave";
+// Trait names are open-ended strings; the catalog in
+// src/game/data/traits.ts owns the canonical list + metadata.
+export type Trait = string;
 
 export type Background =
   | "rancher" | "soldier" | "medic" | "scholar" | "carpenter"
