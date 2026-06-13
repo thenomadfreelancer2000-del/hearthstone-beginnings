@@ -265,12 +265,19 @@ function StepIdentity(props: {
   const { gender, setGender, firstName, setFirstName, surname, setSurname, ranchName, setRanchName, firstNames, portraitId, setPortraitId } = props;
   const availablePortraits = PORTRAITS.filter((p) => p.gender === gender);
   return (
-    <section className="parchment-panel corner-brackets p-5 sm:p-7">
-      <div className="grid sm:grid-cols-2 gap-4 sm:gap-5">
-        <div className="sm:col-span-2 flex gap-2">
+    <section className="space-y-5">
+      {/* Panel A — Face */}
+      <div className="parchment-panel corner-brackets p-5 sm:p-7">
+        <div className="flex items-baseline justify-between mb-4">
+          <p className="ranch-label text-[10px]">A — Choose a Face</p>
+          <span className="ranch-data text-[10px] text-dust-light">{availablePortraits.length} options</span>
+        </div>
+
+        <div className="flex gap-2 mb-4">
           {(["m", "f"] as const).map((g) => (
             <button
               key={g}
+              type="button"
               onClick={() => setGender(g)}
               className={`btn-ranch flex-1 ${gender === g ? "btn-ranch-primary" : ""}`}
             >
@@ -279,67 +286,71 @@ function StepIdentity(props: {
           ))}
         </div>
 
-        <div className="sm:col-span-2">
-          <label className="ranch-label text-[9px] block mb-2">Face</label>
-          <div className="grid grid-cols-4 gap-2">
-            {availablePortraits.map((p) => {
-              const active = p.id === portraitId;
-              return (
-                <button
-                  key={p.id}
-                  onClick={() => setPortraitId(p.id)}
-                  className={`relative aspect-square overflow-hidden border-2 transition ${
-                    active ? "border-amber shadow-[0_0_0_2px_rgba(201,161,74,0.25)]" : "border-amber/20 hover:border-amber/60"
-                  }`}
-                  type="button"
-                >
-                  <img
-                    src={p.url}
-                    alt="Portrait option"
-                    loading="lazy"
-                    width={128}
-                    height={128}
-                    className="w-full h-full object-cover"
-                  />
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <Field label="First Name">
-          <select
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            className="ranch-input"
-          >
-            {firstNames.map((n) => <option key={n}>{n}</option>)}
-          </select>
-        </Field>
-        <Field label="Surname">
-          <select
-            value={surname}
-            onChange={(e) => setSurname(e.target.value)}
-            className="ranch-input"
-          >
-            {SURNAMES.map((n) => <option key={n}>{n}</option>)}
-          </select>
-        </Field>
-        <div className="sm:col-span-2">
-          <Field label="Ranch Name">
-            <input
-              value={ranchName}
-              onChange={(e) => setRanchName(e.target.value)}
-              className="ranch-input"
-              placeholder="The Hollow Ranch"
-            />
-          </Field>
+        <div className="grid grid-cols-4 gap-2 sm:gap-3">
+          {availablePortraits.map((p) => {
+            const active = p.id === portraitId;
+            return (
+              <button
+                key={p.id}
+                onClick={() => setPortraitId(p.id)}
+                className={`relative aspect-square overflow-hidden border-2 transition ${
+                  active ? "border-amber shadow-[0_0_0_2px_rgba(201,161,74,0.25)]" : "border-amber/20 hover:border-amber/60"
+                }`}
+                type="button"
+              >
+                <img
+                  src={p.url}
+                  alt="Portrait option"
+                  loading="lazy"
+                  width={128}
+                  height={128}
+                  className="w-full h-full object-cover"
+                />
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      <p className="ranch-handwritten text-sm mt-5 text-dust-light">
-        “{firstName} {surname}” will be the first name in your Chronicle.
-      </p>
+      {/* Panel B — Name */}
+      <div className="parchment-panel corner-brackets p-5 sm:p-7">
+        <p className="ranch-label text-[10px] mb-4">B — Name & Homestead</p>
+
+        <div className="grid sm:grid-cols-2 gap-4 sm:gap-5">
+          <Field label="First Name">
+            <select
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              className="ranch-input"
+            >
+              {firstNames.map((n) => <option key={n}>{n}</option>)}
+            </select>
+          </Field>
+          <Field label="Surname">
+            <select
+              value={surname}
+              onChange={(e) => setSurname(e.target.value)}
+              className="ranch-input"
+            >
+              {SURNAMES.map((n) => <option key={n}>{n}</option>)}
+            </select>
+          </Field>
+          <div className="sm:col-span-2">
+            <Field label="Ranch Name">
+              <input
+                value={ranchName}
+                onChange={(e) => setRanchName(e.target.value)}
+                className="ranch-input"
+                placeholder="The Hollow Ranch"
+              />
+            </Field>
+          </div>
+        </div>
+
+        <p className="ranch-handwritten text-sm mt-5 text-dust-light">
+          “{firstName} {surname}” will be the first name in your Chronicle.
+        </p>
+      </div>
 
       <style>{`
         .ranch-input {
@@ -358,6 +369,7 @@ function StepIdentity(props: {
     </section>
   );
 }
+
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
