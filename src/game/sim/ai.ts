@@ -434,12 +434,17 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
           if (dist(s.x, s.y, o.x, o.y) < 2) {
             // friendship + trust drift, modulated by trait compatibility
             const bias = traitPairBias(s.traits, o.traits);
+            // Friends gain opinion more easily; rivals decay further apart.
+            const existing = findRelationship(deps.relationships, s.id, o.id);
+            const existingScore = existing ? opinionScore(existing) : 0;
+            const friendMult = existingScore >= 60 ? 1.6 : existingScore >= 30 ? 1.2 : 1.0;
+            const rivalDrag = existingScore <= -30 ? -0.02 : 0;
             touchRelationship(deps.relationships, s.id, o.id, {
-              affection: (+0.02 + bias * 0.01) * dt,
-              trust: +0.005 * dt,
-              friendship: (+0.025 + bias * 0.008) * dt,
+              affection: ((+0.02 + bias * 0.01) * friendMult + rivalDrag) * dt,
+              trust: +0.005 * friendMult * dt,
+              friendship: (+0.025 + bias * 0.008) * friendMult * dt,
               respect: +0.005 * dt,
-              rivalry: bias < -0.6 ? +0.02 * dt : 0,
+              rivalry: bias < -0.6 || existingScore <= -60 ? +0.02 * dt : 0,
             });
             // attraction only between fertile adults of opposite gender, both single
             const bothAdults =
