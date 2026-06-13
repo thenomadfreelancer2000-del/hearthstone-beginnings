@@ -170,6 +170,10 @@ export interface Survivor {
   /** A parent or leader has assigned this child a skill focus. */
   educationFocus?: "build" | "farm" | "lead" | "social" | "medic" | null;
 
+  // ── Legacy ─────────────────────────────────────────────────
+  /** Set when a founder (or notable leader) dies. e.g. "The Builder". */
+  epithet?: string | null;
+
   // ── Phase 3+ placeholders (nullable for forward-compat) ──
   factionId?: ID | null;
   politicalLean?: number | null;
