@@ -129,19 +129,38 @@ function setTarget(s: Survivor, x: number, y: number) {
 }
 
 // ── Needs decay ──────────────────────────────────────────────────
+// Per-day decay rates (exported for debug UI). Tuned so a survivor can work
+// most of the day and only break for food/water once or twice per day.
+export const DECAY_PER_DAY = {
+  food: 5,
+  water: 7,
+  rest: 5,
+  shelter: 3,
+  belonging: 3,
+  purpose: 2,
+} as const;
+
+export function decayRateForSurvivor(s: Survivor) {
+  const ageMod = s.stage === "child" ? 0.55 : s.stage === "elder" ? 1.1 : 1;
+  return {
+    food: DECAY_PER_DAY.food * ageMod,
+    water: DECAY_PER_DAY.water * ageMod,
+    rest: DECAY_PER_DAY.rest,
+  };
+}
+
 export function decayNeeds(s: Survivor, dt: number) {
   const k = dt / TICKS_PER_DAY;
-  // Children consume less, elders more
-  const ageMod = s.stage === "child" ? 0.55 : s.stage === "elder" ? 1.1 : 1;
-  s.needs.food = Math.max(0, s.needs.food - 13 * k * ageMod);
-  s.needs.water = Math.max(0, s.needs.water - 18 * k * ageMod);
-  s.needs.rest = Math.max(0, s.needs.rest - 11 * k);
-  s.needs.shelter = Math.max(0, s.needs.shelter - 6 * k);
-  s.needs.belonging = Math.max(0, s.needs.belonging - 5 * k);
-  s.needs.purpose = Math.max(0, s.needs.purpose - 4 * k);
+  const r = decayRateForSurvivor(s);
+  s.needs.food = Math.max(0, s.needs.food - r.food * k);
+  s.needs.water = Math.max(0, s.needs.water - r.water * k);
+  s.needs.rest = Math.max(0, s.needs.rest - r.rest * k);
+  s.needs.shelter = Math.max(0, s.needs.shelter - DECAY_PER_DAY.shelter * k);
+  s.needs.belonging = Math.max(0, s.needs.belonging - DECAY_PER_DAY.belonging * k);
+  s.needs.purpose = Math.max(0, s.needs.purpose - DECAY_PER_DAY.purpose * k);
 
-  if (s.needs.food < 10 || s.needs.water < 10) {
-    s.health = Math.max(0, s.health - 6 * k);
+  if (s.needs.food < 8 || s.needs.water < 8) {
+    s.health = Math.max(0, s.health - 5 * k);
   } else if (s.health < 100 && s.needs.food > 50 && s.needs.water > 50 && s.needs.rest > 40) {
     s.health = Math.min(100, s.health + 4 * k);
   }
