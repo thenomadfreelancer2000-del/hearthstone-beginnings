@@ -228,6 +228,7 @@ function dailyTick(eng: Engine, opts?: { onArrival?: (s: Survivor) => Survivor |
     founderId: eng.founderId,
     time: { year: eng.time.year },
   });
+  dailyEducationTick(eng.survivors);
 
   // Memories decay daily — major events have a floor that keeps them alive.
   for (const s of eng.survivors) {
