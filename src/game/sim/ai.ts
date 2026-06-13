@@ -215,6 +215,11 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
     return;
   }
 
+  // ── Construction commitment: assigned builders stay focused on their site,
+  //    only interrupted by *critical* needs, and resume after eating/drinking.
+  if (handleConstructionCommitment(s, dt, deps)) return;
+
+
   if (s.needs.water < 28) {
     const w = nearestWater(s, deps.tiles, deps.mapW);
     if (w) {
