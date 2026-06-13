@@ -893,12 +893,13 @@ export const useGame = create<GameState>((set, get) => ({
           ? `More mouths to feed. The founder says yes too easily.`
           : `New faces at the gate. Welcomed in.`;
       const memories = [
-        { id: nid(6), tick: st.time.tick, text: memText,
+        { id: nid(6), tick: st.time.tick, year: st.time.year, season: st.time.season, day: st.time.day,
+          text: memText,
           emotion: (bias >= 0 ? "trust" : "anger") as "trust" | "anger",
           weight: 30 + Math.abs(bias),
           kind: "founder-accepted", decayRate: 1, floor: 5 },
         ...s.memories,
-      ].slice(0, 32);
+      ].slice(0, 64);
       return { ...s, memories, mood: Math.max(-100, Math.min(100, s.mood + moodShift)) };
     });
     const allSurvivors = [...existing, ...ev.survivors.map(s => ({
@@ -906,7 +907,8 @@ export const useGame = create<GameState>((set, get) => ({
       arrivalTick: st.time.tick,
       housingGratitude: 5, // small welcome bonus
       memories: [
-        { id: nid(6), tick: st.time.tick, text: `The founder welcomed me in.`,
+        { id: nid(6), tick: st.time.tick, year: st.time.year, season: st.time.season, day: st.time.day,
+          text: `The founder welcomed me in.`,
           emotion: "trust" as const, weight: 80, aboutSurvivorId: st.founderId,
           kind: "founder-accepted-me", decayRate: 0.4, floor: 35 },
         ...s.memories,
