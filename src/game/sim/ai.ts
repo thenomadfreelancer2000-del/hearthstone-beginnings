@@ -386,11 +386,14 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
         const roleMult = isAssigned ? 1.25 : isBuilder ? 0.85 : 0.6;
         const finishMult = nearDone ? 1.4 : 1.0;
         const traitMult = traitWorkSpeed(s.traits);
-        const work = skillMult * roleMult * finishMult * traitMult * (dt / 24);
+        const rivalMult = rivalryWorkMult(s, b, deps);
+        const work = skillMult * roleMult * finishMult * traitMult * rivalMult * (dt / 24);
         applyConstructionWork(b, work, deps.tick);
         s.skills.build = Math.min(30, (s.skills.build ?? 1) + 0.003 * dt);
         s.state = "working";
-        s.action = isAssigned ? `Building — ${b.kind}.` : `Lending hands at the ${b.kind}.`;
+        s.action = rivalMult < 1
+          ? `Bickering through work on the ${b.kind}.`
+          : isAssigned ? `Building — ${b.kind}.` : `Lending hands at the ${b.kind}.`;
         if (b.builtProgress >= 1 && s.commitment?.buildingId === b.id) s.commitment = null;
       } else {
         setTarget(s, cx, cy);
