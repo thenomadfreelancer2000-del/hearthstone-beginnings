@@ -58,6 +58,10 @@ interface GameState {
   pendingArrival: ArrivalEvent | null;
   // Building awaiting builder assignment (transient)
   pendingBuildAssignment: ID | null;
+  // Farm plot awaiting crop+farmer selection (transient)
+  pendingFarmSetup: ID | null;
+  // Crops the settlement currently knows how to grow.
+  unlockedCrops: string[];
   reputation: number; // -100..100, affects future arrivals
   lastChronicleId: ID | null;
 
@@ -77,6 +81,10 @@ interface GameState {
   assignBuilder: (buildingId: ID, survivorId: ID | null) => void;
   autoAssignBuilder: (buildingId: ID) => void;
   closeBuildAssignment: () => void;
+  configureFarm: (buildingId: ID, cropId: string, farmerId: ID | null) => void;
+  assignFarmer: (buildingId: ID, farmerId: ID | null) => void;
+  setFarmCrop: (buildingId: ID, cropId: string) => void;
+  closeFarmSetup: () => void;
   newGame: (ranchName: string, founderInput: FounderInput) => void;
   resumeFromSave: () => boolean;
   save: () => boolean;
