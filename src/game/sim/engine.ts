@@ -79,19 +79,40 @@ export function emitMemory(
   emotion: Memory["emotion"],
   weight: number,
   aboutId?: string,
-  opts?: { kind?: string; decayRate?: number; floor?: number },
+  opts?: { kind?: string; decayRate?: number; floor?: number; at?: { tick: number; year: number; season: import("../types").Season; day: number } },
 ) {
+  const at = opts?.at;
   s.memories.unshift({
     id: nanoid(6),
-    tick: 0,
+    tick: at?.tick ?? 0,
+    year: at?.year,
+    season: at?.season,
+    day: at?.day,
     text, emotion, weight,
     aboutSurvivorId: aboutId ?? null,
     kind: opts?.kind,
     decayRate: opts?.decayRate,
     floor: opts?.floor,
   });
-  if (s.memories.length > 32) s.memories.pop();
+  if (s.memories.length > 64) s.memories.pop();
 }
+
+/** Convenience: emit a memory stamped with the engine's current date. */
+function emitMem(
+  eng: Engine,
+  s: Survivor,
+  text: string,
+  emotion: Memory["emotion"],
+  weight: number,
+  aboutId?: string,
+  opts?: { kind?: string; decayRate?: number; floor?: number },
+) {
+  emitMemory(s, text, emotion, weight, aboutId, {
+    ...opts,
+    at: { tick: eng.time.tick, year: eng.time.year, season: eng.time.season, day: eng.time.day },
+  });
+}
+
 
 function recomputeStats(eng: Engine) {
   const alive = eng.survivors.filter(s => s.health > 0);
