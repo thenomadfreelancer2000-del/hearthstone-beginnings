@@ -835,7 +835,6 @@ export const useGame = create<GameState>((set, get) => ({
     // dedicated chronicle entry remembered by future generations.
     const founder = eng.survivors.find(s => s.id === eng.founderId);
     if (prevFounderAlive && founder && founder.health <= 0 && !founder.epithet) {
-      const { computeFounderEpithet, founderDeathTitle, founderDeathBody } = require("./sim/legacy") as typeof import("./sim/legacy");
       const epithet = computeFounderEpithet(founder, st.reputationProfile, eng.stats, eng.families);
       founder.epithet = epithet;
       eng.chronicle.unshift({
