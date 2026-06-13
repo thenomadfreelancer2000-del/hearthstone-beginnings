@@ -376,6 +376,28 @@ function killSurvivor(eng: Engine, s: Survivor, cause: string) {
       c.mood = Math.max(-100, c.mood - 25);
     }
   }
+  // Friend grief — best friends suffer deeply, friends are wounded.
+  for (const r of eng.relationships) {
+    if (r.a !== s.id && r.b !== s.id) continue;
+    if (r.tag === "spouse" || r.tag === "kin") continue;
+    const otherId = r.a === s.id ? r.b : r.a;
+    const other = eng.survivors.find(x => x.id === otherId);
+    if (!other || other.health <= 0) continue;
+    const score = opinionScore(r);
+    if (score >= 80) {
+      emitMem(eng, other, `${s.name} — my closest friend — is gone.`, "grief", 90, s.id,
+        { kind: "friend-died", floor: 45, decayRate: 0.3 });
+      other.mood = Math.max(-100, other.mood - 30);
+    } else if (score >= 60) {
+      emitMem(eng, other, `Mourned ${s.name}. A friend lost.`, "grief", 70, s.id,
+        { kind: "friend-died", floor: 25, decayRate: 0.4 });
+      other.mood = Math.max(-100, other.mood - 18);
+    } else if (score <= -60) {
+      // Even rivals feel something — a quiet relief, an empty space.
+      emitMem(eng, other, `${s.name} is dead. We will not quarrel again.`, "fear", 30, s.id,
+        { kind: "rival-died", floor: 8, decayRate: 0.6 });
+    }
+  }
   // Mark family extinct if no living members
   const fam = eng.families.find(f => f.id === s.familyId);
   if (fam) {
