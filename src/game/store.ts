@@ -956,9 +956,33 @@ export const useGame = create<GameState>((set, get) => ({
       involvedFamilyIds: [],
     };
     toast.warning(`Sent ${ev.survivors.length} away`);
+    const nid = nanoid;
+    const survivors = st.survivors.map((s) => {
+      if (s.health <= 0) return s;
+      const bias = traitRefugeeBias(s.traits);
+      // Compassionate survivors grieve the turning away; cold ones approve.
+      const compassion = bias > 4;
+      const memText = compassion
+        ? `The Founder turned hungry strangers away. I will not forget that road.`
+        : bias < -4
+          ? `The Founder was right to send them on. Fewer mouths at our table.`
+          : `Strangers came to the gate. The Founder sent them on.`;
+      const memory = {
+        id: nid(6), tick: st.time.tick, year: st.time.year, season: st.time.season, day: st.time.day,
+        text: memText,
+        emotion: (compassion ? "grief" : bias < -4 ? "trust" : "fear") as "grief" | "trust" | "fear",
+        weight: 25 + Math.abs(bias) * 1.5,
+        aboutSurvivorId: st.currentLeaderId,
+        kind: "founder-rejected",
+        decayRate: compassion ? 0.3 : 1,
+        floor: compassion ? 20 : 5,
+      };
+      return { ...s, memories: [memory, ...s.memories].slice(0, 64) };
+    });
     set({
       chronicle: [newChronicle, ...st.chronicle],
       pendingArrival: null,
+      survivors,
       reputation: Math.max(-100, st.reputation - 3),
       reputationProfile: {
         ...st.reputationProfile,
