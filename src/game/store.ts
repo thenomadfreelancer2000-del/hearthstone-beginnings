@@ -882,6 +882,7 @@ export const useGame = create<GameState>((set, get) => ({
     const bias0 = (traits: string[] | undefined) =>
       (traits ?? []).reduce((m, t) => m + (TRAIT_INFO[t]?.refugeeBias ?? 0), 0);
     const nid = nanoid;
+    const existing = st.survivors.map((s) => {
       if (s.health <= 0) return s;
       const bias = traitRefugeeBias(s.traits);
       const moodShift = 2 + Math.max(0, bias) * 0.3;
