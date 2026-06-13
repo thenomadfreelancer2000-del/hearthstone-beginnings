@@ -418,7 +418,7 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
       return;
     }
     const fire = nearestCampfire(s, deps.buildings);
-    if (fire && (s.needs.belonging < 70 || isLeader)) {
+    if (fire && (s.needs.belonging < 70 || s.isFounder)) {
       const cx = fire.x + fire.w / 2, cy = fire.y + fire.h / 2;
       if (dist(s.x, s.y, cx, cy) < 1.4) {
         s.needs.belonging = Math.min(100, s.needs.belonging + 0.6);
