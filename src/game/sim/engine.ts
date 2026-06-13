@@ -184,6 +184,9 @@ function dailyTick(eng: Engine, opts?: { onArrival?: (s: Survivor) => Survivor |
     }
   }
 
+  processFarms(eng);
+
+
   // ── Lifecycle: aging happens at season change ─────────────────
   const seasonChange = eng.time.day === 1;
   if (seasonChange) {
