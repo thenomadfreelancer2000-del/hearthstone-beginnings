@@ -384,7 +384,7 @@ export const useGame = create<GameState>((set, get) => ({
       territory: {
         cx: homestead.x + homestead.w / 2,
         cy: homestead.y + homestead.h / 2,
-        radius: 0,
+        radius: 14,
       },
       borderMode: false,
     });
