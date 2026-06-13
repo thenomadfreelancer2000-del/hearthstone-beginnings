@@ -475,6 +475,11 @@ export const useGame = create<GameState>((set, get) => ({
     const family = makeFounderFamily(founder, 1);
     founder.familyId = family.id;
     const homestead = makeHomesteadBuilding(homesteadTile);
+    // Founder lives in the homestead
+    founder.homeId = homestead.id;
+    founder.lastHomeKind = "homestead";
+    founder.arrivalTick = 0;
+    homestead.occupantIds = [founder.id];
     set({
       screen: "game",
       overlay: null,
