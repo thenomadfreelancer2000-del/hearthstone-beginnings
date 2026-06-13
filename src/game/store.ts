@@ -497,6 +497,7 @@ export const useGame = create<GameState>((set, get) => ({
       chronicle: [...st.chronicle],
       stats: { ...st.stats },
       seed: st.seed,
+      foundingPhase: st.foundingPhase,
     };
 
     const prevTick = st.time.tick;
@@ -515,9 +516,10 @@ export const useGame = create<GameState>((set, get) => ({
       lastId = eng.chronicle[0]?.id ?? lastId;
     }
 
-    // Arrival roll — checked on cadence ticks crossed during this advance
+    // Arrival roll — checked on cadence ticks crossed during this advance.
+    // No arrivals occur during the Founding Phase.
     let pendingArrival: ArrivalEvent | null = st.pendingArrival;
-    if (!pendingArrival) {
+    if (!pendingArrival && !st.foundingPhase) {
       const crossed = Math.floor(newTick / ARRIVAL_CHECK_TICKS) - Math.floor(prevTick / ARRIVAL_CHECK_TICKS);
       if (crossed > 0) {
         const rng = makeRng(eng.seed ^ Math.floor(newTick / ARRIVAL_CHECK_TICKS));
