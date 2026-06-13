@@ -57,6 +57,7 @@ export function FounderCreation() {
   const [background, setBackground] = useState<Background>("rancher");
   const [traits, setTraits] = useState<Trait[]>(["Brave", "Principled", "Traditional"]);
   const [values, setValues] = useState<Value[]>(["Family", "Community"]);
+  const [companions, setCompanions] = useState<CompanionsChoice>("alone");
 
   const firstNames = useMemo(() => (gender === "m" ? FIRST_NAMES_M : FIRST_NAMES_F), [gender]);
 
@@ -76,11 +77,12 @@ export function FounderCreation() {
     2: !!background,
     3: traits.length === 3,
     4: values.length === 2,
+    5: !!companions,
   };
 
   function next() {
     if (!stepValid[step]) return;
-    if (step < 4) setStep(step + 1);
+    if (step < 5) setStep(step + 1);
     else begin();
   }
   function back() {
@@ -88,9 +90,10 @@ export function FounderCreation() {
     else setStep(step - 1);
   }
   function begin() {
-    if (!stepValid[4]) return;
-    newGame(ranchName, { firstName, surname, gender, background, traits, values });
+    if (!stepValid[5]) return;
+    newGame(ranchName, { firstName, surname, gender, background, traits, values, companions });
   }
+
 
   const t = STEP_TITLES[step];
 
