@@ -60,16 +60,6 @@ export function MainMenu() {
         <CornerMark className="bottom-0 left-0 -rotate-90" />
       </div>
 
-      {/* Top chrome */}
-      <motion.div
-        initial={{ opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1.2, delay: 0.6 }}
-        className="absolute top-0 left-0 right-0 flex items-center justify-between px-10 md:px-16 py-7 z-10"
-      >
-        <span className="ranch-label text-[color:var(--amber)]/75">Lovable Studios</span>
-        <span className="ranch-label text-[color:var(--amber)]/75">MMXXVI</span>
-      </motion.div>
 
       {/* Content — bottom-left anchored */}
       <div className="absolute inset-0 z-10 flex items-end px-8 md:px-20 pb-20 md:pb-24">
@@ -145,34 +135,9 @@ export function MainMenu() {
               Settings
             </button>
           </motion.div>
-
-          <motion.div
-            variants={{
-              hidden: { opacity: 0 },
-              show: { opacity: 1, transition: { duration: 1.4, delay: 0.6 } },
-            }}
-            className="mt-10 flex items-center gap-6 text-[color:var(--parchment-deep)]/70"
-          >
-            <span className="ranch-data text-[10px] tracking-[0.3em] uppercase">
-              Phase I
-            </span>
-            <span className="h-px w-12 bg-[color:var(--parchment-deep)]/30" />
-            <span className="ranch-display italic text-sm">
-              Founding &amp; First Light
-            </span>
-          </motion.div>
         </motion.div>
       </div>
 
-      {/* Bottom signature */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 2, delay: 1.6 }}
-        className="absolute bottom-6 right-10 md:right-16 ranch-data text-[10px] text-[color:var(--parchment-deep)]/50"
-      >
-        v0.1 — pre-production
-      </motion.div>
     </div>
   );
 }
