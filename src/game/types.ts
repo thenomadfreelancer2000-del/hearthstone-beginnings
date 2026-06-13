@@ -80,6 +80,10 @@ export interface Memory {
   decayRate?: number;
   /** Minimum weight a memory can decay to. Defaults to 0. */
   floor?: number;
+  /** Chronicle date stamp (set by emitMemory). */
+  year?: number;
+  season?: Season;
+  day?: number;
 }
 
 export type AIState =

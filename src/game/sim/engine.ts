@@ -79,19 +79,40 @@ export function emitMemory(
   emotion: Memory["emotion"],
   weight: number,
   aboutId?: string,
-  opts?: { kind?: string; decayRate?: number; floor?: number },
+  opts?: { kind?: string; decayRate?: number; floor?: number; at?: { tick: number; year: number; season: import("../types").Season; day: number } },
 ) {
+  const at = opts?.at;
   s.memories.unshift({
     id: nanoid(6),
-    tick: 0,
+    tick: at?.tick ?? 0,
+    year: at?.year,
+    season: at?.season,
+    day: at?.day,
     text, emotion, weight,
     aboutSurvivorId: aboutId ?? null,
     kind: opts?.kind,
     decayRate: opts?.decayRate,
     floor: opts?.floor,
   });
-  if (s.memories.length > 32) s.memories.pop();
+  if (s.memories.length > 64) s.memories.pop();
 }
+
+/** Convenience: emit a memory stamped with the engine's current date. */
+function emitMem(
+  eng: Engine,
+  s: Survivor,
+  text: string,
+  emotion: Memory["emotion"],
+  weight: number,
+  aboutId?: string,
+  opts?: { kind?: string; decayRate?: number; floor?: number },
+) {
+  emitMemory(s, text, emotion, weight, aboutId, {
+    ...opts,
+    at: { tick: eng.time.tick, year: eng.time.year, season: eng.time.season, day: eng.time.day },
+  });
+}
+
 
 function recomputeStats(eng: Engine) {
   const alive = eng.survivors.filter(s => s.health > 0);
@@ -127,7 +148,7 @@ export function advance(eng: Engine, n: number, opts?: { onArrival?: (s: Survivo
       survivors: eng.survivors,
       relationships: eng.relationships,
       emitMemory: (s: Survivor, text: string, emotion: Memory["emotion"], weight: number) =>
-        emitMemory(s, text, emotion, weight),
+        emitMem(eng, s, text, emotion, weight),
     };
 
     for (const s of eng.survivors) {
@@ -201,7 +222,20 @@ function dailyTick(eng: Engine, opts?: { onArrival?: (s: Survivor) => Survivor |
   for (const s of eng.survivors) {
     if (s.health <= 0) continue;
     decayMemoriesDaily(s);
+    // Hardship memories — at most one per kind per 5 days.
+    const recentKind = (kind: string, withinTicks: number) =>
+      s.memories.some(m => m.kind === kind && (eng.time.tick - (m.tick ?? 0)) < withinTicks);
+    const FIVE_DAYS = 5 * 24; // TICKS_PER_DAY assumed 24
+    if (s.needs.food < 10 && !recentKind("starved", FIVE_DAYS)) {
+      emitMem(eng, s, `I went hungry. The ranch could not feed us.`, "fear", 40, eng.currentLeaderId,
+        { kind: "starved", floor: 15, decayRate: 0.5 });
+    }
+    if (s.needs.water < 10 && !recentKind("thirsted", FIVE_DAYS)) {
+      emitMem(eng, s, `I went thirsty. The wells ran dry.`, "fear", 35, eng.currentLeaderId,
+        { kind: "thirsted", floor: 12, decayRate: 0.5 });
+    }
   }
+
 
 
 
@@ -321,7 +355,7 @@ function killSurvivor(eng: Engine, s: Survivor, cause: string) {
   if (s.spouseId) {
     const sp = eng.survivors.find(x => x.id === s.spouseId);
     if (sp && sp.health > 0) {
-      emitMemory(sp, `${s.name} died. The bed is cold.`, "grief", 100, s.id,
+      emitMem(eng, sp, `${s.name} died. The bed is cold.`, "grief", 100, s.id,
         { kind: "spouse-died", floor: 50, decayRate: 0.3 });
       sp.mood = Math.max(-100, sp.mood - 35);
     }
@@ -329,7 +363,7 @@ function killSurvivor(eng: Engine, s: Survivor, cause: string) {
   for (const pid of s.parentIds) {
     const p = eng.survivors.find(x => x.id === pid);
     if (p && p.health > 0) {
-      emitMemory(p, `Lost ${s.name}. A child should outlive their parents.`, "grief", 100, s.id,
+      emitMem(eng, p, `Lost ${s.name}. A child should outlive their parents.`, "grief", 100, s.id,
         { kind: "child-died", floor: 60, decayRate: 0.2 });
       p.mood = Math.max(-100, p.mood - 45);
     }
@@ -337,7 +371,7 @@ function killSurvivor(eng: Engine, s: Survivor, cause: string) {
   for (const cid of s.childrenIds) {
     const c = eng.survivors.find(x => x.id === cid);
     if (c && c.health > 0) {
-      emitMemory(c, `${s.name} is gone.`, "grief", 90, s.id,
+      emitMem(eng, c, `${s.name} is gone.`, "grief", 90, s.id,
         { kind: "parent-died", floor: 40, decayRate: 0.3 });
       c.mood = Math.max(-100, c.mood - 25);
     }
@@ -460,9 +494,9 @@ function marry(eng: Engine, a: Survivor, b: Survivor) {
   b.mood = Math.min(100, b.mood + 30);
   a.needs.belonging = 100;
   b.needs.belonging = 100;
-  emitMemory(a, `Married ${b.name} ${b.surname}.`, "love", 95, b.id,
+  emitMem(eng, a, `Married ${b.name} ${b.surname}.`, "love", 95, b.id,
     { kind: "married", floor: 40, decayRate: 0.5 });
-  emitMemory(b, `Married ${a.name} ${a.surname}.`, "love", 95, a.id,
+  emitMem(eng, b, `Married ${a.name} ${a.surname}.`, "love", 95, a.id,
     { kind: "married", floor: 40, decayRate: 0.5 });
 
   addChronicle(
@@ -527,6 +561,21 @@ function processBirths(eng: Engine, rng: () => number) {
     }
     fam.prestige = Math.min(200, fam.prestige + 2);
     eng.stats.totalBorn += 1;
+    // Parents' core memory
+    emitMem(eng, mother, `Our child ${child.name} was born.`, "joy", 90, child.id,
+      { kind: "child-born", floor: 50, decayRate: 0.15 });
+    emitMem(eng, father, `Our child ${child.name} was born.`, "joy", 90, child.id,
+      { kind: "child-born", floor: 50, decayRate: 0.15 });
+    mother.mood = Math.min(100, mother.mood + 20);
+    father.mood = Math.min(100, father.mood + 15);
+    // Family lore — grandparents remember too.
+    for (const gp of [...mother.parentIds, ...father.parentIds]) {
+      const g = eng.survivors.find(x => x.id === gp);
+      if (g && g.health > 0) {
+        emitMem(eng, g, `${child.name} was born to ${mother.name} and ${father.name}. Our line lengthens.`,
+          "pride", 55, child.id, { kind: "grandchild-born", floor: 20, decayRate: 0.3 });
+      }
+    }
     addChronicle(
       eng, "birth",
       `A child is born to ${mother.name} and ${father.name}`,
@@ -540,18 +589,26 @@ function cap(s: string) {
   return s[0].toUpperCase() + s.slice(1);
 }
 
-function assignHomeWithGratitude(s: Survivor, b: Building) {
+function assignHomeWithGratitude(eng: Engine, s: Survivor, b: Building) {
   const prevKind = s.lastHomeKind;
   s.homeId = b.id;
   if (!b.occupantIds.includes(s.id)) b.occupantIds.push(s.id);
-  // Upgrade detection: higher quality than last home → gratitude
+  // Upgrade detection: higher quality than last home → gratitude + memory
   const prevQ = prevKind ? (BUILDINGS[prevKind]?.housingQuality ?? 0) : 0;
   const newQ = BUILDINGS[b.kind]?.housingQuality ?? 0;
+  const def = BUILDINGS[b.kind];
   if (newQ > prevQ) {
     s.housingGratitude = (s.housingGratitude ?? 0) + 10;
+    emitMem(eng, s, `The Founder gave us a ${def?.name ?? b.kind}.`, "trust", 55, eng.currentLeaderId,
+      { kind: "housing-upgrade", floor: 12, decayRate: 0.4 });
+  } else if (newQ < prevQ && prevKind) {
+    const prevDef = BUILDINGS[prevKind];
+    emitMem(eng, s, `Moved from our ${prevDef?.name ?? prevKind} to a ${def?.name ?? b.kind}.`, "anger", 60, eng.currentLeaderId,
+      { kind: "housing-downgrade", floor: 20, decayRate: 0.3 });
   }
   s.lastHomeKind = b.kind;
 }
+
 
 function assignSpousesToShared(eng: Engine, a: Survivor, b: Survivor) {
   // If one has room at home, the other moves in.
@@ -565,7 +622,7 @@ function assignSpousesToShared(eng: Engine, a: Survivor, b: Survivor) {
       const old = eng.buildings.find(x => x.id === mover.homeId);
       if (old) old.occupantIds = old.occupantIds.filter(id => id !== mover.id);
     }
-    assignHomeWithGratitude(mover, h);
+    assignHomeWithGratitude(eng, mover, h);
     return true;
   };
   if (tryMoveInto(a, b)) return;
@@ -579,7 +636,7 @@ function assignSpousesToShared(eng: Engine, a: Survivor, b: Survivor) {
       if (old) old.occupantIds = old.occupantIds.filter(id => id !== sp.id);
     }
     if ((home.occupantIds?.length ?? 0) < homeCapacity(home)) {
-      assignHomeWithGratitude(sp, home);
+      assignHomeWithGratitude(eng, sp, home);
     }
   }
 }

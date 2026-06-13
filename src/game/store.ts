@@ -484,11 +484,25 @@ export const useGame = create<GameState>((set, get) => ({
         const prevKind = s.lastHomeKind ?? null;
         const prevQ = prevKind ? (BUILDINGS[prevKind]?.housingQuality ?? 0) : 0;
         const newQ = BUILDINGS[tgt.kind]?.housingQuality ?? 0;
+        const upgraded = newQ > prevQ;
+        const downgraded = newQ < prevQ && !!prevKind;
+        const newMemory = upgraded
+          ? { id: nanoid(6), tick: st.time.tick, year: st.time.year, season: st.time.season, day: st.time.day,
+              text: `The Founder gave us a ${BUILDINGS[tgt.kind]?.name ?? tgt.kind}.`,
+              emotion: "trust" as const, weight: 55, aboutSurvivorId: st.currentLeaderId,
+              kind: "housing-upgrade", floor: 12, decayRate: 0.4 }
+          : downgraded
+          ? { id: nanoid(6), tick: st.time.tick, year: st.time.year, season: st.time.season, day: st.time.day,
+              text: `Moved from our ${BUILDINGS[prevKind!]?.name ?? prevKind} to a ${BUILDINGS[tgt.kind]?.name ?? tgt.kind}.`,
+              emotion: "anger" as const, weight: 60, aboutSurvivorId: st.currentLeaderId,
+              kind: "housing-downgrade", floor: 20, decayRate: 0.3 }
+          : null;
         return {
           ...s,
           homeId: buildingId,
           lastHomeKind: tgt.kind,
-          housingGratitude: newQ > prevQ ? (s.housingGratitude ?? 0) + 10 : (s.housingGratitude ?? 0),
+          housingGratitude: upgraded ? (s.housingGratitude ?? 0) + 10 : (s.housingGratitude ?? 0),
+          memories: newMemory ? [newMemory, ...s.memories].slice(0, 64) : s.memories,
         };
       }
       return { ...s, homeId: null };
@@ -893,12 +907,13 @@ export const useGame = create<GameState>((set, get) => ({
           ? `More mouths to feed. The founder says yes too easily.`
           : `New faces at the gate. Welcomed in.`;
       const memories = [
-        { id: nid(6), tick: st.time.tick, text: memText,
+        { id: nid(6), tick: st.time.tick, year: st.time.year, season: st.time.season, day: st.time.day,
+          text: memText,
           emotion: (bias >= 0 ? "trust" : "anger") as "trust" | "anger",
           weight: 30 + Math.abs(bias),
           kind: "founder-accepted", decayRate: 1, floor: 5 },
         ...s.memories,
-      ].slice(0, 32);
+      ].slice(0, 64);
       return { ...s, memories, mood: Math.max(-100, Math.min(100, s.mood + moodShift)) };
     });
     const allSurvivors = [...existing, ...ev.survivors.map(s => ({
@@ -906,7 +921,8 @@ export const useGame = create<GameState>((set, get) => ({
       arrivalTick: st.time.tick,
       housingGratitude: 5, // small welcome bonus
       memories: [
-        { id: nid(6), tick: st.time.tick, text: `The founder welcomed me in.`,
+        { id: nid(6), tick: st.time.tick, year: st.time.year, season: st.time.season, day: st.time.day,
+          text: `The founder welcomed me in.`,
           emotion: "trust" as const, weight: 80, aboutSurvivorId: st.founderId,
           kind: "founder-accepted-me", decayRate: 0.4, floor: 35 },
         ...s.memories,
@@ -954,9 +970,33 @@ export const useGame = create<GameState>((set, get) => ({
       involvedFamilyIds: [],
     };
     toast.warning(`Sent ${ev.survivors.length} away`);
+    const nid = nanoid;
+    const survivors = st.survivors.map((s) => {
+      if (s.health <= 0) return s;
+      const bias = traitRefugeeBias(s.traits);
+      // Compassionate survivors grieve the turning away; cold ones approve.
+      const compassion = bias > 4;
+      const memText = compassion
+        ? `The Founder turned hungry strangers away. I will not forget that road.`
+        : bias < -4
+          ? `The Founder was right to send them on. Fewer mouths at our table.`
+          : `Strangers came to the gate. The Founder sent them on.`;
+      const memory = {
+        id: nid(6), tick: st.time.tick, year: st.time.year, season: st.time.season, day: st.time.day,
+        text: memText,
+        emotion: (compassion ? "grief" : bias < -4 ? "trust" : "fear") as "grief" | "trust" | "fear",
+        weight: 25 + Math.abs(bias) * 1.5,
+        aboutSurvivorId: st.currentLeaderId,
+        kind: "founder-rejected",
+        decayRate: compassion ? 0.3 : 1,
+        floor: compassion ? 20 : 5,
+      };
+      return { ...s, memories: [memory, ...s.memories].slice(0, 64) };
+    });
     set({
       chronicle: [newChronicle, ...st.chronicle],
       pendingArrival: null,
+      survivors,
       reputation: Math.max(-100, st.reputation - 3),
       reputationProfile: {
         ...st.reputationProfile,

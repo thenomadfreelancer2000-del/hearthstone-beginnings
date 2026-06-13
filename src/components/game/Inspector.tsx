@@ -201,12 +201,34 @@ export function Inspector() {
         {s.memories.length > 0 && (
           <>
             <h4 className="ranch-label mt-5 mb-2">Memories</h4>
-            <ul className="space-y-1">
-              {s.memories.slice(0, 6).map((m) => (
-                <li key={m.id} className="ranch-handwritten text-xs text-dust-light">
-                  · {m.text}
-                </li>
-              ))}
+            <ul className="space-y-1.5 max-h-64 overflow-auto scroll-amber pr-1">
+              {s.memories.slice(0, 24).map((m) => {
+                const pos = ["joy", "love", "pride", "trust"].includes(m.emotion);
+                const dateStamp = m.year != null
+                  ? `Y${m.year} ${m.season ? m.season[0].toUpperCase() + m.season.slice(1) : ""}${m.day ? ` d${m.day}` : ""}`
+                  : "—";
+                const signed = (pos ? "+" : "−") + Math.round(m.weight);
+                const barColor = pos ? "bg-success/70" : "bg-danger/70";
+                return (
+                  <li key={m.id} className="border-l-2 border-amber/30 pl-2">
+                    <div className="flex items-baseline justify-between gap-2">
+                      <span className="ranch-handwritten text-xs text-dust-light leading-tight">
+                        {m.text}
+                      </span>
+                      <span className={`ranch-data text-[10px] shrink-0 ${pos ? "text-success" : "text-danger"}`}>
+                        {signed}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="ranch-data text-[9px] text-dust">{dateStamp}</span>
+                      <div className="flex-1 h-[3px] bg-dust/20 overflow-hidden">
+                        <div className={`h-full ${barColor}`} style={{ width: `${Math.min(100, m.weight)}%` }} />
+                      </div>
+                      <span className="ranch-data text-[9px] text-dust capitalize">{m.emotion}</span>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           </>
         )}
