@@ -576,18 +576,26 @@ function cap(s: string) {
   return s[0].toUpperCase() + s.slice(1);
 }
 
-function assignHomeWithGratitude(s: Survivor, b: Building) {
+function assignHomeWithGratitude(eng: Engine, s: Survivor, b: Building) {
   const prevKind = s.lastHomeKind;
   s.homeId = b.id;
   if (!b.occupantIds.includes(s.id)) b.occupantIds.push(s.id);
-  // Upgrade detection: higher quality than last home → gratitude
+  // Upgrade detection: higher quality than last home → gratitude + memory
   const prevQ = prevKind ? (BUILDINGS[prevKind]?.housingQuality ?? 0) : 0;
   const newQ = BUILDINGS[b.kind]?.housingQuality ?? 0;
+  const def = BUILDINGS[b.kind];
   if (newQ > prevQ) {
     s.housingGratitude = (s.housingGratitude ?? 0) + 10;
+    emitMem(eng, s, `The Founder gave us a ${def?.name ?? b.kind}.`, "trust", 55, eng.currentLeaderId,
+      { kind: "housing-upgrade", floor: 12, decayRate: 0.4 });
+  } else if (newQ < prevQ && prevKind) {
+    const prevDef = BUILDINGS[prevKind];
+    emitMem(eng, s, `Moved from our ${prevDef?.name ?? prevKind} to a ${def?.name ?? b.kind}.`, "anger", 60, eng.currentLeaderId,
+      { kind: "housing-downgrade", floor: 20, decayRate: 0.3 });
   }
   s.lastHomeKind = b.kind;
 }
+
 
 function assignSpousesToShared(eng: Engine, a: Survivor, b: Survivor) {
   // If one has room at home, the other moves in.
