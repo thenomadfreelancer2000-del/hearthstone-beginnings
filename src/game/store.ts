@@ -1200,12 +1200,22 @@ export const useGame = create<GameState>((set, get) => ({
 
   tickReal: (deltaMs) => {
     const st = get();
-    if (st.speed === 0 || st.screen !== "game") return;
+    if (st.speed === 0 || st.screen !== "game") { _tickAccumMs = 0; return; }
     if (st.pendingArrival) return; // pause while the player decides
     if (st.pendingCouncilVote) return; // pause during a council vote
     if (st.pendingFoundingCharter) return; // pause during the Founding Charter
     const tps = 8 * (st.speed === 1 ? 1 : st.speed === 2 ? 2 : 4);
-    const n = Math.max(1, Math.floor((deltaMs / 1000) * tps));
+    // Reset accumulator when speed changes to avoid stale residuals.
+    if (_tickAccumSpeed !== tps) { _tickAccumMs = 0; _tickAccumSpeed = tps; }
+    const msPerTick = 1000 / tps;
+    _tickAccumMs += deltaMs;
+    // Cap to avoid runaway catch-up after a long pause / tab-switch.
+    const maxBatch = 8;
+    let n = Math.floor(_tickAccumMs / msPerTick);
+    if (n <= 0) return; // not enough real time has passed — skip the clone entirely
+    if (n > maxBatch) { _tickAccumMs = 0; n = maxBatch; }
+    else { _tickAccumMs -= n * msPerTick; }
+
 
     const eng: Engine = {
       time: { ...st.time },
