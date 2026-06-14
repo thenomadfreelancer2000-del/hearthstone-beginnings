@@ -14,10 +14,9 @@ export function LeaderProfile({ dockOpen = false }: LeaderProfileProps) {
   if (!leader) return null;
   const portraitUrl = getPortraitUrl(leader.portraitId) ?? getPortraitUrl(defaultPortraitFor(leader.gender));
 
-  // Anchor to bottom-left; smaller on mobile so it doesn't crowd the screen.
-  const positionClass = isMobile && dockOpen ? "left-2 bottom-14" : "left-2 bottom-2 sm:left-3 sm:bottom-3";
-  // Sizes bumped +10% from base 48 / 64 / 80 → 53 / 70 / 88.
-  const sizeClass = isMobile ? "w-[53px] h-[53px]" : "w-[70px] h-[70px] sm:w-[88px] sm:h-[88px]";
+  // Anchor to bottom-left; minimal push when dock opens so the portrait stays grounded.
+  const positionClass = isMobile && dockOpen ? "left-2 bottom-3" : "left-2 bottom-2 sm:left-3 sm:bottom-3";
+  const sizeClass = isMobile ? "w-[48px] h-[48px]" : "w-[70px] h-[70px] sm:w-[88px] sm:h-[88px]";
 
   return (
     <div className={`absolute ${positionClass} z-50 pointer-events-auto`}>
