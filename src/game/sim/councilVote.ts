@@ -348,6 +348,20 @@ export function forecastActionRisk(
       backlash.push(`Nothing changes; rivals will return next year`);
       break;
     }
+    case "repeal-law": {
+      score = 20;
+      backlash.push(`Houses that supported the law lose loyalty`);
+      backlash.push(`A precedent — councils will press for more changes`);
+      repShifts.push({ axis: "compassionate", delta: 5, reason: "yields to the people" });
+      break;
+    }
+    case "refuse-repeal": {
+      score = 55;
+      backlash.push(`The opposing faction loses loyalty and remembers it`);
+      backlash.push(`Relations with the leading opposition house drop sharply`);
+      repShifts.push({ axis: "ruthless", delta: 4, reason: "holds the law by force" });
+      break;
+    }
   }
 
   const label: ActionRisk["label"] =
