@@ -406,22 +406,33 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
 
   {
     // Occupation drives work. "Leader" is a title (currentLeaderId), not a job.
-    const wants: ResourceKind | null =
-      s.occupation === "woodcutter" ? "wood" :
-      s.occupation === "miner" ? "stone" :
-      s.occupation === "farmer" ? "food" :
-      s.occupation === "forager" ? "food" :
-      s.isFounder ? null :
-      "wood";
-    const node = wants ? nearestNode(s, deps.nodes, wants) : null;
+    // Foragers gather food AND fiber — whichever node is closer.
+    const candidates: ResourceKind[] =
+      s.occupation === "woodcutter" ? ["wood"] :
+      s.occupation === "miner" ? ["stone"] :
+      s.occupation === "farmer" ? ["food"] :
+      s.occupation === "forager" ? ["food", "fiber"] :
+      s.isFounder ? [] :
+      ["wood"];
+    let node: ResourceNode | null = null;
+    let wants: ResourceKind | null = null;
+    let bestD = Infinity;
+    for (const w of candidates) {
+      const n = nearestNode(s, deps.nodes, w);
+      if (!n) continue;
+      const d = dist(s.x, s.y, n.x, n.y);
+      if (d < bestD) { bestD = d; node = n; wants = w; }
+    }
     if (wants && node && node.amount > 0) {
       if (dist(s.x, s.y, node.x, node.y) < 1.3) {
         const skill =
           wants === "wood" ? s.skills.cut :
           wants === "stone" ? s.skills.mine :
           wants === "food" ? s.skills.forage :
+          wants === "fiber" ? s.skills.forage :
           1;
-        const yieldAmt = Math.min(node.amount, Math.max(1, Math.floor((1 + skill * 0.4) * traitWorkSpeed(s.traits) * (dt / 24))));
+        const rate = wants === "fiber" ? 0.6 : 1.0; // fiber gathers slower
+        const yieldAmt = Math.min(node.amount, Math.max(1, Math.floor((1 + skill * 0.4) * rate * traitWorkSpeed(s.traits) * (dt / 24))));
         node.amount -= yieldAmt;
         s.carrying = {
           resource: wants,
@@ -431,7 +442,7 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
         else if (wants === "stone") s.skills.mine = Math.min(30, s.skills.mine + 0.0015 * dt);
         else s.skills.forage = Math.min(30, s.skills.forage + 0.0015 * dt);
         s.state = "working";
-        s.action = `Working at ${node.kind}.`;
+        s.action = wants === "fiber" ? `Stripping fiber from ${node.kind}.` : `Working at ${node.kind}.`;
         if ((s.carrying?.amount ?? 0) >= CARRY_CAP) {
           const sp = nearestStockpile(s, deps.buildings);
           if (sp) setTarget(s, sp.x + sp.w / 2, sp.y + sp.h / 2);
