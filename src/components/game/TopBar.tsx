@@ -16,16 +16,11 @@ export function TopBar({ onToggleDock, dockOpen }: Props) {
   const time = useGame((s) => s.time);
   const speed = useGame((s) => s.speed);
   const setSpeed = useGame((s) => s.setSpeed);
-  const resources = useGame((s) => s.resources);
   const stats = useGame((s) => s.stats);
   const save = useGame((s) => s.save);
   const setScreen = useGame((s) => s.setScreen);
-  
-  const survivors = useGame((s) => s.survivors);
-  const currentLeaderId = useGame((s) => s.currentLeaderId);
   const isMobile = useIsMobile();
 
-  const leader = survivors.find(s => s.id === currentLeaderId);
 
   if (isMobile) {
     return (
@@ -33,16 +28,8 @@ export function TopBar({ onToggleDock, dockOpen }: Props) {
         <div className="flex flex-col min-w-0 flex-1">
           <span className="ranch-display text-[12px] leading-none truncate">{ranchName}</span>
           <span className="ranch-data text-[9px] text-dust truncate">
-            Y{time.year}·{SEASON_LABEL[time.season].slice(0,3)} D{time.day} · {stats.population}👥 · <span className={stats.morale >= 0 ? "text-success" : "text-danger"}>{Math.round(stats.morale)}</span>
+            {SEASON_LABEL[time.season].slice(0,3)} Y{time.year} · {stats.population} souls
           </span>
-          <div className="flex items-center gap-1.5 ranch-data text-[9px] mt-0.5 overflow-x-auto scroll-amber no-scrollbar">
-            <Res label="W" v={resources.wood} />
-            <Res label="St" v={resources.stone} />
-            <Res label="F" v={resources.food} />
-            <Res label="Wt" v={resources.water} />
-            <Res label="Fi" v={resources.fiber} />
-            <Res label="T" v={resources.tools} />
-          </div>
         </div>
         <div className="flex border border-amber/30 shrink-0">
           {[0, 1, 2, 3].map((s) => (
@@ -68,36 +55,19 @@ export function TopBar({ onToggleDock, dockOpen }: Props) {
   }
 
   return (
-    <header className="parchment-panel border-b border-amber/30 px-3 py-1 flex items-center gap-x-3 gap-y-0.5 z-20 flex-wrap text-[11px]">
-      <div className="flex items-baseline gap-1.5 ranch-data">
-        <span className="ranch-display text-[13px] leading-none text-amber">{stats.dynastyName || "—"}</span>
-        <span className="text-dust">G{stats.generations + 1}</span>
-        <span className="text-dust/60">·</span>
-        <span>
-          Y<span className="text-amber">{time.year}</span> {SEASON_LABEL[time.season]} D<span className="text-amber">{time.day}</span>
+    <header className="parchment-panel border-b border-amber/30 px-3 py-1 flex items-center gap-x-3 z-20 text-[11px]">
+      <div className="flex items-baseline gap-1.5 ranch-data min-w-0">
+        <span className="ranch-display text-[13px] leading-none text-amber truncate">{ranchName}</span>
+        <span className="text-dust whitespace-nowrap">
+          {SEASON_LABEL[time.season]} Y<span className="text-amber">{time.year}</span>
         </span>
       </div>
 
-      <div className="flex items-center gap-2 ranch-data">
-        <Res label="Wood" v={resources.wood} />
-        <Res label="Stone" v={resources.stone} />
-        <Res label="Food" v={resources.food} />
-        <Res label="Water" v={resources.water} />
-        <Res label="Fiber" v={resources.fiber} />
-        <Res label="Tools" v={resources.tools} />
-      </div>
-
-      <div className="ml-auto flex items-center gap-2 flex-wrap ranch-data">
-        {leader && (
-          <span className="hidden md:inline text-dust" title="Leader">
-            <span className="text-amber">{leader.name} {leader.surname}</span>
-            <span className="text-dust/70"> {Math.floor(leader.age)}y</span>
-          </span>
-        )}
-        <span className="text-dust" title="Souls · Mood">
-          <span className="text-amber">{stats.population}</span>
-          <span className="text-dust/60">·</span>
-          <span className={stats.morale >= 0 ? "text-success" : "text-danger"}>{Math.round(stats.morale)}</span>
+      <div className="ml-auto flex items-center gap-2 ranch-data">
+        <span className="text-dust">
+          <span className="text-amber">{stats.population}</span> souls
+          <span className="text-dust/60"> · </span>
+          <span className={stats.morale >= 0 ? "text-success" : "text-danger"}>{Math.round(stats.morale)}</span> mood
         </span>
         <div className="flex border border-amber/30">
           {[0, 1, 2, 3].map((s) => (
@@ -110,21 +80,12 @@ export function TopBar({ onToggleDock, dockOpen }: Props) {
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-1">
-          <button className="btn-ranch btn-ranch-ghost !py-0.5 !px-1.5 text-[10px]" onClick={() => save()} title="Save">Save</button>
-          <button className="btn-ranch btn-ranch-ghost !py-0.5 !px-1.5 text-[10px]" onClick={() => setScreen("menu")} title="Menu">Menu</button>
-          <SettingsMenu />
-        </div>
+        <button className="btn-ranch btn-ranch-ghost !py-0.5 !px-1.5 text-[10px]" onClick={() => save()} title="Save">Save</button>
+        <button className="btn-ranch btn-ranch-ghost !py-0.5 !px-1.5 text-[10px]" onClick={() => setScreen("menu")} title="Menu">Menu</button>
+        <SettingsMenu />
       </div>
     </header>
   );
 }
 
-function Res({ label, v }: { label: string; v: number }) {
-  return (
-    <span title={label} className="inline-flex items-baseline gap-0.5 whitespace-nowrap">
-      <span className="ranch-label text-[9px]">{label.slice(0, 3)}</span>
-      <span className="text-parchment">{Math.floor(v)}</span>
-    </span>
-  );
-}
+

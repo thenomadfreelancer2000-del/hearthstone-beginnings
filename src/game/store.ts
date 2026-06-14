@@ -613,8 +613,9 @@ export const useGame = create<GameState>((set, get) => ({
       node.kind === "berries" ? "forager" :
       node.kind === "fiber-grass" ? "forager" : "hauler";
     set({
-      survivors: st.survivors.map(s => s.id === survivorId ? { ...s, occupation: occ } : s),
+      survivors: st.survivors.map(s => s.id === survivorId ? { ...s, occupation: occ, workTarget: { kind: "node", id: nodeId } } : s),
     });
+
     const who = st.survivors.find(s => s.id === survivorId);
     if (who) toast.success(`${who.name} sent to ${node.kind === "trees" ? "chop wood" : node.kind}`);
   },
