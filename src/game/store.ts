@@ -1147,7 +1147,7 @@ export const useGame = create<GameState>((set, get) => ({
     if (!st.borderMode) return;
     const t = st.territory;
     if (!t) return;
-    const r = Math.max(3, Math.min(40, Math.round(Math.hypot(x - t.cx, y - t.cy))));
+    const r = Math.max(3, Math.min(40, Math.round(Math.max(Math.abs(x - t.cx), Math.abs(y - t.cy)))));
     set({ territory: { ...t, radius: r }, borderMode: false });
     toast.success(`Ranch border claimed — ${territoryAcres(r)} acres`);
     maybeCompleteFounding(get, set);
