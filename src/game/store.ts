@@ -1362,6 +1362,8 @@ export const useGame = create<GameState>((set, get) => ({
       ministerReports: eng.ministerReports,
       pendingArrival,
       pendingCouncilVote,
+      pendingFoundingCharter,
+      hasHeldFirstCouncil,
       lastChronicleId: lastId,
     });
 
