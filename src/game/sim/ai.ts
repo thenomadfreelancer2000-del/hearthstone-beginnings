@@ -209,7 +209,12 @@ const CARRY_CAP = 12;
 export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
   if (s.health <= 0) return;
 
-  // Children just follow parents / wander, no labor
+  // The founder is a manager, not a porter. Strip any stale "carrying" so they
+  // don't oscillate between hauling and building.
+  if (s.isFounder && s.carrying) s.carrying = null;
+  // Clear empty carrying refs so the haul block can't fire on a zero-amount lump.
+  if (s.carrying && s.carrying.amount <= 0) s.carrying = null;
+
   if (s.stage === "child" || s.stage === "teen") {
     if (s.state === "moving") { moveToward(s, dt); return; }
     if (s.needs.water < 28) {
