@@ -34,6 +34,14 @@ export interface CouncilVoteEvent {
   againstCount: number;
   contested: boolean;
   flavor: string;
+  /** When a faction is pushing to repeal one of the founder's laws. */
+  lawRepealRequest?: {
+    lawId: string;
+    lawTitle: string;
+    factionId: string;
+    factionName: string;
+    intensity: number;
+  };
 }
 
 interface GenInput {
