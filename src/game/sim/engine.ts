@@ -17,6 +17,7 @@ import { dailyFamilyTick } from "./families";
 import { dailyEducationTick, pickSuccessor } from "./heirs";
 import { applyAgingEffects, applyLeadershipTransition, lifeStageLabel } from "./legacy";
 import { BUILDINGS } from "../data/content";
+import { enqueueProposalsForSeason, resolveProposalsDaily } from "./marriage";
 
 export interface Engine {
   time: GameTime;
