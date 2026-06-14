@@ -1057,10 +1057,19 @@ export const useGame = create<GameState>((set, get) => ({
     const logEntry = buildReactionLog(ev, action, outcome, {
       tick: st.time.tick, day: st.time.day, season: st.time.season,
     });
-    // If conceding a law-repeal demand, drop the law from the active set.
-    const newLaws = (action === "repeal-law" && ev.lawRepealRequest)
-      ? st.laws.filter((l) => l.lawId !== ev.lawRepealRequest!.lawId)
-      : st.laws;
+    // Apply law changes for repeal / enact concessions.
+    let newLaws = st.laws;
+    if (action === "repeal-law" && ev.lawRepealRequest) {
+      newLaws = st.laws.filter((l) => l.lawId !== ev.lawRepealRequest!.lawId);
+    } else if (action === "enact-law") {
+      const d = ev.lawDemands?.[ev.activeDemandIndex ?? 0];
+      if (d && d.kind === "enact" && !st.laws.some((l) => l.lawId === d.lawId)) {
+        newLaws = [
+          ...st.laws,
+          { id: nanoid(8), lawId: d.lawId, yearEnacted: st.time.year },
+        ];
+      }
+    }
     set({
       pendingCouncilVote: null,
       resources: newResources,
