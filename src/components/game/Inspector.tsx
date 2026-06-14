@@ -461,7 +461,7 @@ function TilePanel({ x, y }: { x: number; y: number }) {
             Yields <span className="text-parchment">{node.yields}</span> · {Math.floor(node.amount)} / {node.max} remaining
           </div>
           <div className="ranch-label text-[10px] text-amber mb-1">
-            Assign {node.kind === "trees" ? "Cutter" : node.kind === "rocks" ? "Miner" : "Forager"}
+            Assign {node.kind === "trees" ? "Cutter" : node.kind === "rocks" ? "Miner" : node.kind === "fiber-grass" ? "Forager (fiber)" : "Forager"}
           </div>
           <select
             className="w-full bg-coal border border-amber/30 text-parchment text-xs px-2 py-1"
