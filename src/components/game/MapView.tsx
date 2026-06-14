@@ -5,6 +5,16 @@ import { BUILDINGS } from "@/game/data/content";
 import type { ResourceNode, Tile } from "@/game/types";
 
 const TILE = 28;
+const LAYER_CHUNK = 1024;
+
+type LayerImage = {
+  id: string;
+  url: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
 
 // Unified, muted palette — everything reads as one painted board.
 const PAL = {
@@ -30,6 +40,28 @@ const TILE_PAL: Record<Tile["kind"], { base: string; alt: string; detail: string
 function rand(x: number, y: number, salt = 0) {
   const n = Math.sin(x * 127.1 + y * 311.7 + salt * 13.37) * 43758.5453;
   return n - Math.floor(n);
+}
+
+function layerChunks(width: number, height: number) {
+  const chunks: Omit<LayerImage, "url">[] = [];
+  for (let y = 0; y < height; y += LAYER_CHUNK) {
+    for (let x = 0; x < width; x += LAYER_CHUNK) {
+      chunks.push({
+        id: `${x}-${y}`,
+        x,
+        y,
+        width: Math.min(LAYER_CHUNK, width - x),
+        height: Math.min(LAYER_CHUNK, height - y),
+      });
+    }
+  }
+  return chunks;
+}
+
+function canvasToObjectUrl(canvas: HTMLCanvasElement) {
+  return new Promise<string | null>((resolve) => {
+    canvas.toBlob((blob) => resolve(blob ? URL.createObjectURL(blob) : null), "image/png");
+  });
 }
 
 // ── Hand-drawn building renderers (unified style) ────────────────
