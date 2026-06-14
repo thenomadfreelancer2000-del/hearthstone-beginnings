@@ -44,6 +44,13 @@ import {
 export type Screen = "menu" | "founder" | "game";
 export type Overlay = "tree" | "family" | "chronicle" | null;
 
+// Module-level tick accumulator. Lives outside the store so it never
+// triggers React re-renders or save-game churn. tickReal accumulates
+// real-time ms here and only runs the (expensive) sim clone+advance
+// when enough time has passed for ≥1 simulation tick at the current speed.
+let _tickAccumMs = 0;
+let _tickAccumSpeed: number | null = null;
+
 export interface SelectionNone { kind: "none" }
 export interface SelectionSurvivor { kind: "survivor"; id: string }
 export interface SelectionBuilding { kind: "building"; id: string }
