@@ -123,6 +123,7 @@ interface GameState {
   setEducationFocus: (childId: ID, focus: "build" | "farm" | "lead" | "social" | "medic" | null) => void;
   newGame: (ranchName: string, founderInput: FounderInput) => void;
   setSurvivorPortrait: (survivorId: ID, portraitId: string) => void;
+  expandWorldToCurrentSize: () => void;
   resumeFromSave: () => boolean;
   save: () => boolean;
   tickReal: (deltaMs: number) => void;
@@ -183,10 +184,38 @@ function expandSavedWorld(save: SaveGame): SaveGame {
       ...s,
       x: s.x + dx,
       y: s.y + dy,
-      targetX: s.targetX == null ? s.targetX : s.targetX + dx,
-      targetY: s.targetY == null ? s.targetY : s.targetY + dy,
+      ...(s.targetX == null ? {} : { targetX: s.targetX + dx }),
+      ...(s.targetY == null ? {} : { targetY: s.targetY + dy }),
     })),
     territory: save.territory ? { ...save.territory, cx: save.territory.cx + dx, cy: save.territory.cy + dy } : null,
+  };
+}
+
+function expandLiveWorld(st: GameState): Partial<GameState> | null {
+  if (st.mapW >= MAP_W && st.mapH >= MAP_H) return null;
+  const base = generateWorld(st.seed);
+  const dx = Math.floor((MAP_W - st.mapW) / 2);
+  const dy = Math.floor((MAP_H - st.mapH) / 2);
+  const inOldFootprint = (x: number, y: number) => x >= dx && x < dx + st.mapW && y >= dy && y < dy + st.mapH;
+  const shiftedTiles = st.tiles.map((t) => ({ ...t, x: t.x + dx, y: t.y + dy }));
+  const tileByKey = new Map(shiftedTiles.map((t) => [`${t.x}-${t.y}`, t]));
+  return {
+    mapW: MAP_W,
+    mapH: MAP_H,
+    tiles: base.tiles.map((t) => tileByKey.get(`${t.x}-${t.y}`) ?? t),
+    nodes: [
+      ...base.nodes.filter((n) => !inOldFootprint(n.x, n.y)),
+      ...st.nodes.map((n) => ({ ...n, x: n.x + dx, y: n.y + dy })),
+    ],
+    buildings: st.buildings.map((b) => ({ ...b, x: b.x + dx, y: b.y + dy })),
+    survivors: st.survivors.map((s) => ({
+      ...s,
+      x: s.x + dx,
+      y: s.y + dy,
+      ...(s.targetX == null ? {} : { targetX: s.targetX + dx }),
+      ...(s.targetY == null ? {} : { targetY: s.targetY + dy }),
+    })),
+    territory: st.territory ? { ...st.territory, cx: st.territory.cx + dx, cy: st.territory.cy + dy } : null,
   };
 }
 
