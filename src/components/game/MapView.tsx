@@ -1309,7 +1309,7 @@ export function MapView() {
               {sel && (
                 <circle cx={0} cy={1} r={10} fill="none" stroke={PAL.gold} strokeWidth={1.3} strokeDasharray="2 2" />
               )}
-              <SurvivorArt founder={!!s.isFounder} dead={dead} female={s.gender === "f"} />
+              <SurvivorArt founder={!!s.isFounder} dead={dead} female={s.gender === "f"} stage={s.stage} pregnant={!!s.pregnant} />
               {dead && (
                 <line x1={-4} y1={-3} x2={4} y2={3} stroke={PAL.ink} strokeWidth={0.8} />
               )}
