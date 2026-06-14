@@ -767,6 +767,18 @@ export function resolveCouncilVote(
       out.tone = "bad";
       return out;
     }
+    case "expand-territory": {
+      out.title = `The ranch grows`;
+      out.body = `The council approves a new strip of pasture. The fenceline is pushed outward.`;
+      D(out.prestigeDeltas, ev.leaderHouseId, 4);
+      out.loyaltyDeltas.all = 2;
+      out.moodDeltas.all = 2;
+      out.memoryText = `The porch claimed more land. We watched the fence move outward.`;
+      out.memoryEmotion = "pride";
+      out.memoryWeight = 25;
+      out.tone = "good";
+      return out;
+    }
   }
   return out;
 }
