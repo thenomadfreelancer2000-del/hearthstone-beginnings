@@ -712,6 +712,41 @@ export function resolveCouncilVote(
       out.tone = "bad";
       return out;
     }
+    case "enact-law": {
+      const demand = ev.lawDemands?.[ev.activeDemandIndex ?? 0];
+      if (!demand || demand.kind !== "enact") {
+        out.ok = false; out.title = "No law to enact"; out.body = ""; return out;
+      }
+      out.title = `The council writes "${demand.lawTitle}"`;
+      out.body = `${demand.factionName} carry the petition. The new law is read aloud and signed.`;
+      D(out.prestigeDeltas, ev.leaderHouseId, 5);
+      out.loyaltyDeltas.all = -2;
+      out.reputationDeltas.compassionate = 4;
+      out.memoryText = `The book grew thicker. "${demand.lawTitle}" is law of the ranch now.`;
+      out.memoryEmotion = "trust";
+      out.memoryWeight = 35;
+      out.tone = "neutral";
+      return out;
+    }
+    case "refuse-enact": {
+      const demand = ev.lawDemands?.[ev.activeDemandIndex ?? 0];
+      if (!demand || demand.kind !== "enact") {
+        out.ok = false; out.title = "No petition to refuse"; out.body = ""; return out;
+      }
+      out.title = `The book stays closed`;
+      out.body = `The porch refuses. ${demand.factionName} swallow the answer and walk out.`;
+      D(out.prestigeDeltas, ev.leaderHouseId, 2);
+      if (chId) {
+        out.relationsDelta = { a: ev.leaderHouseId, b: chId, delta: -15 };
+      }
+      out.loyaltyDeltas.all = -3;
+      out.reputationDeltas.ruthless = 3;
+      out.memoryText = `The founder closed the book on "${demand.lawTitle}".`;
+      out.memoryEmotion = "fear";
+      out.memoryWeight = 25;
+      out.tone = "bad";
+      return out;
+    }
   }
   return out;
 }
