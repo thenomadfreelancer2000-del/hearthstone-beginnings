@@ -941,10 +941,14 @@ export const useGame = create<GameState>((set, get) => ({
     return saveToLocal(data);
   },
 
-  resolveCouncilVote: (action) => {
+  resolveCouncilVote: (action, demandIndex) => {
     const st = get();
-    const ev = st.pendingCouncilVote;
-    if (!ev) return;
+    const ev0 = st.pendingCouncilVote;
+    if (!ev0) return;
+    // Apply the picked demand index onto the event so the logic + log read it.
+    const ev = (typeof demandIndex === "number" && ev0.lawDemands?.[demandIndex])
+      ? { ...ev0, activeDemandIndex: demandIndex }
+      : ev0;
     const leader = st.survivors.find(s => s.id === st.currentLeaderId);
     const leadSkill = leader?.skills.lead ?? 0;
     const outcome = resolveCouncilVoteLogic(ev, action, {
