@@ -24,7 +24,7 @@ const OCCUPATIONS: Occupation[] = [
 
 function cap(s: string) { return s[0].toUpperCase() + s.slice(1); }
 
-export function Inspector() {
+export function Inspector({ onHide }: { onHide?: () => void } = {}) {
   const sel = useGame((s) => s.selection);
   const survivors = useGame((s) => s.survivors);
   const [arrangeFor, setArrangeFor] = useState<string | null>(null);
@@ -42,7 +42,10 @@ export function Inspector() {
   if (sel.kind === "none") {
     return (
       <aside className="parchment-panel w-full sm:w-[340px] p-4 ranch-handwritten text-sm text-dust border-l border-amber/20">
-        <p className="ranch-label mb-2">The Ranch</p>
+        <div className="flex justify-between items-center mb-2">
+          <p className="ranch-label">The Ranch</p>
+          {onHide && <button onClick={onHide} className="ranch-label text-[10px] hover:text-amber">Hide panel →</button>}
+        </div>
         <p>Click any soul, structure, or tile to read its story.</p>
         <div className="divider-amber my-4" />
         <button onClick={() => setOverlay("tree")} className="btn-ranch btn-ranch-ghost w-full">
@@ -65,7 +68,10 @@ export function Inspector() {
 
     return (
       <aside className="parchment-panel w-full sm:w-[340px] p-4 border-l border-amber/20 overflow-auto scroll-amber">
-        <button onClick={clearSelection} className="ranch-label hover:text-amber">← Deselect</button>
+        <div className="flex justify-between items-center">
+          <button onClick={clearSelection} className="ranch-label hover:text-amber">← Deselect</button>
+          {onHide && <button onClick={onHide} className="ranch-label text-[10px] hover:text-amber">Hide panel →</button>}
+        </div>
         <h3 className="ranch-display text-2xl mt-3 leading-tight">
           {s.name} <span className="text-amber">{s.surname}</span>
         </h3>
@@ -306,7 +312,10 @@ export function Inspector() {
     const openAssign = () => useGame.setState({ pendingBuildAssignment: b.id });
     return (
       <aside className="parchment-panel w-full sm:w-[340px] p-4 border-l border-amber/20 overflow-auto scroll-amber">
-        <button onClick={clearSelection} className="ranch-label hover:text-amber">← Deselect</button>
+        <div className="flex justify-between items-center">
+          <button onClick={clearSelection} className="ranch-label hover:text-amber">← Deselect</button>
+          {onHide && <button onClick={onHide} className="ranch-label text-[10px] hover:text-amber">Hide panel →</button>}
+        </div>
         <h3 className="ranch-display text-2xl mt-3">{def.name}</h3>
         <p className="ranch-handwritten text-sm">{def.blurb}</p>
         <div className="divider-amber my-3" />
