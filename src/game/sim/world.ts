@@ -311,7 +311,7 @@ export function makeChild(
   // Skill inheritance: average parent skills * 0.3 (start lower than parents)
   const skills = emptySkills();
   (Object.keys(skills) as (keyof Skills)[]).forEach((k) => {
-    const avg = (parents[0].skills[k] + parents[1].skills[k]) / 2;
+    const avg = ((parents[0].skills[k] ?? 0) + (parents[1].skills[k] ?? 0)) / 2;
     skills[k] = Math.max(1, avg * 0.3 + rng() * 0.5);
   });
 
