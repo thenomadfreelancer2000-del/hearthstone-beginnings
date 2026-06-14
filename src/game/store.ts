@@ -161,6 +161,9 @@ interface GameState {
   reassignWorker: (survivorId: ID, occupation: Survivor["occupation"]) => void;
   // Council
   resolveCouncilVote: (action: CouncilAction) => void;
+  // Laws
+  enactFoundingCharter: (lawIds: string[]) => void;
+  repealLaw: (lawId: string) => void;
 }
 
 const emptyResources = (): Record<ResourceKind, number> => ({
