@@ -417,6 +417,25 @@ export function forecastActionRisk(
       repShifts.push({ axis: "ruthless", delta: 4, reason: "holds the law by force" });
       break;
     }
+    case "enact-law": {
+      const demand = ev.lawDemands?.[ev.activeDemandIndex ?? 0];
+      score = 25;
+      if (demand?.opposedBy?.length) {
+        score = 25 + demand.opposedBy.length * 12;
+        backlash.push(`Resented by: ${demand.opposedBy.join(", ")}`);
+      }
+      backlash.push(`Rival factions will lose loyalty`);
+      backlash.push(`A precedent — more law petitions will follow`);
+      repShifts.push({ axis: "compassionate", delta: 4, reason: "answers the petition" });
+      break;
+    }
+    case "refuse-enact": {
+      score = 45;
+      backlash.push(`Sponsoring faction loses loyalty and remembers it`);
+      backlash.push(`Will return louder next council`);
+      repShifts.push({ axis: "ruthless", delta: 3, reason: "denies the petition" });
+      break;
+    }
   }
 
   const label: ActionRisk["label"] =
