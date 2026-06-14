@@ -839,7 +839,7 @@ export const useGame = create<GameState>((set, get) => ({
       ],
       stats: { ...emptyStats(1, family.name), population: pop, morale: 20, prestige: family.prestige },
 
-      selection: { kind: "survivor", id: founder.id },
+      selection: { kind: "none" },
       buildPlacement: null,
       pendingArrival: null,
       pendingBuildAssignment: null,
