@@ -77,6 +77,14 @@ export function GameShell() {
             ⚖
           </button>
           <button
+            onClick={() => setPoliticsOpen(true)}
+            className="btn-ranch btn-ranch-ghost text-base backdrop-blur-sm bg-coal/70 w-9 h-9 flex items-center justify-center p-0"
+            title="Family Council & Politics"
+            aria-label="Politics"
+          >
+            ⚜
+          </button>
+          <button
             onClick={() => setOverlay("tree")}
             className="btn-ranch btn-ranch-ghost text-base backdrop-blur-sm bg-coal/70 w-9 h-9 flex items-center justify-center p-0"
             title="Dynasty Tree"
@@ -87,6 +95,7 @@ export function GameShell() {
         </div>
         {livestockOpen && <LivestockPanel onClose={() => setLivestockOpen(false)} />}
         {adminOpen && <AdministrationPanel onClose={() => setAdminOpen(false)} />}
+        {politicsOpen && <PoliticsPanel onClose={() => setPoliticsOpen(false)} />}
 
 
         {!isMobile && (
