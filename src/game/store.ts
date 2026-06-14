@@ -747,6 +747,9 @@ export const useGame = create<GameState>((set, get) => ({
       proposals: [],
       animals: [],
       livestockRequests: [],
+      ministers: [],
+      ministerRequests: [],
+      ministerReports: [],
     });
   },
 
@@ -800,6 +803,9 @@ export const useGame = create<GameState>((set, get) => ({
       proposals: save.proposals ?? [],
       animals: save.animals ?? [],
       livestockRequests: save.livestockRequests ?? [],
+      ministers: save.ministers ?? [],
+      ministerRequests: save.ministerRequests ?? [],
+      ministerReports: save.ministerReports ?? [],
       borderMode: false,
     });
     return true;
@@ -832,6 +838,9 @@ export const useGame = create<GameState>((set, get) => ({
       proposals: st.proposals,
       animals: st.animals,
       livestockRequests: st.livestockRequests,
+      ministers: st.ministers,
+      ministerRequests: st.ministerRequests,
+      ministerReports: st.ministerReports,
       factions: [], laws: [], externalSettlements: [],
     };
     return saveToLocal(data);
@@ -881,6 +890,9 @@ export const useGame = create<GameState>((set, get) => ({
       proposals: st.proposals.map(p => ({ ...p })),
       animals: st.animals.map(a => ({ ...a })),
       livestockRequests: st.livestockRequests.map(r => ({ ...r })),
+      ministers: st.ministers.map(m => ({ ...m })),
+      ministerRequests: st.ministerRequests.map(r => ({ ...r })),
+      ministerReports: st.ministerReports.map(r => ({ ...r })),
       foundingPhase: st.foundingPhase,
     };
 
@@ -961,6 +973,9 @@ export const useGame = create<GameState>((set, get) => ({
       proposals: eng.proposals,
       animals: eng.animals,
       livestockRequests: eng.livestockRequests,
+      ministers: eng.ministers,
+      ministerRequests: eng.ministerRequests,
+      ministerReports: eng.ministerReports,
       pendingArrival,
       lastChronicleId: lastId,
     });
@@ -1200,6 +1215,9 @@ export const useGame = create<GameState>((set, get) => ({
       proposals: st.proposals.map(p => ({ ...p })),
       animals: st.animals.map(a => ({ ...a })),
       livestockRequests: st.livestockRequests.map(r => ({ ...r })),
+      ministers: st.ministers.map(m => ({ ...m })),
+      ministerRequests: st.ministerRequests.map(r => ({ ...r })),
+      ministerReports: st.ministerReports.map(r => ({ ...r })),
       foundingPhase: st.foundingPhase,
     };
     const prop = createArrangedProposal(eng, initiatorId, targetId);
