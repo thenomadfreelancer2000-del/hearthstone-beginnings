@@ -23,7 +23,7 @@ export function LeaderProfile({ dockOpen = false }: LeaderProfileProps) {
   const positionClass = isMobile && dockOpen ? "left-2 bottom-3" : "left-2 bottom-2 sm:left-3 sm:bottom-3";
   const sizeClass = isMobile ? "w-[48px] h-[48px]" : "w-[70px] h-[70px] sm:w-[88px] sm:h-[88px]";
   const btn =
-    "w-7 h-7 grid place-items-center border border-amber/50 bg-coal/80 backdrop-blur-sm text-amber ranch-label text-[11px] hover:bg-amber/20 disabled:opacity-40 disabled:hover:bg-coal/80";
+    "w-5 h-5 grid place-items-center border border-amber/50 bg-coal/80 backdrop-blur-sm text-amber ranch-label text-[10px] leading-none hover:bg-amber/20 disabled:opacity-40 disabled:hover:bg-coal/80";
 
   return (
     <div className={`absolute ${positionClass} z-50 pointer-events-auto flex flex-col items-start gap-1.5`}>
