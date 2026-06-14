@@ -257,6 +257,11 @@ export const useGame = create<GameState>((set, get) => ({
   territory: null,
   borderMode: false,
 
+  expandWorldToCurrentSize: () => {
+    const expanded = expandLiveWorld(get());
+    if (expanded) set(expanded);
+  },
+
   setScreen: (s) => set({ screen: s }),
   setOverlay: (o) => set({ overlay: o }),
   setSpeed: (s) => set({ speed: s }),
