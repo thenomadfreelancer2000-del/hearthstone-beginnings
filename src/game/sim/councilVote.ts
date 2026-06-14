@@ -321,6 +321,48 @@ export function forecastActionRisk(
   return { score: Math.max(0, Math.min(100, score)), label, backlash, repShifts };
 }
 
+export interface CouncilReactionEntry {
+  familyId: ID;
+  houseName: string;
+  /** "leader" = leader's own house, "challenger" = challenger's house, "other" = bystander */
+  role: "leader" | "challenger" | "other";
+  voted: "for" | "against" | "absent";
+  reason: string;
+  /** Net relationship change toward the leader's house (-100..+100). */
+  relationsDelta: number;
+  /** Prestige change to this house from the vote. */
+  prestigeDelta: number;
+  /** Wealth change to this house from the vote. */
+  wealthDelta: number;
+  /** Loyalty change for members of this house. */
+  loyaltyDelta: number;
+  /** Mood change for members of this house. */
+  moodDelta: number;
+  /** Short, human-readable sentiment summary. */
+  sentiment: "elated" | "pleased" | "neutral" | "uneasy" | "wronged" | "enraged";
+  note: string;
+}
+
+export interface CouncilReactionLogEntry {
+  id: string;
+  year: number;
+  tick: number;
+  day: number;
+  season: string;
+  action: CouncilAction;
+  actionLabel: string;
+  title: string;
+  body: string;
+  tone: "good" | "bad" | "neutral";
+  leaderName: string;
+  leaderHouseId: ID;
+  leaderHouseName: string;
+  challengerHouseId: ID | null;
+  challengerHouseName: string | null;
+  reactions: CouncilReactionEntry[];
+  reputationDeltas: Partial<ReputationProfile>;
+}
+
 export interface ResolutionOutcome {
   ok: boolean;
   title: string;
