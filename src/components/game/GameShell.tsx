@@ -159,3 +159,15 @@ export function GameShell() {
     </div>
   );
 }
+
+function SideButton({ onClick, label }: { onClick: () => void; label: string }) {
+  return (
+    <button
+      onClick={onClick}
+      className="ranch-label text-[10px] tracking-wider text-amber bg-coal/80 backdrop-blur-sm border border-amber/40 hover:border-amber hover:bg-amber/10 hover:text-amber-light px-2.5 h-8 min-w-[92px] text-right transition"
+      title={label}
+    >
+      {label}
+    </button>
+  );
+}
