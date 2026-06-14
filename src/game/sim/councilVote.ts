@@ -319,6 +319,19 @@ export const COUNCIL_ACTION_INFO: Record<CouncilAction, ActionInfo> = {
       "−15 relations with the sponsoring house",
     ],
   },
+  "expand-territory": {
+    label: "Petition for new pasture",
+    hint: "Push the perimeter outward — claim a strip of land for the ranch.",
+    cost: {},
+    effects: [
+      "Ranch perimeter expands by ~10% (rectangular growth)",
+      "+4 prestige to your house (vision and ambition)",
+      "+3 'ambitious' standing among the houses",
+    ],
+    risks: [
+      "Neighboring houses may resent the new fenceline (−4 loyalty long-tail)",
+    ],
+  },
 };
 
 
