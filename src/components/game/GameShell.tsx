@@ -111,8 +111,8 @@ export function GameShell() {
       <Toaster
         position="top-center"
         theme="dark"
-        offset={isMobile ? 64 : 96}
-        mobileOffset={64}
+        offset={isMobile ? 96 : 64}
+        mobileOffset={96}
         toastOptions={{
           unstyled: true,
           classNames: {
