@@ -1336,26 +1336,67 @@ export const useGame = create<GameState>((set, get) => ({
         currentYear: eng.time.year,
       });
       if (ev) {
-        // If any active law is strongly opposed, attach a repeal demand.
+        // Gather every pressing demand (both repeals and new-law petitions).
         const view = computeFactions(eng.survivors, eng.families, st.laws);
-        const hated = mostHatedLaw(view, st.laws);
-        if (hated && hated.opposingFaction.strength >= 25) {
-          ev.lawRepealRequest = {
-            lawId: hated.lawDef.id,
-            lawTitle: hated.lawDef.title,
-            factionId: hated.opposingFaction.id,
-            factionName: hated.opposingFaction.def.name,
-            intensity: hated.opposingFaction.strength,
-          };
-          ev.challengerAgenda = `Repeal: ${hated.lawDef.title}`;
+        const raw = pressingLawDemands(view, st.laws, { threshold: 18 });
+        // Cap to top 4 so the council scene stays readable.
+        const top = raw.slice(0, 4);
+        if (top.length > 0) {
+          ev.lawDemands = top.map((d) => {
+            // Other factions that will resent this concession.
+            const opposedBy = view.factions
+              .filter((f) => {
+                if (f.id === d.faction.id) return false;
+                if (f.strength < 15) return false;
+                if (d.kind === "repeal") return d.lawDef.factionLikes.includes(f.id);
+                return d.lawDef.factionHates.includes(f.id);
+              })
+              .map((f) => f.def.name);
+            return {
+              kind: d.kind,
+              lawId: d.lawDef.id,
+              lawTitle: d.lawDef.title,
+              lawBlurb: d.lawDef.blurb,
+              factionId: d.faction.id,
+              factionName: d.faction.def.name,
+              opposedBy,
+              intensity: d.intensity,
+              pitch: d.pitch,
+            };
+          });
+          // Default active demand = strongest one.
+          ev.activeDemandIndex = 0;
+          // Mirror top demand of each kind for back-compat displays.
+          const topRepeal = ev.lawDemands.find((d) => d.kind === "repeal");
+          if (topRepeal) {
+            ev.lawRepealRequest = {
+              lawId: topRepeal.lawId,
+              lawTitle: topRepeal.lawTitle,
+              factionId: topRepeal.factionId,
+              factionName: topRepeal.factionName,
+              intensity: topRepeal.intensity,
+            };
+          }
+          const topEnact = ev.lawDemands.find((d) => d.kind === "enact");
+          if (topEnact) {
+            ev.lawEnactRequest = {
+              lawId: topEnact.lawId,
+              lawTitle: topEnact.lawTitle,
+              factionId: topEnact.factionId,
+              factionName: topEnact.factionName,
+              intensity: topEnact.intensity,
+            };
+          }
+          ev.challengerAgenda = ev.lawDemands[0].pitch;
         }
         pendingCouncilVote = ev;
-        const desc = ev.lawRepealRequest
-          ? `${ev.lawRepealRequest.factionName} demand: repeal "${ev.lawRepealRequest.lawTitle}".`
+        const hasDemands = (ev.lawDemands?.length ?? 0) > 0;
+        const desc = hasDemands
+          ? `${ev.lawDemands!.length} faction demand${ev.lawDemands!.length > 1 ? "s" : ""} press the porch.`
           : ev.contested
             ? `House ${ev.challengerHouseName ?? "—"} challenges the porch.`
             : `Year ${ev.year}. The houses gather.`;
-        toast(ev.contested || ev.lawRepealRequest ? "Council in uproar" : "The Council convenes", {
+        toast(ev.contested || hasDemands ? "Council in uproar" : "The Council convenes", {
           description: desc,
         });
       }
