@@ -1,19 +1,17 @@
 import { useMemo, useState } from "react";
 import { useGame } from "@/game/store";
-import { LAW_CATALOG, DOMAIN_LABEL, type LawDef, type LawDomain } from "@/game/sim/laws";
+import { LAW_CATALOG, DOMAIN_LABEL, DOMAIN_ORDER, type LawDef, type LawDomain } from "@/game/sim/laws";
 import { FACTION_DEFS } from "@/game/sim/factions";
 
-const DOMAINS: LawDomain[] = ["property", "justice", "marriage", "hospitality", "labor", "faith"];
+const DOMAINS: LawDomain[] = DOMAIN_ORDER;
+const MIN_PICKS = 6;
 
 export function FoundingCharterModal() {
   const open = useGame((s) => s.pendingFoundingCharter);
   const enact = useGame((s) => s.enactFoundingCharter);
   const survivors = useGame((s) => s.survivors);
   const families = useGame((s) => s.families);
-  const [picked, setPicked] = useState<Record<LawDomain, string | null>>({
-    property: null, justice: null, marriage: null,
-    hospitality: null, labor: null, faith: null,
-  });
+  const [picked, setPicked] = useState<Partial<Record<LawDomain, string | null>>>({});
 
   if (!open) return null;
 
