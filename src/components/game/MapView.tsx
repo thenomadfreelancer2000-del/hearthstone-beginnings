@@ -830,6 +830,50 @@ export function MapView() {
           );
         })}
 
+        {/* Animals — clustered around their pen */}
+        {(() => {
+          const ADULT_DAYS: Record<string, number> = { chicken: 30, goat: 90, sheep: 120, cattle: 240 };
+          const penById = new Map(buildings.map((b) => [b.id, b]));
+          // Group by building to spread positions
+          const byPen = new Map<string, typeof animals>();
+          for (const a of animals) {
+            if (a.dead) continue;
+            if (!a.buildingId) continue;
+            const pen = penById.get(a.buildingId);
+            if (!pen || pen.builtProgress < 1) continue;
+            const arr = byPen.get(a.buildingId) ?? [];
+            arr.push(a);
+            byPen.set(a.buildingId, arr);
+          }
+          const out: React.ReactElement[] = [];
+          for (const [penId, list] of byPen) {
+            const pen = penById.get(penId)!;
+            const px = pen.x * TILE;
+            const py = pen.y * TILE;
+            const pw = pen.w * TILE;
+            const ph = pen.h * TILE;
+            // Reserve a thin inset border so animals stay inside the pen art
+            const padX = Math.min(8, pw * 0.18);
+            const padY = Math.min(10, ph * 0.35);
+            list.forEach((a, i) => {
+              const seed = (a.id.charCodeAt(0) * 17 + a.id.charCodeAt(a.id.length - 1) * 31 + i * 53) % 1000;
+              const r1 = ((seed * 9301 + 49297) % 233280) / 233280;
+              const r2 = ((seed * 1597 + 51749) % 233280) / 233280;
+              const cx = px + padX + r1 * (pw - padX * 2);
+              const cy = py + padY + r2 * (ph - padY * 1.2);
+              const adult = a.ageDays >= (ADULT_DAYS[a.species] ?? 60);
+              out.push(
+                <g key={a.id} transform={`translate(${cx}, ${cy})`} pointerEvents="none">
+                  <AnimalArt species={a.species} dead={a.dead ?? false} adult={adult} />
+                </g>,
+              );
+            });
+          }
+          return out;
+        })()}
+
+
+
         {/* Survivors */}
         {survivors.map((s) => {
           const sel = selection.kind === "survivor" && selection.id === s.id;
