@@ -1,7 +1,7 @@
 import { nanoid } from "nanoid";
 import type {
   Animal, Building, ChronicleEntry, Family, GameTime, ID, LivestockRequest,
-  MarriageProposal, ResourceKind, ResourceNode,
+  MarriageProposal, Minister, MinisterRequest, MinisterReport, ResourceKind, ResourceNode,
   Survivor, Relationship, SettlementStats, Tile, Memory,
 } from "../types";
 import {
