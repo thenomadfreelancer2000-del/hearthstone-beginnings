@@ -1119,6 +1119,50 @@ export const useGame = create<GameState>((set, get) => ({
       lastChronicleId: entry.id,
     });
   },
+
+  decideProposal: (id, decision) => {
+    const st = get();
+    const POSTPONE_TICKS = 30 * 24;
+    const next: MarriageProposal[] = [];
+    for (const p of st.proposals) {
+      if (p.id !== id) { next.push(p); continue; }
+      if (decision === "approve") {
+        next.push({ ...p, status: "approved", requiresPlayer: false });
+      } else if (decision === "reject") {
+        // drop entirely
+        const a = st.survivors.find(s => s.id === p.aId);
+        const b = st.survivors.find(s => s.id === p.bId);
+        if (a && b) toast.warning(`Rejected the union of ${a.name} and ${b.name}`);
+      } else {
+        next.push({ ...p, status: "postponed", resolveAfterTick: st.time.tick + POSTPONE_TICKS });
+      }
+    }
+    set({ proposals: next });
+  },
+
+  arrangeMarriage: (initiatorId, targetId) => {
+    const st = get();
+    // Build a temporary engine view to use createArrangedProposal.
+    const eng: Engine = {
+      time: { ...st.time },
+      tiles: st.tiles, mapW: st.mapW, mapH: st.mapH,
+      nodes: st.nodes, buildings: st.buildings, resources: st.resources,
+      survivors: st.survivors, relationships: st.relationships,
+      families: st.families.map(f => ({ ...f, memberIds: [...f.memberIds], relations: { ...f.relations } })),
+      founderId: st.founderId, currentLeaderId: st.currentLeaderId,
+      preferredHeirId: st.preferredHeirId,
+      chronicle: st.chronicle, stats: st.stats, seed: st.seed,
+      proposals: st.proposals.map(p => ({ ...p })),
+      foundingPhase: st.foundingPhase,
+    };
+    const prop = createArrangedProposal(eng, initiatorId, targetId);
+    if (!prop) { toast.error("Cannot arrange that marriage"); return false; }
+    set({ proposals: eng.proposals, families: eng.families });
+    const a = st.survivors.find(s => s.id === initiatorId);
+    const b = st.survivors.find(s => s.id === targetId);
+    if (a && b) toast.success(`Arranged: ${a.name} & ${b.name}`, { description: "The other House will respond." });
+    return true;
+  },
 }));
 
 function territoryAcres(radius: number): number {
