@@ -40,7 +40,6 @@ import {
   TICKS_PER_DAY,
   type Expedition, type ExpeditionPlanInput,
 } from "./sim/expeditions";
-import { makeAnimal as makeLivestockAnimal, SPECIES_BUILDING as SPECIES_BLDG } from "./sim/livestock";
 
 export type Screen = "menu" | "founder" | "game";
 export type Overlay = "tree" | "family" | "chronicle" | null;
