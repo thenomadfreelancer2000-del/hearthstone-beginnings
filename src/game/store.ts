@@ -1037,6 +1037,9 @@ export const useGame = create<GameState>((set, get) => ({
     if (outcome.tone === "good") toast.success(outcome.title, { description: outcome.body });
     else if (outcome.tone === "bad") toast.error(outcome.title, { description: outcome.body });
     else toast(outcome.title, { description: outcome.body });
+    const logEntry = buildReactionLog(ev, action, outcome, {
+      tick: st.time.tick, day: st.time.day, season: st.time.season,
+    });
     set({
       pendingCouncilVote: null,
       resources: newResources,
@@ -1045,6 +1048,7 @@ export const useGame = create<GameState>((set, get) => ({
       survivors: newSurvivors,
       reputationProfile: newRep,
       chronicle: [newChronicle, ...st.chronicle].slice(0, 600),
+      councilReactionLog: [logEntry, ...st.councilReactionLog].slice(0, 60),
     });
   },
 
