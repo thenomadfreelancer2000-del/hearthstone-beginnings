@@ -205,6 +205,7 @@ function gapReason(role: MinisterRole, gap: number): string {
     case "head-builder": return `Construction is slipping. I need ${ppl}.`;
     case "head-rancher": return `The herds are not getting the care they need. I need ${ppl}.`;
     case "quartermaster": return `Stockpiles are not moving. I need ${ppl}.`;
+    default: return `I need ${ppl}.`;
   }
 }
 
@@ -222,6 +223,7 @@ function composeReport(role: MinisterRole, dept: DepartmentStatus, sat: number):
     case "head-builder": return `${status} on the sites — ${dept.assigned}/${dept.needed} hands ${mood}`;
     case "head-rancher": return `${status} with the herds — ${dept.assigned}/${dept.needed} hands ${mood}`;
     case "quartermaster": return `${status} at the stores — ${dept.assigned}/${dept.needed} hands ${mood}`;
+    default: return `${status} — ${dept.assigned}/${dept.needed} hands ${mood}`;
   }
 }
 
