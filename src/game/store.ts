@@ -915,9 +915,20 @@ export const useGame = create<GameState>((set, get) => ({
       preferredHeirId: eng.preferredHeirId ?? null,
       chronicle: eng.chronicle,
       stats: eng.stats,
+      proposals: eng.proposals,
       pendingArrival,
       lastChronicleId: lastId,
     });
+
+    // Toast newly-required player proposals.
+    const prevPending = new Set(st.proposals.filter(p => p.requiresPlayer && p.status === "pending").map(p => p.id));
+    for (const p of eng.proposals) {
+      if (p.requiresPlayer && p.status === "pending" && !prevPending.has(p.id)) {
+        const a = eng.survivors.find(s => s.id === p.aId);
+        const b = eng.survivors.find(s => s.id === p.bId);
+        if (a && b) toast(`Marriage proposal: ${a.name} & ${b.name}`, { description: "A House awaits your blessing." });
+      }
+    }
     if (st.foundingPhase) maybeCompleteFounding(get, set);
   },
 
