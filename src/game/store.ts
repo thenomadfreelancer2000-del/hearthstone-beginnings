@@ -30,7 +30,8 @@ import { TRAIT_INFO, traitRefugeeBias } from "./data/traits";
 import { computeFounderEpithet, founderDeathTitle, founderDeathBody } from "./sim/legacy";
 import {
   generateCouncilVote, resolveCouncilVote as resolveCouncilVoteLogic,
-  type CouncilVoteEvent, type CouncilAction,
+  buildReactionLog,
+  type CouncilVoteEvent, type CouncilAction, type CouncilReactionLogEntry,
 } from "./sim/councilVote";
 
 export type Screen = "menu" | "founder" | "game";
