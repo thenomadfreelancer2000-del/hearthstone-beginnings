@@ -58,6 +58,8 @@ interface GameState {
   preferredHeirId: ID | null;
   chronicle: ChronicleEntry[];
   stats: SettlementStats;
+  proposals: MarriageProposal[];
+
 
   selection: Selection;
   buildPlacement: BuildPlacement;
