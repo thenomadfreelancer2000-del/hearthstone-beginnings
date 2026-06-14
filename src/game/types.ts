@@ -369,7 +369,7 @@ export interface SettlementStats {
 
 // ── Save Game ────────────────────────────────────────────────────
 export interface SaveGame {
-  version: 2;
+  version: 2 | 3;
   ranchName: string;
   seed: number;
   time: GameTime;
