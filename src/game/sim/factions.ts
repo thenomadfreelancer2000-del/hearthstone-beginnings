@@ -204,17 +204,105 @@ export function mostHatedLaw(
   view: FactionsView,
   enacted: EnactedLaw[],
 ): { lawId: string; lawDef: LawDef; opposingFaction: FactionSnapshot; intensity: number } | null {
-  let best: { lawId: string; lawDef: LawDef; opposingFaction: FactionSnapshot; intensity: number } | null = null;
+  const list = pressingLawDemands(view, enacted, { repealOnly: true, threshold: 18 });
+  const top = list.find((d) => d.kind === "repeal");
+  if (!top || !top.lawDef) return null;
+  return {
+    lawId: top.lawId,
+    lawDef: top.lawDef,
+    opposingFaction: top.faction,
+    intensity: top.intensity,
+  };
+}
+
+// ── Pressing demands (drives council dilemmas) ───────────────────
+
+import { LAW_CATALOG } from "./laws";
+
+export interface LawDemand {
+  kind: "repeal" | "enact";
+  lawId: string;
+  lawDef: LawDef;
+  faction: FactionSnapshot;
+  /** Sorting weight — higher = more politically urgent. */
+  intensity: number;
+  /** Short, plain-language demand line. */
+  pitch: string;
+}
+
+/**
+ * Returns ranked political demands the council brings before the founder.
+ *
+ * Repeal demands — a strong faction wants an active law struck.
+ * Enact demands  — a strong faction wants a beloved law written into the book.
+ *
+ * The dilemma: every demand has at least one rival faction that will resent
+ * conceding to it. The founder can only address one demand per council; the
+ * rest hang in the air and intensify if ignored.
+ */
+export function pressingLawDemands(
+  view: FactionsView,
+  enacted: EnactedLaw[],
+  opts: { repealOnly?: boolean; threshold?: number } = {},
+): LawDemand[] {
+  const threshold = opts.threshold ?? 18;
+  const demands: LawDemand[] = [];
+  const enactedIds = new Set(enacted.map((e) => e.lawId));
+  const enactedDomains = new Set(enacted.map((e) => getLawDef(e.lawId)?.domain).filter(Boolean));
+
+  // ── Repeal demands ──
   for (const e of enacted) {
     const def = getLawDef(e.lawId);
     if (!def) continue;
     for (const f of view.factions) {
       if (!def.factionHates.includes(f.id)) continue;
-      const intensity = f.strength + (f.members * 2);
-      if (!best || intensity > best.intensity) {
-        best = { lawId: e.lawId, lawDef: def, opposingFaction: f, intensity };
+      if (f.strength < threshold) continue;
+      demands.push({
+        kind: "repeal",
+        lawId: def.id,
+        lawDef: def,
+        faction: f,
+        intensity: f.strength + f.members * 2,
+        pitch: `${f.def.name} demand: strike "${def.title}"`,
+      });
+    }
+  }
+
+  if (opts.repealOnly) {
+    demands.sort((a, b) => b.intensity - a.intensity);
+    return demands;
+  }
+
+  // ── Enact demands — only after the charter is signed ──
+  if (enacted.length > 0) {
+    for (const def of LAW_CATALOG) {
+      if (enactedIds.has(def.id)) continue;
+      // Avoid pushing a second law into a domain that already has one — those
+      // are competing options, not gaps.
+      if (enactedDomains.has(def.domain)) continue;
+      for (const f of view.factions) {
+        if (!def.factionLikes.includes(f.id)) continue;
+        if (f.strength < threshold + 8) continue; // enact bar is a touch higher
+        demands.push({
+          kind: "enact",
+          lawId: def.id,
+          lawDef: def,
+          faction: f,
+          intensity: f.strength + f.members,
+          pitch: `${f.def.name} demand: write "${def.title}" into law`,
+        });
       }
     }
   }
-  return best;
+
+  // Deduplicate by (kind, lawId) — keep the strongest sponsoring faction.
+  const byKey = new Map<string, LawDemand>();
+  for (const d of demands) {
+    const key = `${d.kind}:${d.lawId}`;
+    const existing = byKey.get(key);
+    if (!existing || d.intensity > existing.intensity) byKey.set(key, d);
+  }
+
+  return [...byKey.values()].sort((a, b) => b.intensity - a.intensity);
 }
+

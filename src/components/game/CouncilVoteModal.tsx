@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useGame } from "@/game/store";
 import { COUNCIL_ACTION_INFO, forecastActionRisk, type CouncilAction } from "@/game/sim/councilVote";
 import type { ResourceKind } from "@/game/types";
@@ -6,7 +7,16 @@ export function CouncilVoteModal() {
   const ev = useGame((s) => s.pendingCouncilVote);
   const resolve = useGame((s) => s.resolveCouncilVote);
   const resources = useGame((s) => s.resources);
+  const leader = useGame((s) => s.survivors.find((x) => x.id === s.currentLeaderId));
+
+  const demands = ev?.lawDemands ?? [];
+  const [activeIdx, setActiveIdx] = useState(0);
+
   if (!ev) return null;
+
+  const leadSkill = leader?.skills.lead ?? 0;
+  const safeIdx = Math.min(activeIdx, Math.max(0, demands.length - 1));
+  const activeDemand = demands[safeIdx];
 
   const canAfford = (cost: Partial<Record<ResourceKind, number>>) =>
     Object.entries(cost).every(([r, amt]) => (resources as any)[r] >= (amt ?? 0));
@@ -14,12 +24,13 @@ export function CouncilVoteModal() {
   const canChallenge = !!ev.challengerHouseId;
   const requiresChallenger: CouncilAction[] = ["office", "crush", "stepdown"];
 
-  const leader = useGame((s) => s.survivors.find((x) => x.id === s.currentLeaderId));
-  const leadSkill = leader?.skills.lead ?? 0;
-
   const ActionCard = ({ action, danger }: { action: CouncilAction; danger?: boolean }) => {
     const info = COUNCIL_ACTION_INFO[action];
-    const risk = forecastActionRisk(ev, action, leadSkill);
+    // Snapshot the active demand into a clone so risk forecast reads it correctly.
+    const evForRisk = activeDemand
+      ? { ...ev, activeDemandIndex: safeIdx }
+      : ev;
+    const risk = forecastActionRisk(evForRisk, action, leadSkill);
     const needsCh = requiresChallenger.includes(action);
     const lacksCh = needsCh && !canChallenge;
     const lacksRes = !canAfford(info.cost);
@@ -34,7 +45,7 @@ export function CouncilVoteModal() {
     return (
       <button
         disabled={disabled}
-        onClick={() => resolve(action)}
+        onClick={() => resolve(action, demands.length > 0 ? safeIdx : undefined)}
         className={`w-full text-left border px-3 py-2 transition ${
           disabled
             ? "border-amber/10 opacity-40 cursor-not-allowed"
@@ -53,7 +64,6 @@ export function CouncilVoteModal() {
         </div>
         <div className="ranch-handwritten text-[11px] text-dust-light italic mt-0.5">{info.hint}</div>
 
-        {/* Risk bar */}
         <div className="mt-2">
           <div className="flex justify-between items-center">
             <span className="ranch-label text-[9px] text-dust">Risk</span>
@@ -68,14 +78,12 @@ export function CouncilVoteModal() {
           <div className="ranch-body text-[10px] text-danger mt-1">No challenger to act against.</div>
         )}
 
-        {/* Effects */}
         <ul className="mt-1.5 space-y-0.5">
           {info.effects.map((e, i) => (
             <li key={`e${i}`} className="ranch-body text-[10px] text-amber/90">+ {e}</li>
           ))}
         </ul>
 
-        {/* Blowback (faction reactions) */}
         {risk.backlash.length > 0 && (
           <div className="mt-1.5 border-t border-amber/10 pt-1">
             <div className="ranch-label text-[9px] text-danger/80">Blowback</div>
@@ -87,7 +95,6 @@ export function CouncilVoteModal() {
           </div>
         )}
 
-        {/* Reputation axis shifts */}
         {risk.repShifts.length > 0 && (
           <div className="mt-1.5 flex flex-wrap gap-1">
             {risk.repShifts.map((s, i) => (
@@ -107,25 +114,67 @@ export function CouncilVoteModal() {
     );
   };
 
-  const isLawDemand = !!ev.lawRepealRequest;
+  const hasDemands = demands.length > 0;
+  const concedeAction: CouncilAction = activeDemand?.kind === "enact" ? "enact-law" : "repeal-law";
+  const refuseAction: CouncilAction = activeDemand?.kind === "enact" ? "refuse-enact" : "refuse-repeal";
 
   return (
     <div className="absolute inset-0 z-[60] bg-black/70 flex items-center justify-center p-4">
-      <div className="parchment-panel-warm corner-brackets w-[min(680px,96vw)] max-h-[92vh] overflow-y-auto p-4 shadow-2xl">
+      <div className="parchment-panel-warm corner-brackets w-[min(720px,96vw)] max-h-[92vh] overflow-y-auto p-4 shadow-2xl">
         <div className="ranch-label text-[10px] text-amber">Council of Houses · Year {ev.year}</div>
         <div className="ranch-display text-lg text-parchment mt-0.5">
-          {isLawDemand
-            ? `Demand: Repeal "${ev.lawRepealRequest!.lawTitle}"`
+          {hasDemands
+            ? `${demands.length} Demand${demands.length > 1 ? "s" : ""} Before the Porch`
             : ev.contested ? "A Challenge in the Hall" : "The Annual Council"}
         </div>
         <div className="ranch-handwritten text-xs text-dust-light italic mt-1">{ev.flavor}</div>
 
-        {isLawDemand && (
-          <div className="mt-2 border border-danger/40 bg-coal/40 p-2">
-            <div className="ranch-label text-[10px] text-danger">Law in Question</div>
-            <div className="ranch-display text-sm text-parchment mt-0.5">{ev.lawRepealRequest!.lawTitle}</div>
-            <div className="ranch-handwritten text-[11px] text-dust-light italic mt-1">
-              {ev.lawRepealRequest!.factionName} press the council. Strength of their hand: {ev.lawRepealRequest!.intensity}.
+        {hasDemands && (
+          <div className="mt-3 border border-danger/30 bg-coal/40 p-2">
+            <div className="flex items-baseline justify-between mb-1.5">
+              <div className="ranch-label text-[10px] text-danger">Pressing Demands</div>
+              <div className="ranch-handwritten text-[10px] text-dust italic">
+                You may answer one — the rest return louder next year.
+              </div>
+            </div>
+            <div className="space-y-1">
+              {demands.map((d, i) => {
+                const active = i === safeIdx;
+                return (
+                  <button
+                    key={`${d.kind}-${d.lawId}`}
+                    onClick={() => setActiveIdx(i)}
+                    className={`w-full text-left border px-2 py-1.5 transition ${
+                      active
+                        ? "border-amber bg-amber/10"
+                        : "border-amber/15 hover:border-amber/40 hover:bg-amber/5"
+                    }`}
+                  >
+                    <div className="flex items-baseline justify-between gap-2">
+                      <div className="ranch-display text-sm text-parchment">
+                        <span className={d.kind === "enact" ? "text-amber" : "text-danger"}>
+                          {d.kind === "enact" ? "Enact" : "Repeal"}
+                        </span>{" "}
+                        "{d.lawTitle}"
+                      </div>
+                      <div className="ranch-data text-[10px] text-danger">
+                        ⚜ {Math.round(d.intensity)}
+                      </div>
+                    </div>
+                    <div className="ranch-handwritten text-[10px] text-dust-light italic mt-0.5">
+                      {d.factionName} press the council. {d.lawBlurb}
+                    </div>
+                    {d.opposedBy.length > 0 && (
+                      <div className="ranch-body text-[10px] text-amber/80 mt-0.5">
+                        Conceding angers: <span className="text-amber">{d.opposedBy.join(", ")}</span>
+                      </div>
+                    )}
+                    {active && (
+                      <div className="ranch-label text-[9px] text-amber mt-1">★ addressing now</div>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -138,7 +187,7 @@ export function CouncilVoteModal() {
             <div className="ranch-data text-xs text-amber mt-1">⚜ Power {ev.leaderPower}</div>
           </div>
           <div className={`border ${canChallenge ? "border-danger/40" : "border-amber/15"} bg-coal/40 p-2`}>
-            <div className="ranch-label text-[9px] text-danger">{isLawDemand ? "The Petitioner" : "The Challenger"}</div>
+            <div className="ranch-label text-[9px] text-danger">{hasDemands ? "The Petitioner" : "The Challenger"}</div>
             <div className="ranch-body text-sm text-parchment">{ev.challengerName ?? "— none —"}</div>
             <div className="ranch-body text-[11px] text-dust">
               {ev.challengerHouseName ? `House ${ev.challengerHouseName}` : "No rival rises"}
@@ -161,7 +210,7 @@ export function CouncilVoteModal() {
             <div className="bg-amber" style={{ width: `${(ev.forCount / Math.max(1, ev.votes.length)) * 100}%` }} />
             <div className="bg-danger" style={{ width: `${(ev.againstCount / Math.max(1, ev.votes.length)) * 100}%` }} />
           </div>
-          <ul className="mt-2 space-y-0.5 max-h-28 overflow-y-auto">
+          <ul className="mt-2 space-y-0.5 max-h-24 overflow-y-auto">
             {ev.votes.map((v) => (
               <li key={v.familyId} className="flex justify-between ranch-body text-[11px]">
                 <span className="text-parchment">House {v.houseName}</span>
@@ -175,11 +224,12 @@ export function CouncilVoteModal() {
 
         <div className="mt-4 space-y-1.5">
           <div className="ranch-label text-[10px] text-amber">Your Response</div>
-          {isLawDemand ? (
+          {hasDemands ? (
             <>
-              <ActionCard action="repeal-law" />
-              <ActionCard action="refuse-repeal" danger />
+              <ActionCard action={concedeAction} />
+              <ActionCard action={refuseAction} danger />
               <ActionCard action="bribe" />
+              {!ev.contested && <ActionCard action="abdicate-peace" />}
             </>
           ) : (
             <>

@@ -8,13 +8,27 @@ import { computePolitics } from "./politics";
 
 export type CouncilAction =
   | "speech" | "bribe" | "office" | "crush" | "stepdown" | "abdicate-peace"
-  | "repeal-law" | "refuse-repeal";
+  | "repeal-law" | "refuse-repeal"
+  | "enact-law" | "refuse-enact";
 
 export interface CouncilVote {
   familyId: ID;
   houseName: string;
   forLeader: boolean;
   reason: string;
+}
+
+export interface CouncilLawDemand {
+  kind: "repeal" | "enact";
+  lawId: string;
+  lawTitle: string;
+  lawBlurb: string;
+  factionId: string;
+  factionName: string;
+  /** Other factions that will resent conceding to this demand (by name). */
+  opposedBy: string[];
+  intensity: number;
+  pitch: string;
 }
 
 export interface CouncilVoteEvent {
@@ -36,7 +50,7 @@ export interface CouncilVoteEvent {
   againstCount: number;
   contested: boolean;
   flavor: string;
-  /** When a faction is pushing to repeal one of the founder's laws. */
+  /** Top repeal demand (back-compat). Mirrored inside lawDemands. */
   lawRepealRequest?: {
     lawId: string;
     lawTitle: string;
@@ -44,7 +58,20 @@ export interface CouncilVoteEvent {
     factionName: string;
     intensity: number;
   };
+  /** Top enact-new-law demand. */
+  lawEnactRequest?: {
+    lawId: string;
+    lawTitle: string;
+    factionId: string;
+    factionName: string;
+    intensity: number;
+  };
+  /** Full ranked list of demands raised this council. */
+  lawDemands?: CouncilLawDemand[];
+  /** Index into lawDemands the founder is currently addressing. */
+  activeDemandIndex?: number;
 }
+
 
 interface GenInput {
   survivors: Survivor[];
@@ -264,7 +291,35 @@ export const COUNCIL_ACTION_INFO: Record<CouncilAction, ActionInfo> = {
       "−20 relations with the leading opposition house",
     ],
   },
+  "enact-law": {
+    label: "Concede — write the law",
+    hint: "Sign the new law into the book. The petitioning faction is satisfied.",
+    cost: {},
+    effects: [
+      "Law added to the book; sponsoring faction stands down",
+      "+5 prestige to your house (statesmanship)",
+      "+4 'compassionate' reputation",
+    ],
+    risks: [
+      "Rival factions that hate the new law lose loyalty (−6)",
+      "Future councils will press for more changes",
+    ],
+  },
+  "refuse-enact": {
+    label: "Refuse — no new law",
+    hint: "The book is not opened. The petitioners walk out.",
+    cost: {},
+    effects: [
+      "No law is added",
+      "+3 'ruthless' reputation, +2 prestige to your house",
+    ],
+    risks: [
+      "Sponsoring faction loses 8 loyalty and will return louder",
+      "−15 relations with the sponsoring house",
+    ],
+  },
 };
+
 
 // ── Risk forecasting ─────────────────────────────────────────────
 
@@ -360,6 +415,25 @@ export function forecastActionRisk(
       backlash.push(`The opposing faction loses loyalty and remembers it`);
       backlash.push(`Relations with the leading opposition house drop sharply`);
       repShifts.push({ axis: "ruthless", delta: 4, reason: "holds the law by force" });
+      break;
+    }
+    case "enact-law": {
+      const demand = ev.lawDemands?.[ev.activeDemandIndex ?? 0];
+      score = 25;
+      if (demand?.opposedBy?.length) {
+        score = 25 + demand.opposedBy.length * 12;
+        backlash.push(`Resented by: ${demand.opposedBy.join(", ")}`);
+      }
+      backlash.push(`Rival factions will lose loyalty`);
+      backlash.push(`A precedent — more law petitions will follow`);
+      repShifts.push({ axis: "compassionate", delta: 4, reason: "answers the petition" });
+      break;
+    }
+    case "refuse-enact": {
+      score = 45;
+      backlash.push(`Sponsoring faction loses loyalty and remembers it`);
+      backlash.push(`Will return louder next council`);
+      repShifts.push({ axis: "ruthless", delta: 3, reason: "denies the petition" });
       break;
     }
   }
@@ -635,6 +709,41 @@ export function resolveCouncilVote(
       out.memoryText = `The founder held the line. "${ev.lawRepealRequest.lawTitle}" still stands.`;
       out.memoryEmotion = "fear";
       out.memoryWeight = 30;
+      out.tone = "bad";
+      return out;
+    }
+    case "enact-law": {
+      const demand = ev.lawDemands?.[ev.activeDemandIndex ?? 0];
+      if (!demand || demand.kind !== "enact") {
+        out.ok = false; out.title = "No law to enact"; out.body = ""; return out;
+      }
+      out.title = `The council writes "${demand.lawTitle}"`;
+      out.body = `${demand.factionName} carry the petition. The new law is read aloud and signed.`;
+      D(out.prestigeDeltas, ev.leaderHouseId, 5);
+      out.loyaltyDeltas.all = -2;
+      out.reputationDeltas.compassionate = 4;
+      out.memoryText = `The book grew thicker. "${demand.lawTitle}" is law of the ranch now.`;
+      out.memoryEmotion = "trust";
+      out.memoryWeight = 35;
+      out.tone = "neutral";
+      return out;
+    }
+    case "refuse-enact": {
+      const demand = ev.lawDemands?.[ev.activeDemandIndex ?? 0];
+      if (!demand || demand.kind !== "enact") {
+        out.ok = false; out.title = "No petition to refuse"; out.body = ""; return out;
+      }
+      out.title = `The book stays closed`;
+      out.body = `The porch refuses. ${demand.factionName} swallow the answer and walk out.`;
+      D(out.prestigeDeltas, ev.leaderHouseId, 2);
+      if (chId) {
+        out.relationsDelta = { a: ev.leaderHouseId, b: chId, delta: -15 };
+      }
+      out.loyaltyDeltas.all = -3;
+      out.reputationDeltas.ruthless = 3;
+      out.memoryText = `The founder closed the book on "${demand.lawTitle}".`;
+      out.memoryEmotion = "fear";
+      out.memoryWeight = 25;
       out.tone = "bad";
       return out;
     }
