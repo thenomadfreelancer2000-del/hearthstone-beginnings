@@ -44,6 +44,13 @@ import {
 export type Screen = "menu" | "founder" | "game";
 export type Overlay = "tree" | "family" | "chronicle" | null;
 
+// Module-level tick accumulator. Lives outside the store so it never
+// triggers React re-renders or save-game churn. tickReal accumulates
+// real-time ms here and only runs the (expensive) sim clone+advance
+// when enough time has passed for ≥1 simulation tick at the current speed.
+let _tickAccumMs = 0;
+let _tickAccumSpeed: number | null = null;
+
 export interface SelectionNone { kind: "none" }
 export interface SelectionSurvivor { kind: "survivor"; id: string }
 export interface SelectionBuilding { kind: "building"; id: string }
@@ -299,7 +306,7 @@ export const useGame = create<GameState>((set, get) => ({
 
   setScreen: (s) => set({ screen: s }),
   setOverlay: (o) => set({ overlay: o }),
-  setSpeed: (s) => set({ speed: s }),
+  setSpeed: (s) => { _tickAccumMs = 0; _tickAccumSpeed = null; set({ speed: s }); },
   selectSurvivor: (id) => set({ selection: { kind: "survivor", id } }),
   selectBuilding: (id) => set({ selection: { kind: "building", id } }),
   selectTile: (x, y) => set({ selection: { kind: "tile", x, y } }),
@@ -1193,12 +1200,22 @@ export const useGame = create<GameState>((set, get) => ({
 
   tickReal: (deltaMs) => {
     const st = get();
-    if (st.speed === 0 || st.screen !== "game") return;
+    if (st.speed === 0 || st.screen !== "game") { _tickAccumMs = 0; return; }
     if (st.pendingArrival) return; // pause while the player decides
     if (st.pendingCouncilVote) return; // pause during a council vote
     if (st.pendingFoundingCharter) return; // pause during the Founding Charter
     const tps = 8 * (st.speed === 1 ? 1 : st.speed === 2 ? 2 : 4);
-    const n = Math.max(1, Math.floor((deltaMs / 1000) * tps));
+    // Reset accumulator when speed changes to avoid stale residuals.
+    if (_tickAccumSpeed !== tps) { _tickAccumMs = 0; _tickAccumSpeed = tps; }
+    const msPerTick = 1000 / tps;
+    _tickAccumMs += deltaMs;
+    // Cap to avoid runaway catch-up after a long pause / tab-switch.
+    const maxBatch = 8;
+    let n = Math.floor(_tickAccumMs / msPerTick);
+    if (n <= 0) return; // not enough real time has passed — skip the clone entirely
+    if (n > maxBatch) { _tickAccumMs = 0; n = maxBatch; }
+    else { _tickAccumMs -= n * msPerTick; }
+
 
     const eng: Engine = {
       time: { ...st.time },

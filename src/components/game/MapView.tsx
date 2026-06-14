@@ -645,6 +645,7 @@ export function MapView() {
   const zoom = useView((s) => s.mapZoom);
   const smoothZoom = useView((s) => s.smooth);
   const setMapZoom = useView((s) => s.setMapZoom);
+  const centerRequestId = useView((s) => s.centerRequestId);
   const W = mapW * TILE;
   const H = mapH * TILE;
   const VW = W * zoom;
@@ -653,6 +654,35 @@ export function MapView() {
   useEffect(() => {
     expandWorldToCurrentSize();
   }, [expandWorldToCurrentSize]);
+
+  // Center on the ranch when the player requests it (button next to zoom).
+  useEffect(() => {
+    if (centerRequestId === 0) return;
+    const el = scrollRef.current;
+    if (!el) return;
+    // Prefer the claimed territory center; fall back to the homestead.
+    let cx = mapW / 2;
+    let cy = mapH / 2;
+    if (territory) { cx = territory.cx; cy = territory.cy; }
+    else {
+      const h = buildings.find(b => b.kind === "homestead");
+      if (h) { cx = h.x + h.w / 2; cy = h.y + h.h / 2; }
+    }
+    // Scroll after the zoom=1 layout has been applied.
+    requestAnimationFrame(() => {
+      const target = scrollRef.current;
+      if (!target) return;
+      const sx = cx * TILE * 1 - target.clientWidth / 2;
+      const sy = cy * TILE * 1 - target.clientHeight / 2;
+      target.scrollTo({
+        left: Math.max(0, sx),
+        top: Math.max(0, sy),
+        behavior: "smooth",
+      });
+    });
+  }, [centerRequestId, territory, buildings, mapW, mapH]);
+
+
 
   // Wheel + pinch zoom, anchored to pointer so the world doesn't slide away.
   useEffect(() => {
