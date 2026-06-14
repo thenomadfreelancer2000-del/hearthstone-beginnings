@@ -258,7 +258,8 @@ export type BuildingKind =
   | "campfire" | "stockpile"
   | "workbench" | "well" | "watchtower" | "field" | "farm-plot"
   | "water-collector" | "foraging-camp"
-  | "fence" | "palisade" | "stone-wall" | "gate" | "guard-post";
+  | "fence" | "palisade" | "stone-wall" | "gate" | "guard-post"
+  | "chicken-coop" | "goat-pen" | "sheep-pen" | "cattle-pasture";
 
 export interface Territory {
   cx: number;     // center tile x (usually homestead center)
@@ -285,6 +286,43 @@ export interface FarmState {
   matureSinceTick?: number | null;
 }
 
+export type AnimalSpecies = "chicken" | "goat" | "sheep" | "cattle";
+export type AnimalSex = "m" | "f";
+
+export interface Animal {
+  id: ID;
+  species: AnimalSpecies;
+  name?: string | null;
+  sex: AnimalSex;
+  ageDays: number;
+  bornTick: number;
+  health: number;          // 0..100
+  hunger: number;          // 0..100 (higher = hungrier)
+  ownerFamilyId: ID;
+  buildingId: ID | null;
+  pregnant: boolean;
+  pregnancyTick?: number | null;
+  lastProducedTick?: number | null;
+  dead?: boolean;
+  deathTick?: number | null;
+  deathCause?: "starvation" | "illness" | "old-age" | "slaughter" | null;
+}
+
+export type LivestockRequestStatus = "pending" | "approved" | "rejected" | "postponed";
+
+export interface LivestockRequest {
+  id: ID;
+  familyId: ID;
+  requesterId: ID;
+  kind: "start-raising" | "build-pen" | "expand";
+  species: AnimalSpecies;
+  buildingKind?: BuildingKind;
+  createdTick: number;
+  createdYear: number;
+  status: LivestockRequestStatus;
+  resolveAfterTick?: number;
+}
+
 export interface BuildingDef {
   kind: BuildingKind;
   name: string;
@@ -298,6 +336,8 @@ export interface BuildingDef {
   storageCapacity: number;
   social: boolean;
   produces?: { resource: ResourceKind; perDay: number } | null;
+  /** Livestock buildings: which species + how many fit. */
+  livestock?: { species: AnimalSpecies; capacity: number } | null;
 }
 
 export interface Building {
@@ -321,6 +361,8 @@ export interface Building {
   reservedFor?: ID | null;
   stored: Partial<Record<ResourceKind, number>>;
   farm?: FarmState | null;
+  /** Livestock buildings: which House owns this pen/coop/pasture. */
+  livestockOwnerFamilyId?: ID | null;
 }
 
 // ── Arrival events (transient, not persisted) ───────────────────
@@ -373,7 +415,7 @@ export interface SettlementStats {
 
 // ── Save Game ────────────────────────────────────────────────────
 export interface SaveGame {
-  version: 2 | 3;
+  version: 2 | 3 | 4;
   ranchName: string;
   seed: number;
   time: GameTime;
@@ -397,6 +439,9 @@ export interface SaveGame {
   territory?: { cx: number; cy: number; radius: number } | null;
   // Marriage proposals (v3+)
   proposals?: MarriageProposal[];
+  // Livestock (v4+)
+  animals?: Animal[];
+  livestockRequests?: LivestockRequest[];
   // Phase 3+ reservations (always present, empty for now):
   factions: unknown[];
   laws: unknown[];
