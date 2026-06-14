@@ -56,28 +56,31 @@ export function GameShell() {
         <MinisterRequestsPanel />
         <div
           className="absolute top-2 z-40 flex flex-col gap-1 items-end transition-all"
-          style={{ right: !isMobile && !inspectorCollapsed ? 348 : 8 }}
+          style={{ right: !isMobile && !inspectorCollapsed ? 348 : (!isMobile && inspectorCollapsed ? 40 : 8) }}
         >
           <button
             onClick={() => setLivestockOpen(true)}
-            className="btn-ranch btn-ranch-ghost text-[10px] px-2 py-1 backdrop-blur-sm bg-coal/70"
-            title="Open Livestock Ledger"
+            className="btn-ranch btn-ranch-ghost text-base px-2 py-1 backdrop-blur-sm bg-coal/70"
+            title="Livestock Ledger"
+            aria-label="Livestock"
           >
-            🐄 Livestock
+            🐄
           </button>
           <button
             onClick={() => setAdminOpen(true)}
-            className="btn-ranch btn-ranch-ghost text-[10px] px-2 py-1 backdrop-blur-sm bg-coal/70"
-            title="Administration & Managers"
+            className="btn-ranch btn-ranch-ghost text-base px-2 py-1 backdrop-blur-sm bg-coal/70"
+            title="Managers & Administration"
+            aria-label="Managers"
           >
-            ⚖ Managers
+            ⚖
           </button>
           <button
             onClick={() => setOverlay("tree")}
-            className="btn-ranch btn-ranch-ghost text-[10px] px-2 py-1 backdrop-blur-sm bg-coal/70"
+            className="btn-ranch btn-ranch-ghost text-base px-2 py-1 backdrop-blur-sm bg-coal/70"
             title="Dynasty Tree"
+            aria-label="Dynasty"
           >
-            🜲 Dynasty
+            🜲
           </button>
         </div>
         {livestockOpen && <LivestockPanel onClose={() => setLivestockOpen(false)} />}
