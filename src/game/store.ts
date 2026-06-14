@@ -387,6 +387,9 @@ export const useGame = create<GameState>((set, get) => ({
           },
         };
       }),
+      survivors: farmerId
+        ? st.survivors.map(s => s.id === farmerId ? { ...s, occupation: "farmer" as const } : s)
+        : st.survivors,
       pendingFarmSetup: st.pendingFarmSetup === buildingId ? null : st.pendingFarmSetup,
     });
   },
@@ -399,8 +402,12 @@ export const useGame = create<GameState>((set, get) => ({
           ? { ...b, farm: { ...b.farm, assignedFarmerId: farmerId } }
           : b
       ),
+      survivors: farmerId
+        ? st.survivors.map(s => s.id === farmerId ? { ...s, occupation: "farmer" as const } : s)
+        : st.survivors,
     });
   },
+
 
   setFarmCrop: (buildingId, cropId) => {
     const st = get();
