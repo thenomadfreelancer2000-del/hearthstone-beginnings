@@ -1124,20 +1124,7 @@ export function MapView() {
         })()}
 
 
-        {/* Resource nodes */}
-        {nodes.map((n) => {
-          if (n.amount <= 0) return null;
-          const depleted = n.amount < 30;
-          const cx = n.x * TILE + TILE / 2;
-          const cy = n.y * TILE + TILE / 2;
-          const seed = (n.id.charCodeAt(0) + n.id.charCodeAt(n.id.length - 1)) % 100;
-          const size = TILE * (n.kind === "trees" ? 1.3 : n.kind === "rocks" ? 1.05 : 0.95);
-          return (
-            <g key={n.id} transform={`translate(${cx - size / 2}, ${cy - size * 0.7})`} opacity={depleted ? 0.6 : 1}>
-              <NodeArt kind={n.kind} size={size} seed={seed} />
-            </g>
-          );
-        })}
+        <StaticResourceLayer nodes={nodes} width={W} height={H} />
 
         {/* Buildings */}
         {buildings.map((b) => {
