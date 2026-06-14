@@ -679,12 +679,6 @@ export function MapView() {
         height={H}
         viewBox={`0 0 ${W} ${H}`}
         className="block"
-        style={{
-          transform: `scale(${zoom})`,
-          transformOrigin: "0 0",
-          transition: "transform 180ms ease-out",
-          backgroundColor: TILE_PAL.grass.base,
-        }}
         shapeRendering="geometricPrecision"
         onMouseMove={(e) => {
           const p = svgToTile(e);
