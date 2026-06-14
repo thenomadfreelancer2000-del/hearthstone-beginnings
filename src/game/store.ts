@@ -1437,6 +1437,12 @@ export const useGame = create<GameState>((set, get) => ({
       lastChronicleId: lastId,
     });
 
+    // Resolve any expeditions that returned during this advance.
+    const expeditionPatch = resolveDueExpeditions(
+      get(), eng.time.tick, eng.time.year, eng.time.season, eng.time.day,
+    );
+    if (expeditionPatch) set(expeditionPatch);
+
     // Toast newly-required player proposals.
     const prevPending = new Set(st.proposals.filter(p => p.requiresPlayer && p.status === "pending").map(p => p.id));
     for (const p of eng.proposals) {
