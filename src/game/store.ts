@@ -123,6 +123,7 @@ interface GameState {
   setEducationFocus: (childId: ID, focus: "build" | "farm" | "lead" | "social" | "medic" | null) => void;
   newGame: (ranchName: string, founderInput: FounderInput) => void;
   setSurvivorPortrait: (survivorId: ID, portraitId: string) => void;
+  expandWorldToCurrentSize: () => void;
   resumeFromSave: () => boolean;
   save: () => boolean;
   tickReal: (deltaMs: number) => void;
@@ -157,6 +158,66 @@ const emptyStats = (year: number, dynasty: string): SettlementStats => ({
   foundedYear: year, generations: 0, dynastyName: dynasty,
   totalBorn: 0, totalDied: 0,
 });
+
+function expandSavedWorld(save: SaveGame): SaveGame {
+  if (save.mapW >= MAP_W && save.mapH >= MAP_H) return save;
+  const base = generateWorld(save.seed);
+  const dx = Math.floor((MAP_W - save.mapW) / 2);
+  const dy = Math.floor((MAP_H - save.mapH) / 2);
+  const inOldFootprint = (x: number, y: number) => x >= dx && x < dx + save.mapW && y >= dy && y < dy + save.mapH;
+  const shiftedTiles = save.tiles.map((t) => ({ ...t, x: t.x + dx, y: t.y + dy }));
+  const tileByKey = new Map(shiftedTiles.map((t) => [`${t.x}-${t.y}`, t]));
+  const tiles = base.tiles.map((t) => tileByKey.get(`${t.x}-${t.y}`) ?? t);
+  const resourceNodes = [
+    ...base.nodes.filter((n) => !inOldFootprint(n.x, n.y)),
+    ...save.resourceNodes.map((n) => ({ ...n, x: n.x + dx, y: n.y + dy })),
+  ];
+
+  return {
+    ...save,
+    mapW: MAP_W,
+    mapH: MAP_H,
+    tiles,
+    resourceNodes,
+    buildings: save.buildings.map((b) => ({ ...b, x: b.x + dx, y: b.y + dy })),
+    survivors: save.survivors.map((s) => ({
+      ...s,
+      x: s.x + dx,
+      y: s.y + dy,
+      ...(s.targetX == null ? {} : { targetX: s.targetX + dx }),
+      ...(s.targetY == null ? {} : { targetY: s.targetY + dy }),
+    })),
+    territory: save.territory ? { ...save.territory, cx: save.territory.cx + dx, cy: save.territory.cy + dy } : null,
+  };
+}
+
+function expandLiveWorld(st: GameState): Partial<GameState> | null {
+  if (st.mapW >= MAP_W && st.mapH >= MAP_H) return null;
+  const base = generateWorld(st.seed);
+  const dx = Math.floor((MAP_W - st.mapW) / 2);
+  const dy = Math.floor((MAP_H - st.mapH) / 2);
+  const inOldFootprint = (x: number, y: number) => x >= dx && x < dx + st.mapW && y >= dy && y < dy + st.mapH;
+  const shiftedTiles = st.tiles.map((t) => ({ ...t, x: t.x + dx, y: t.y + dy }));
+  const tileByKey = new Map(shiftedTiles.map((t) => [`${t.x}-${t.y}`, t]));
+  return {
+    mapW: MAP_W,
+    mapH: MAP_H,
+    tiles: base.tiles.map((t) => tileByKey.get(`${t.x}-${t.y}`) ?? t),
+    nodes: [
+      ...base.nodes.filter((n) => !inOldFootprint(n.x, n.y)),
+      ...st.nodes.map((n) => ({ ...n, x: n.x + dx, y: n.y + dy })),
+    ],
+    buildings: st.buildings.map((b) => ({ ...b, x: b.x + dx, y: b.y + dy })),
+    survivors: st.survivors.map((s) => ({
+      ...s,
+      x: s.x + dx,
+      y: s.y + dy,
+      ...(s.targetX == null ? {} : { targetX: s.targetX + dx }),
+      ...(s.targetY == null ? {} : { targetY: s.targetY + dy }),
+    })),
+    territory: st.territory ? { ...st.territory, cx: st.territory.cx + dx, cy: st.territory.cy + dy } : null,
+  };
+}
 
 // arrivals roughly every ~6 game days at 1x speed
 const ARRIVAL_CHECK_TICKS = 240 * 3; // every 3 days
@@ -195,6 +256,11 @@ export const useGame = create<GameState>((set, get) => ({
   foundingPhase: false,
   territory: null,
   borderMode: false,
+
+  expandWorldToCurrentSize: () => {
+    const expanded = expandLiveWorld(get());
+    if (expanded) set(expanded);
+  },
 
   setScreen: (s) => set({ screen: s }),
   setOverlay: (o) => set({ overlay: o }),
@@ -757,8 +823,9 @@ export const useGame = create<GameState>((set, get) => ({
   },
 
   resumeFromSave: () => {
-    const save = loadFromLocal();
-    if (!save) return false;
+    const rawSave = loadFromLocal();
+    if (!rawSave) return false;
+    const save = expandSavedWorld(rawSave);
     set({
       screen: "game",
       overlay: null,
