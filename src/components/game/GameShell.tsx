@@ -54,7 +54,10 @@ export function GameShell() {
         <MarriageProposalsPanel />
         <LivestockRequestsPanel />
         <MinisterRequestsPanel />
-        <div className="absolute top-2 right-2 z-40 flex flex-col gap-1 items-end">
+        <div
+          className="absolute top-2 z-40 flex flex-col gap-1 items-end transition-all"
+          style={{ right: !isMobile && !inspectorCollapsed ? 348 : 8 }}
+        >
           <button
             onClick={() => setLivestockOpen(true)}
             className="btn-ranch btn-ranch-ghost text-[10px] px-2 py-1 backdrop-blur-sm bg-coal/70"
@@ -76,21 +79,23 @@ export function GameShell() {
           >
             🜲 Dynasty
           </button>
-          {!isMobile && (
-            <button
-              onClick={() => setInspectorCollapsed((v) => !v)}
-              className="btn-ranch btn-ranch-ghost text-[10px] px-2 py-1 backdrop-blur-sm bg-coal/70"
-              title={inspectorCollapsed ? "Show inspector" : "Hide inspector"}
-            >
-              {inspectorCollapsed ? "◀ Inspector" : "▶ Hide Panel"}
-            </button>
-          )}
         </div>
         {livestockOpen && <LivestockPanel onClose={() => setLivestockOpen(false)} />}
         {adminOpen && <AdministrationPanel onClose={() => setAdminOpen(false)} />}
 
 
-        {!isMobile && !inspectorCollapsed && <Inspector />}
+        {!isMobile && (
+          <div className="flex">
+            <button
+              onClick={() => setInspectorCollapsed((v) => !v)}
+              className="self-start mt-2 z-40 btn-ranch btn-ranch-ghost text-[10px] px-1.5 py-3 backdrop-blur-sm bg-coal/80"
+              title={inspectorCollapsed ? "Show inspector" : "Hide inspector"}
+            >
+              {inspectorCollapsed ? "◀" : "▶"}
+            </button>
+            {!inspectorCollapsed && <Inspector />}
+          </div>
+        )}
 
         {/* Mobile inspector as right drawer */}
         {isMobile && showInspector && (
