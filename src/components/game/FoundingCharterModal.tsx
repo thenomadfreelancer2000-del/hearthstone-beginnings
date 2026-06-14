@@ -33,7 +33,8 @@ export function FoundingCharterModal() {
   };
 
   const pickedCount = Object.values(picked).filter(Boolean).length;
-  const canSign = pickedCount >= 3; // require at least 3 domains chosen
+  const canSign = pickedCount >= MIN_PICKS;
+
 
   const sign = () => {
     const ids = Object.values(picked).filter((x): x is string => !!x);
