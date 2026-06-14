@@ -498,12 +498,12 @@ function StepValues({
 }) {
   const bg = BACKGROUNDS.find((b) => b.id === founder.background);
   return (
-    <section className="space-y-5">
+    <section className="space-y-3 sm:space-y-5">
       <div className="flex items-baseline justify-between">
-        <p className="ranch-label">Selected</p>
-        <span className="ranch-data">{values.length} / 2</span>
+        <p className="ranch-label text-[10px] sm:text-xs">Selected</p>
+        <span className="ranch-data text-xs">{values.length} / 2</span>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 sm:gap-2">
         {VALUES.map((v) => {
           const active = values.includes(v);
           const disabled = !active && values.length >= 2;
@@ -512,7 +512,7 @@ function StepValues({
               key={v}
               disabled={disabled}
               onClick={() => toggle(v)}
-              className={`btn-ranch ${active ? "btn-ranch-primary" : ""}`}
+              className={`btn-ranch !py-1.5 sm:!py-2 text-xs sm:text-sm ${active ? "btn-ranch-primary" : ""}`}
             >
               {v}
             </button>
@@ -520,24 +520,24 @@ function StepValues({
         })}
       </div>
 
-      <div className="parchment-panel-warm corner-brackets p-3 sm:p-6 mt-4">
-        <p className="ranch-label mb-3">The Founder</p>
-        <p className="ranch-display text-2xl sm:text-3xl mb-1">
+      <div className="parchment-panel-warm corner-brackets p-2.5 sm:p-6 mt-2 sm:mt-4">
+        <p className="ranch-label text-[9px] sm:text-xs mb-1.5 sm:mb-3">The Founder</p>
+        <p className="ranch-display text-lg sm:text-3xl mb-0.5 sm:mb-1 leading-tight">
           {founder.firstName} {founder.surname}
         </p>
-        <p className="ranch-display italic text-dust-light mb-4">of {founder.ranchName}</p>
+        <p className="ranch-display italic text-dust-light text-xs sm:text-base mb-2 sm:mb-4">of {founder.ranchName}</p>
 
-        <dl className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+        <dl className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-3 text-xs sm:text-sm">
           <div>
-            <dt className="ranch-label text-[9px] mb-1">Before</dt>
+            <dt className="ranch-label text-[8px] sm:text-[9px] mb-0.5 sm:mb-1">Before</dt>
             <dd className="text-parchment">{bg?.name}</dd>
           </div>
           <div>
-            <dt className="ranch-label text-[9px] mb-1">Traits</dt>
+            <dt className="ranch-label text-[8px] sm:text-[9px] mb-0.5 sm:mb-1">Traits</dt>
             <dd className="text-parchment">{founder.traits.join(", ")}</dd>
           </div>
           <div>
-            <dt className="ranch-label text-[9px] mb-1">Vows</dt>
+            <dt className="ranch-label text-[8px] sm:text-[9px] mb-0.5 sm:mb-1">Vows</dt>
             <dd className="text-parchment">{values.length ? values.join(", ") : "—"}</dd>
           </div>
         </dl>
