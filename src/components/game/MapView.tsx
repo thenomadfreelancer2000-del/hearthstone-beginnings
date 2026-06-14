@@ -668,14 +668,17 @@ export function MapView() {
   }
 
   return (
-    <div className="flex-1 relative overflow-auto scroll-amber bg-coal grain">
+    <div
+      className="flex-1 relative overflow-auto scroll-amber grain"
+      style={{ backgroundColor: TILE_PAL.grass.base }}
+    >
+      <div style={{ width: VW, height: VH, position: "relative" }}>
       <svg
         ref={ref}
-        width={VW}
-        height={VH}
+        width={W}
+        height={H}
         viewBox={`0 0 ${W} ${H}`}
         className="block"
-
         shapeRendering="geometricPrecision"
         onMouseMove={(e) => {
           const p = svgToTile(e);
@@ -704,7 +707,13 @@ export function MapView() {
           if (borderMode) { exitBorderMode(); return; }
           if (buildPlacement) cancelBuild();
         }}
-        style={{ cursor: (buildPlacement || borderMode) ? "crosshair" : "default" }}
+        style={{
+          transform: `scale(${zoom})`,
+          transformOrigin: "0 0",
+          transition: "transform 180ms ease-out",
+          backgroundColor: TILE_PAL.grass.base,
+          cursor: (buildPlacement || borderMode) ? "crosshair" : "default",
+        }}
       >
         <defs>
           <pattern id="water-pat" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
@@ -947,6 +956,7 @@ export function MapView() {
 
         <rect x={0} y={0} width={W} height={H} fill="url(#vignette)" pointerEvents="none" />
       </svg>
+      </div>
     </div>
   );
 }
