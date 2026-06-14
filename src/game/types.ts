@@ -32,7 +32,7 @@ export type ResourceKind = "wood" | "stone" | "food" | "water" | "fiber" | "tool
 
 export interface ResourceNode {
   id: ID;
-  kind: "trees" | "rocks" | "berries" | "well";
+  kind: "trees" | "rocks" | "berries" | "well" | "fiber-grass";
   x: number;
   y: number;
   yields: ResourceKind;
