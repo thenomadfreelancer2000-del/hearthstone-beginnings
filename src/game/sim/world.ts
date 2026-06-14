@@ -113,6 +113,14 @@ export function generateWorld(seed: number): GenOut {
       };
       nodes.push(n);
       t.resourceNodeId = n.id;
+    } else if (t.kind === "tall-grass" && chance(rng, 0.22)) {
+      // Wild fiber plants — flax / hemp / nettles, gathered by foragers.
+      const n: ResourceNode = {
+        id: nanoid(8), kind: "fiber-grass", x: t.x, y: t.y,
+        yields: "fiber", amount: rangeInt(rng, 14, 28), max: 28, regrowsPerDay: 1.0,
+      };
+      nodes.push(n);
+      t.resourceNodeId = n.id;
     }
   }
 
