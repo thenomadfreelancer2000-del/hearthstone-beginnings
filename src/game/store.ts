@@ -1490,9 +1490,11 @@ export const useGame = create<GameState>((set, get) => ({
 }));
 
 function territoryAcres(radius: number): number {
-  // 1 tile ≈ 0.1 acre (arbitrary but readable scale).
-  return Math.max(1, Math.round(Math.PI * radius * radius * 0.1));
+  // Square bbox: side = 2*radius. 1 tile ≈ 0.1 acre (arbitrary but readable).
+  const side = 2 * radius;
+  return Math.max(1, Math.round(side * side * 0.1));
 }
+
 
 function maybeCompleteFounding(
   get: () => GameState,
