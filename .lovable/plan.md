@@ -1,89 +1,81 @@
-# People, Personalities & Memories Update
+# Dynastic Marriage & House Prestige
 
-Building on the existing Skills / Houses / Marriage / Children / Opinions systems, this update gives survivors *reasons* to like, dislike, remember, and react. Everything extends current systems — no rebuilds, saves stay forward-compatible (new fields optional with defaults).
+This is an additive update layered on top of the existing Families, Housing, Memories, Opinions, Prestige and Authority systems. **Nothing in those systems is rebuilt or replaced.** The existing `Family` already maps 1:1 to a "House" — we surface it as such in the UI and add a proposal/approval flow on top of the current `attraction`/`affection`-driven marriage in `engine.ts`.
 
----
+## What changes (functional)
 
-## Phase 1 — Personality Traits
+1. **Houses = Families, surfaced explicitly.**
+   - No new data model. `Family` becomes "House of {name}" in UI strings.
+   - "House Head" already exists via `headOfFamily()` in `families.ts` — we expose it on the family panel header and use it for approval decisions.
 
-**Files:** `src/game/data/traits.ts` (new), `src/game/types.ts`, `src/game/sim/world.ts` (survivor generation)
+2. **Relationship stages — remove "Dating".**
+   - Currently `RelationshipTag` has no "dating" stage, but Inspector / labels may mention it. New display ladder derived from existing numeric stats (no schema change):
+     - Stranger → Acquaintance → Friend → Close Friend → Romantic Interest → Engaged → Married
+   - Mapped from `interactions`, `affection`, `attraction`, plus new `engagedTick` flag.
 
-- Replace the current narrow `Trait` union with a richer catalog split into **Positive / Neutral / Negative** tiers (Hardworking, Loyal, Compassionate, Brave, Honest, Friendly, Quiet, Curious, Independent, Lazy, Greedy, Aggressive, Jealous, Selfish, Cowardly, plus keep the existing ones).
-- Each trait gets metadata: `tier`, `opposites[]` (e.g. Hardworking ↔ Lazy), `synergies[]`, and small numeric modifiers `{ workSpeed?, opinionBias?, marriageWeight?, courageMod?, refugeeBias? }`.
-- Survivor generation: roll **2–4** traits with no contradictions (never both Hardworking + Lazy on the same person).
-- Effects wired into:
-  - **Work** (`ai.ts` / `engine.ts`): Hardworking +work speed, Lazy −work speed, Brave/Cowardly affect dangerous tasks.
-  - **Opinions** (Phase 5): trait-pair bias on every interaction.
-  - **Marriage** (`housing.ts` matchmaking): compatibility multiplier from trait synergy/opposition.
-  - **Refugee decisions**: Compassionate survivors get a mood penalty when the founder rejects arrivals; Selfish get a small bonus.
+3. **New: engagement step before marriage.**
+   - Add optional fields on `Survivor`: `fianceId?`, `engagedTick?`, `engagedYear?`.
+   - Add optional fields on `Relationship`: `engagedTick?`.
+   - In `processMarriages` (engine.ts): when a pair passes the existing attraction/affection threshold, **don't auto-marry**. Instead create a `MarriageProposal`.
 
-## Phase 2 — Memory System
+4. **New: MarriageProposal queue (transient, persisted in save).**
+   ```ts
+   interface MarriageProposal {
+     id; aId; bId;
+     aFamilyId; bFamilyId;
+     createdTick; createdYear;
+     attraction; compatibility; familyApproval;
+     prestigeA; prestigeB;
+     expectedPrestigeDelta; expectedRelationDelta;
+     status: "pending" | "approved" | "rejected" | "postponed";
+     // Founder dynasty proposals require player decision; others auto-resolve via House Heads.
+     requiresPlayer: boolean;
+   }
+   ```
+   - Added to `SaveGame` (version bumped to 3; old saves migrate with empty `proposals: []`).
 
-**Files:** `src/game/sim/memory.ts` (new), `src/game/types.ts` (extend `Memory`), hooks in arrival/birth/marriage/death/construction code.
+5. **Resolution logic.**
+   - **Non-founder houses:** auto-resolved by simulated House Head decision using prestige delta, family relation, compatibility. Same tick (no UI required).
+   - **Founder's House involvement:** `requiresPlayer = true`, sim pauses marriage of that pair until player acts (Approve / Reject / Postpone). Other proposals continue normally.
 
-- Extend `Memory` with: `kind` (founder-accepted, founder-rejected-kin, survived-drought, first-house, child-born, spouse-died, helped-by, wronged-by, …), `decayRate`, `floor` (minimum weight it decays to — major memories never vanish).
-- New `addMemory(survivor, kind, opts)` helper called from existing event sites (arrival accept/reject, birth, marriage, death, harvest, starvation, construction completion).
-- Daily tick: weight decays toward `floor` (big events floor at ~30%, trivial ones at 0).
-- Memories surface in the Survivor Inspector as a scrollable "Recollections" list, newest first, color-coded by emotion.
+6. **Prestige-based effects on marriage outcome** (executed in `marry()`):
+   - Equal-prestige union (both ≥ 60): +bonus prestige to both, +30 relation, chronicle "prestigious union".
+   - Big gap (>40): smaller bonus for high house, family-dissatisfaction memories for high-house kin, mild loyalty hit, chronicle "married beneath their status".
+   - Already-implemented basics in `marry()` are kept; we just extend the deltas.
 
-## Phase 3 — Founder Reputation
+7. **Arranged marriages (Founder only).**
+   - New action on Founder-house single adult inspector: "Arrange marriage…" → modal lists eligible candidates (opposite gender, of age, not kin, not married) with: name/age/House/House Prestige/Attraction/Compatibility/Family Approval/expected prestige delta/expected relation delta.
+   - Choosing one creates a player-initiated proposal that is auto-approved on the Founder side; the other House Head still decides (simulated).
 
-**Files:** `src/game/sim/reputation.ts` (new), `src/game/store.ts`, `src/components/game/LeaderProfile.tsx`.
+8. **Family reactions / memories.**
+   - On marriage resolution add categorical memories ("married-beneath", "prestigious-union", "founder-arranged") to relatives of both houses, fueling existing mood/loyalty/contagion in `families.ts`.
 
-- Replace the single `reputation` number with a **reputation profile**: `{ compassionate, ruthless, builder, provider, warlike, honest }` each 0–100.
-- Actions push scores: accept refugees → Compassionate; reject → Ruthless; finish a house → Builder; full granary / good harvest → Provider; etc.
-- Derive a public **title** ("The Compassionate", "The Builder", "The Ruthless") from the dominant axis once any score crosses 60.
-- Display in LeaderProfile and TopBar (small badge). Arrivals' opening blurb varies by reputation (compassionate ranches attract more refugees, ruthless ones attract drifters/soldiers).
+9. **UI surfaces.**
+   - `FamilyPanel.tsx`: header reads "House of {name}", show House Head row + House Prestige (already shown) + member count.
+   - New `MarriageProposalsPanel` shown in the top dock when at least one player-required proposal exists. Cards show all comparison stats; Approve / Reject / Postpone buttons.
+   - New `ArrangeMarriageModal` opened from Inspector on Founder-house single adults.
+   - `Inspector.tsx` relationship row: show new stage labels and "Engaged" / "Fiancé" badge.
 
-## Phase 4 — Important Events & Settlement Mood
+## Technical details
 
-**Files:** `src/game/sim/events.ts` (new thin layer), `src/game/store.ts`, chronicle hooks.
+- Files added:
+  - `src/game/sim/marriage.ts` — proposal generation, compatibility calc, House Head approval AI, resolution.
+  - `src/components/game/MarriageProposalsPanel.tsx`
+  - `src/components/game/ArrangeMarriageModal.tsx`
+  - `src/game/sim/relationshipStages.ts` — pure helper mapping `(Relationship, survivors)` → stage label, reused by Inspector and panels.
+- Files edited:
+  - `src/game/types.ts` — add `MarriageProposal`, optional `fianceId/engagedTick/engagedYear` on `Survivor`, `engagedTick` on `Relationship`, `proposals: MarriageProposal[]` on `SaveGame` (version → 3).
+  - `src/game/store.ts` — actions: `decideProposal(id, "approve"|"reject"|"postpone")`, `arrangeMarriage(initiatorId, targetId)`; selectors for player-required proposals.
+  - `src/game/persistence.ts` — migrate v2 → v3 (add empty `proposals`).
+  - `src/game/sim/engine.ts` — replace direct `marry()` in `processMarriages` with `enqueueProposal()`; tick `resolveAutoProposals()` each day.
+  - `src/components/game/Inspector.tsx` — new stage labels, "Arrange marriage" action for Founder house.
+  - `src/components/game/FamilyPanel.tsx` — "House of" wording, House Head row stays as already implemented.
+  - `src/components/game/TopBar.tsx` or `BottomDock.tsx` — mount `MarriageProposalsPanel` indicator/badge when pending player proposals exist.
 
-- Centralize event reactions so every system fires through one function `recordEvent(kind, payload)` which:
-  1. Adds chronicle entry (already exists).
-  2. Adjusts settlement mood (+ birth/marriage/good harvest, − death/starvation/rejection).
-  3. Adds memories to involved + witnessing survivors (proximity-based).
-  4. Bumps founder reputation axes.
-- Starvation and child-deaths get **large** penalties with long-lasting memories ("My child starved under your roof").
+- Children/dynasty: **no changes needed.** Existing `processBirths` already inherits `familyId`, surname (via `marry()` lead-house rule), and generation. Documented as preserved.
 
-## Phase 5 — Friends & Rivals
+- Save migration: bump `SaveGame.version` from `2` to `3`, default `proposals: []` and treat missing `fianceId` etc. as absent. Old saves load.
 
-**Files:** `src/game/sim/relationships.ts` (extend), `src/components/game/Inspector.tsx`.
+## Out of scope (preserve as-is)
 
-- Derive tag from existing `affection` / `friendship` / `rivalry` values:
-  - ≥ +80 → **Best Friend**
-  - +40..+79 → Friend
-  - −40..−79 → Rival
-  - ≤ −80 → **Enemy**
-- Trait interactions modify daily relationship drift: Hardworking↔Lazy −1/day, Loyal↔Honest +1/day, Jealous near a higher-status survivor +rivalry, etc.
-- Behaviors:
-  - **Friends** seek each other for `socialize` actions, give small mood boosts.
-  - **Enemies** avoid sharing tasks; occasional "argument" tick → mood penalty and a `wronged-by` memory.
-  - **Rumors** (lightweight): low chance per day an Enemy spreads a `wronged-by` memory to a mutual Friend, nudging that third party's opinion of the target.
-- Inspector shows "Friends" and "Rivals" lists with the derived tag.
-
----
-
-## Technical notes
-
-- No new dependencies.
-- All new fields on `Survivor` / `Relationship` are optional; loader fills defaults so old saves still work.
-- Each phase ships behind a feature flag in `store.ts` so we can disable any single layer if balance breaks.
-- Roughly 12 files touched, ~900 LOC.
-
-## Out of scope (confirm before I expand)
-
-- Faction-level politics or laws (still parked under Phase 3+ placeholders in types).
-- Player-driven matchmaking or arranged marriages.
-- Combat between rivals (only verbal arguments here).
-- Visual portraits reacting to mood.
-
----
-
-**Shipping options — pick one:**
-
-1. **All five phases in one pass** (big PR, fully integrated).
-2. **Split A:** Phases 1–2 first (Traits + Memory) so you can feel it, then 3–5.
-3. **Split B:** Phases 1, 2, 5 first (the "felt" personality loop), then 3 + 4 (founder-facing reputation and event mood).
-
-Which split, and is anything in "Out of scope" actually in scope for you?
+Housing logic, family/relations contagion, memory decay, opinion/authority, prestige drift, heirs/succession, family trees, children inheritance. All untouched except for additive memory emits and additive prestige bumps inside the existing `marry()` function.
