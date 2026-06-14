@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useGame } from "@/game/store";
 import { useView } from "@/game/viewStore";
 import { BUILDINGS } from "@/game/data/content";
-import type { Tile } from "@/game/types";
+import type { ResourceNode, Tile } from "@/game/types";
 
 const TILE = 28;
 
@@ -731,6 +731,136 @@ const StaticTileLayers = React.memo(function StaticTileLayers({ tiles, width, he
 
   if (!terrainUrl) return <rect x={0} y={0} width={width} height={height} fill={TILE_PAL.grass.base} />;
   return <image href={terrainUrl} x={0} y={0} width={width} height={height} preserveAspectRatio="none" />;
+});
+
+const StaticResourceLayer = React.memo(function StaticResourceLayer({ nodes, width, height }: { nodes: ResourceNode[]; width: number; height: number }) {
+  const [resourceUrl, setResourceUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    let url: string | null = null;
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    for (const n of nodes) {
+      if (n.amount <= 0) continue;
+      const depleted = n.amount < 30;
+      ctx.globalAlpha = depleted ? 0.55 : 1;
+      const cx = n.x * TILE + TILE / 2;
+      const cy = n.y * TILE + TILE / 2;
+      const size = TILE * (n.kind === "trees" ? 1.3 : n.kind === "rocks" ? 1.05 : 0.95);
+      const x = cx;
+      const y = cy - size * 0.2;
+      ctx.fillStyle = PAL.shadow;
+      ctx.beginPath();
+      ctx.ellipse(x, cy + size * 0.25, size * 0.24, size * 0.05, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.globalAlpha = depleted ? 0.65 : 1;
+
+      if (n.kind === "trees") {
+        ctx.fillStyle = "#3d2810";
+        ctx.strokeStyle = PAL.ink;
+        ctx.lineWidth = 0.8;
+        ctx.fillRect(x - size * 0.04, y + size * 0.18, size * 0.08, size * 0.36);
+        ctx.strokeRect(x - size * 0.04, y + size * 0.18, size * 0.08, size * 0.36);
+        ctx.fillStyle = "#3d5226";
+        ctx.beginPath();
+        ctx.moveTo(x, y - size * 0.22);
+        ctx.lineTo(x - size * 0.32, y + size * 0.25);
+        ctx.lineTo(x + size * 0.32, y + size * 0.25);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#4a6235";
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.lineTo(x - size * 0.26, y + size * 0.38);
+        ctx.lineTo(x + size * 0.26, y + size * 0.38);
+        ctx.closePath();
+        ctx.fill();
+      } else if (n.kind === "rocks") {
+        ctx.fillStyle = "#8a8175";
+        ctx.strokeStyle = PAL.ink;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x - size * 0.3, cy + size * 0.2);
+        ctx.lineTo(x - size * 0.18, cy - size * 0.18);
+        ctx.lineTo(x + size * 0.08, cy - size * 0.28);
+        ctx.lineTo(x + size * 0.32, cy - size * 0.08);
+        ctx.lineTo(x + size * 0.36, cy + size * 0.2);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#aaa094";
+        ctx.beginPath();
+        ctx.moveTo(x - size * 0.18, cy - size * 0.18);
+        ctx.lineTo(x + size * 0.08, cy - size * 0.28);
+        ctx.lineTo(x, cy - size * 0.02);
+        ctx.closePath();
+        ctx.fill();
+      } else if (n.kind === "fiber-grass") {
+        ctx.strokeStyle = "#a89548";
+        ctx.lineWidth = 1;
+        for (const off of [-0.15, 0, 0.15]) {
+          ctx.beginPath();
+          ctx.moveTo(x + size * off, cy + size * 0.22);
+          ctx.lineTo(x + size * (off + 0.04), cy - size * 0.26);
+          ctx.stroke();
+          ctx.fillStyle = "#e6d68a";
+          ctx.beginPath();
+          ctx.arc(x + size * (off + 0.04), cy - size * 0.26, size * 0.045, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      } else {
+        ctx.fillStyle = "#3d5226";
+        ctx.strokeStyle = PAL.ink;
+        ctx.lineWidth = 0.8;
+        ctx.beginPath();
+        ctx.arc(x, cy, size * 0.25, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = "#a83a3a";
+        for (const [ox, oy] of [[-0.08, -0.04], [0.1, -0.08], [0.03, 0.12]]) {
+          ctx.beginPath();
+          ctx.arc(x + size * ox, cy + size * oy, size * 0.045, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+    ctx.globalAlpha = 1;
+
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const nextUrl = URL.createObjectURL(blob);
+      if (cancelled) {
+        URL.revokeObjectURL(nextUrl);
+        return;
+      }
+      url = nextUrl;
+      setResourceUrl(nextUrl);
+    }, "image/png");
+
+    return () => {
+      cancelled = true;
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [nodes, width, height]);
+
+  if (!resourceUrl) return null;
+  return <image href={resourceUrl} x={0} y={0} width={width} height={height} preserveAspectRatio="none" pointerEvents="none" />;
+}, (prev, next) => {
+  if (prev.width !== next.width || prev.height !== next.height || prev.nodes.length !== next.nodes.length) return false;
+  for (let i = 0; i < prev.nodes.length; i++) {
+    const a = prev.nodes[i];
+    const b = next.nodes[i];
+    if (a.id !== b.id || a.amount !== b.amount || a.x !== b.x || a.y !== b.y || a.kind !== b.kind) return false;
+  }
+  return true;
 });
 
 
