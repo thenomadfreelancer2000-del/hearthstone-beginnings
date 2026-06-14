@@ -1,124 +1,121 @@
-# Livestock, Ranching & Family Livestock Update
+# Grand Politics, Power & Governance — Phased Plan
 
-Additive layer on top of the existing game. Nothing rebuilt; saves migrate v3 → v4 with empty livestock arrays so old saves keep working. Existing construction, family, marriage, prestige, housing, authority and opinion systems are untouched except for additive hooks (new memory kinds, prestige bumps, request events).
+This update is **additive**. Existing systems (Families, Ministers, Authority, Reputation, Marriage, Heirs, Livestock, Memories) keep their current behavior. New politics layers read from them and write back into them.
 
-## 1. Data model (src/game/types.ts)
+The 24 requested systems are grouped into 5 phases. Each phase is independently shippable and playable. After each phase we pause so you can play it and steer the next one.
 
-New types, all optional on `SaveGame`:
+---
 
-```ts
-type AnimalSpecies = "chicken" | "goat" | "sheep" | "cattle";
-type AnimalSex = "m" | "f";
+## Shared foundation (built once, used by every phase)
 
-interface Animal {
-  id: ID;
-  species: AnimalSpecies;
-  name?: string | null;          // optional, cattle/goats often named
-  sex: AnimalSex;
-  ageDays: number;
-  bornTick: number;
-  health: number;                // 0..100
-  hunger: number;                // 0..100 (higher = hungrier)
-  ownerFamilyId: ID;             // every animal belongs to a House
-  buildingId: ID | null;         // pen/coop/pasture it lives in (null = wild/unhoused)
-  pregnant: boolean;
-  pregnancyTick?: number | null;
-  lastProducedTick?: number | null;
-  dead?: boolean;
-  deathTick?: number | null;
-  deathCause?: "starvation" | "illness" | "old-age" | "slaughter" | null;
-}
+A new module `src/game/sim/politics.ts` plus types added (not replaced) on `Family` in `src/game/types.ts`:
 
-interface LivestockRequest {
-  id: ID;
-  familyId: ID;
-  requesterId: ID;               // survivor who wants it
-  kind: "start-raising" | "build-pen" | "expand";
-  species: AnimalSpecies;
-  buildingKind?: BuildingKind;   // e.g. "goat-pen"
-  createdTick: number; createdYear: number;
-  status: "pending" | "approved" | "rejected" | "postponed";
-}
-```
+- `politicalPower: number` — derived each year from prestige, influence, wealth, population, offices held, marriage alliances, achievements.
+- `reputationTags: string[]` — derived labels (Loyal, Ambitious, Wealthy, Ruthless…) computed from existing reputation + behavior.
+- `agenda: { primary, secondary }` — short list, recomputed yearly from family state.
+- `favors: { fromFamilyId, kind, year, weight }[]` — favors & insults ledger.
+- `alliances: { withFamilyId, source, strength, since }[]`
+- `rivalries: { withFamilyId, cause, intensity, since }[]`
+- `blocId: string | null`
+- `history: { year, kind, text }[]` — per-family chronicle.
 
-`SaveGame` gains `animals?: Animal[]`, `livestockRequests?: LivestockRequest[]`, version bumps to 4. Persistence migrates v3 → v4 by defaulting both to `[]`.
+A new top-level store slice `politics`:
+- `councilSeats: { familyId, seat, since }[]`
+- `blocs: { id, name, kind, memberFamilyIds }[]`
+- `officeVacancies: { office, candidates, openedYear }[]`
+- `familyDemands: { id, fromFamilyId, kind, payload, status }[]`
+- `heirSupport: { heirId: percent }`
+- `successionFactions: { heirId, supporters }[]`
+- `politicalChronicle: { year, kind, text }[]`
+- `stability: number` (0–100)
 
-New `Occupation` value: `"rancher"`. New `Skills` field: `ranch: number` (0..30 clamp at use site to honor the doc's range; storage stays the existing 0..100 to avoid touching every skill helper).
+None of this overwrites existing `family.prestige`, `family.wealth`, `family.relations`, survivor `memories`, or the ministers system — they are inputs.
 
-## 2. Buildings (src/game/data/content.ts + types.ts)
+---
 
-New `BuildingKind`s + defs (all non-residential, social=false, with `livestock?: { species; capacity }` meta on the def):
+## Phase 1 — Power, Council, Reputation surface (systems 1, 2, 11, 12, 13, 17)
 
-- `chicken-coop`  cap 8   produces eggs
-- `goat-pen`      cap 6   produces milk
-- `sheep-pen`     cap 6   produces wool + fiber
-- `cattle-pasture` cap 4  produces milk (large footprint)
+Goal: every house has a visible Political Power score; major houses sit on a Council; Authority and Influence become first-class political dials.
 
-Buildings get an optional `livestockOwnerFamilyId` on the `Building` instance (assigned at placement / arranged on first delivery). `assignedWorkerId` already exists and is reused for the assigned Rancher. New resources: `eggs`, `milk`, `wool`. (Wool can later feed cloth; for now it just accumulates.)
+- Compute `politicalPower` yearly in `politics.ts` from existing prestige + new wealth roll-up + population + offices + marriage alliances + achievements.
+- House Wealth roll-up: sum of family-owned farm plots, livestock shares, building stored resources attributed to occupants.
+- Add a "Politics" tab to BottomDock with three sub-panels:
+  - **Council** — list of seated houses with Head, Power, Prestige, Influence, current office.
+  - **Houses** — every family ranked by Political Power with reputation tags.
+  - **Stability** — Authority, Influence, food, housing, satisfaction, inequality bars.
+- Authority/Influence: hook existing Authority into stability and cooperation modifier on demands.
 
-Construction flow, costs, builder assignment, stockpile delivery — all reuse the existing `construction.ts` pipeline. We just register new defs.
+Ship checkpoint: you can open Politics → see house rankings and the first Council form.
 
-UI: Build menu groups by category; we add a new `"Livestock"` group in `BottomDock`/build palette filtered on `def.category === "livestock"` (new optional field on `BuildingDef`).
+---
 
-## 3. Simulation (src/game/sim/livestock.ts — new)
+## Phase 2 — Offices, Candidates, Demands, Negotiation (systems 3, 4, 5, 6, 7, 14, 15)
 
-Pure daily/seasonal ticks called from `engine.ts`:
+Goal: ministers become political offices families compete for, and families file demands you must decide.
 
-- `tickAnimals(state)` — per animal: increment `ageDays`, raise `hunger`, decay `health` when starving / no shelter, consume `food` from the pen's `stored` or settlement `resources` (rancher present multiplies efficiency, capped by skill 0..30).
-- `tickProduction(state)` — adult healthy animals produce eggs/milk/wool into the pen's `stored`; ranchers collect on visit.
-- `tickBreeding(state)` — per pen, if ≥1 adult male + ≥1 adult female, food ok, space available, roll pregnancy. Gestation per species. Offspring inherits `ownerFamilyId`, base stats from parents with small variance. Births recorded in chronicle + ranch stats.
-- `tickHealth(state)` — illness chance increases when hunger high, overcrowded, or no rancher. Deaths recorded.
+- Extend the existing minister system with the full office list (Steward, Head Farmer, Head Builder, Head Rancher, Quartermaster, Trade Master, Marshal, Healer, Council Speaker). Existing ministers stay; new offices are added.
+- Vacancy flow: when an office opens, generate 2–4 candidates with Skill / Prestige / Influence / Family. Founder appoints. Appointment writes a `favor` to that family and a small `insult` to losing families.
+- Family Agendas: each year set `agenda.primary` from family state (e.g., land-poor → "Expand farmland"; many youths → "Secure marriages").
+- Family Demands panel (modeled on the existing LivestockRequestsPanel): families submit demands tied to agenda. Player can Approve / Reject / Delay / Negotiate (counter-offer with reduced amount).
+- Favors ledger: every Approve/Reject/counter writes a memory to the family with decay over decades.
+- Favoritism detection: rolling window over favors; if one house dominates appointments/grants, raise a "Favoritism" reputation tag and reduce Authority.
 
-All called once per in-game day in `engine.ts` right after existing daily blocks. No realtime per-tick movement to keep perf simple; visual movement is decorative (see §6).
+Ship checkpoint: governance gameplay loop — appointments, demands, counter-offers, consequences.
 
-## 4. Rancher AI (src/game/sim/ai.ts)
+---
 
-Add a job branch parallel to `farmer`: ranchers walk to assigned pen, perform `feed` (consumes food from stockpile/pen), `collect` (moves produced resources from pen `stored` → main `resources` if pen is owned by founder house; otherwise keeps it in pen as family asset), and `health-check` (raises pen health bonus). Reuses existing pathing + commitment system.
+## Phase 3 — Alliances, Rivalries, Blocs (systems 8, 9, 10)
 
-## 5. Family ownership, requests & social consequences
+Goal: the political map of the settlement.
 
-- Every animal has `ownerFamilyId`. `families.ts` exposes `familyLivestockSummary(state, familyId)` → `{ chickens, goats, sheep, cattle }` used by `FamilyPanel` ("House Carter: 12 chickens, 4 goats").
-- Specialization: derived selector — the species a family owns most of over time; surfaces as a "Known for cattle" tag on `FamilyPanel`. Pure read; no extra state.
-- Prestige: in `livestock.ts` daily tick, herds above thresholds add small prestige to the owning family (existing `family.prestige`). Rare events ("twin calves", "champion ram") emit chronicle + bigger bumps.
-- Requests: a low daily probability per non-founder house with an adult, scaled by happiness/loyalty, queues a `LivestockRequest`. Founder house never auto-requests. Bottom dock badge surfaces pending requests.
-- Decision: `decideLivestockRequest(id, "approve"|"reject"|"postpone")` on the store. Approve grants the request (gifts a starter pair for "start-raising", or unlocks/queues a building plan for "build-pen") and applies founder-opinion bonuses + small prestige; reject emits "request-rejected" memory to the requester + relatives (reuses memory/contagion in `families.ts`). Repeated rejections damage relations naturally through existing systems.
+- Alliance formation: marriage between two families auto-creates/strengthens an alliance; shared agenda + positive relation passes a threshold → alliance.
+- Rivalry formation: lost office, rejected marriage, blocked demand, resource conflict → rivalry with intensity that decays slowly.
+- Blocs: cluster families by shared agenda + alliance graph each year; name blocs by dominant agenda (Expansion / Traditionalist / Agricultural / Merchant).
+- Council voting: when demands or appointments are contested, allied families vote with the requester; rivals vote against.
+- Visualization: a simple relations graph (allies green, rivals red) in the Politics tab.
 
-## 6. UI
+Ship checkpoint: you can see and feel coalitions.
 
-- **New `LivestockPanel.tsx`** (top-dock / sidebar tab): totals by species, pregnancies this season, births/deaths this year, production/day, ranchers assigned, per-family ownership table.
-- **New `LivestockRequestsPanel.tsx`** mirroring the marriage proposals panel style; Approve/Reject/Postpone buttons.
-- **`FamilyPanel`**: new "Livestock" row + specialization tag.
-- **`Inspector` on a livestock building**: capacity, current animals (list), food consumption, production/day, assigned rancher, "Assign rancher…" action.
-- **`MapView`**: render small animated dots/sprites near each livestock building (count proportional to occupants), purely visual — randomized within building footprint, no per-tick movement.
-- **Build palette**: new "Livestock" category section.
+---
 
-## 7. Arrivals & acquisition
+## Phase 4 — Heirs, Succession Factions, Crisis (systems 18, 19, 20)
 
-`world.ts` arrival generation occasionally bundles `Animal[]` with an `ArrivalEvent` (e.g. "A family arrives with 2 goats and 6 chickens."). On accept, animals are added to `state.animals` with `ownerFamilyId = arrivalFamily.id`; if no pen exists yet, animals are flagged `buildingId: null` (health drains faster, prompting the family to request a pen — feeding back into §5).
+Goal: succession becomes a political event, not a lookup.
 
-## 8. Save migration
+- For every potential heir (existing heirs logic), compute support % from each family based on marriage ties, friendships, prestige, past favors.
+- Display heir support breakdown on the leader profile / dynasty overlay.
+- On founder death: snapshot factions. If top heir support < 50% and runner-up within 15% → trigger a Succession Crisis event with three resolutions (Negotiation, Compromise, Deadlock) — outcomes feed Authority, alliances, rivalries.
 
-`persistence.ts`: version 3 → 4 sets `animals: []`, `livestockRequests: []`. Loader accepts versions 2, 3, 4. Old saves load and play unchanged until first arrival/request triggers livestock content.
+Ship checkpoint: dynasties get dramatic turning points.
 
-## 9. Files
+---
 
-**New**
-- `src/game/sim/livestock.ts`
-- `src/components/game/LivestockPanel.tsx`
-- `src/components/game/LivestockRequestsPanel.tsx`
+## Phase 5 — Political Events, History, Chronicle, Generational depth (systems 21, 22, 23, 24, 16)
 
-**Edited**
-- `src/game/types.ts` (Animal, LivestockRequest, SaveGame v4, Occupation "rancher", Skills.ranch, BuildingKind additions, Resource additions, BuildingDef.category & .livestock)
-- `src/game/data/content.ts` (new building defs, category metadata)
-- `src/game/persistence.ts` (v3 → v4)
-- `src/game/sim/engine.ts` (call livestock ticks + request generator)
-- `src/game/sim/ai.ts` (rancher branch)
-- `src/game/sim/world.ts` (arrivals can include animals)
-- `src/game/sim/families.ts` (livestock summary, specialization, request memories)
-- `src/game/store.ts` (`decideLivestockRequest`, `assignRancher`, selectors)
-- `src/components/game/MapView.tsx` (render animals)
-- `src/components/game/FamilyPanel.tsx`, `Inspector.tsx`, `BottomDock.tsx`, `GameShell.tsx`
+Goal: long-game texture.
 
-## 10. Out of scope (foundations only)
+- Event generator: weekly roll using current alliances/rivalries/agendas to pick from a table (marriage negotiation, office dispute, worker allocation conflict, land request, livestock rights, trade disagreement). Each event is a structured Demand-like decision.
+- Family history: every meaningful state change appends to `family.history` (founded, first minister, alliance formed, supported X heir…).
+- Political Chronicle: settlement-wide log surfaced in a Chronicle panel; searchable by family/year.
+- Generational inheritance: children inherit family's prestige bonus, reputation tags decayed by one step, rivalries and alliances at half strength — guaranteeing a 150-year settlement reads differently from a 10-year one.
+- Stability score finalized: feeds back into engine tick (low stability → more events, lower cooperation).
 
-Meat, leather, processing chains, cloth from wool, livestock trade, inheritance transfer of animals on death (animals stay with `ownerFamilyId`; future update will handle hand-off). Hooks (`ownerFamilyId`, family prestige bumps, specialization selector) are in place so those updates plug in without refactors.
+Ship checkpoint: the full simulator.
+
+---
+
+## Technical notes (for me, not the player)
+
+- All new state lives in the existing zustand `useGame` store as a `politics` slice + new fields on Family. No replacement of `family.prestige`, `family.relations`, `survivor.memories`, ministers, marriage, or heirs modules.
+- All derived metrics (politicalPower, agenda, blocs, stability) recomputed in the yearly tick of `src/game/sim/engine.ts`; demands and events on weekly tick.
+- Persistence: extend `src/game/persistence.ts` with migrations so old saves get sensible defaults (no data loss).
+- UI: one new top-level "Politics" entry in BottomDock containing Council / Houses / Demands / Offices / Chronicle sub-tabs. Existing panels (Authority, Ministers, Family, Livestock, Marriage) stay where they are and link into the Politics tab where relevant.
+
+---
+
+## What I need from you
+
+1. **Confirm phase order** above, or reorder.
+2. **Start point**: ship Phase 1 first (recommended) or a different slice?
+3. **Demands volume**: should families file demands often (every few weeks) or rarely (a few per year)? This sets the gameplay tempo.
+4. **Crisis frequency**: should Succession Crises be rare-but-memorable (default) or common?
