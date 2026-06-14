@@ -1274,12 +1274,35 @@ export const useGame = create<GameState>((set, get) => ({
       }
     }
 
-    // Annual Council Vote — first day of spring, year > founding, not during founding,
-    // not while another modal is open, only if we just crossed into a new year.
+    // ── Council triggers ────────────────────────────────────
+    // (a) First council: once the ranch has 10+ houses, the founder holds the
+    //     Founding Charter — picks the laws of the ranch. Cannot be deposed.
+    // (b) After the charter, an annual council convenes each spring; rivals
+    //     may also demand a hated law be repealed.
     let pendingCouncilVote: CouncilVoteEvent | null = st.pendingCouncilVote;
+    let pendingFoundingCharter = st.pendingFoundingCharter;
+    let hasHeldFirstCouncil = st.hasHeldFirstCouncil;
+    const livingFamilies = eng.families.filter(
+      (f) => f.memberIds.some((id) => eng.survivors.find((s) => s.id === id && s.health > 0))
+    );
     const crossedYear = eng.time.year > st.time.year;
+
     if (
-      !pendingCouncilVote && !pendingArrival && !st.foundingPhase &&
+      !hasHeldFirstCouncil &&
+      !pendingFoundingCharter &&
+      !pendingArrival &&
+      !st.foundingPhase &&
+      livingFamilies.length >= 10
+    ) {
+      pendingFoundingCharter = true;
+      toast("The Ten Houses gather", {
+        description: "Call the Founding Charter — set the laws of the ranch.",
+      });
+    }
+
+    if (
+      hasHeldFirstCouncil &&
+      !pendingCouncilVote && !pendingArrival && !pendingFoundingCharter && !st.foundingPhase &&
       crossedYear && eng.time.year > st.stats.foundedYear
     ) {
       const ev = generateCouncilVote({
@@ -1294,11 +1317,27 @@ export const useGame = create<GameState>((set, get) => ({
         currentYear: eng.time.year,
       });
       if (ev) {
+        // If any active law is strongly opposed, attach a repeal demand.
+        const view = computeFactions(eng.survivors, eng.families, st.laws);
+        const hated = mostHatedLaw(view, st.laws);
+        if (hated && hated.opposingFaction.strength >= 25) {
+          ev.lawRepealRequest = {
+            lawId: hated.lawDef.id,
+            lawTitle: hated.lawDef.title,
+            factionId: hated.opposingFaction.id,
+            factionName: hated.opposingFaction.def.name,
+            intensity: hated.opposingFaction.strength,
+          };
+          ev.challengerAgenda = `Repeal: ${hated.lawDef.title}`;
+        }
         pendingCouncilVote = ev;
-        toast(ev.contested ? "Council in uproar" : "The Council convenes", {
-          description: ev.contested
+        const desc = ev.lawRepealRequest
+          ? `${ev.lawRepealRequest.factionName} demand: repeal "${ev.lawRepealRequest.lawTitle}".`
+          : ev.contested
             ? `House ${ev.challengerHouseName ?? "—"} challenges the porch.`
-            : `Year ${ev.year}. The houses gather.`,
+            : `Year ${ev.year}. The houses gather.`;
+        toast(ev.contested || ev.lawRepealRequest ? "Council in uproar" : "The Council convenes", {
+          description: desc,
         });
       }
     }
