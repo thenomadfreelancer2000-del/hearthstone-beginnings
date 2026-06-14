@@ -640,8 +640,11 @@ export function MapView() {
 
   const [hover, setHover] = useState<{ x: number; y: number } | null>(null);
   const ref = useRef<SVGSVGElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const zoom = useView((s) => s.mapZoom);
+  const smoothZoom = useView((s) => s.smooth);
+  const setMapZoom = useView((s) => s.setMapZoom);
   const W = mapW * TILE;
   const H = mapH * TILE;
   const VW = W * zoom;
@@ -650,6 +653,85 @@ export function MapView() {
   useEffect(() => {
     expandWorldToCurrentSize();
   }, [expandWorldToCurrentSize]);
+
+  // Wheel + pinch zoom, anchored to pointer so the world doesn't slide away.
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const MIN = 0.2, MAX = 1.5;
+    const clamp = (z: number) => Math.max(MIN, Math.min(MAX, z));
+
+    const zoomAt = (clientX: number, clientY: number, nextZoom: number, smooth = false) => {
+      const cur = useView.getState().mapZoom;
+      const next = clamp(nextZoom);
+      if (next === cur) return;
+      const rect = el.getBoundingClientRect();
+      // World coord under pointer (in pre-zoom px)
+      const wx = (el.scrollLeft + (clientX - rect.left)) / cur;
+      const wy = (el.scrollTop + (clientY - rect.top)) / cur;
+      setMapZoom(next, smooth);
+      // After paint, restore pointer anchor
+      requestAnimationFrame(() => {
+        el.scrollLeft = wx * next - (clientX - rect.left);
+        el.scrollTop = wy * next - (clientY - rect.top);
+      });
+    };
+
+    const onWheel = (e: WheelEvent) => {
+      // Ctrl/Cmd+wheel or trackpad pinch (ctrlKey is set by browsers for pinch)
+      if (!(e.ctrlKey || e.metaKey)) return;
+      e.preventDefault();
+      const cur = useView.getState().mapZoom;
+      // Exponential feel; small steps even for large deltas
+      const factor = Math.exp(-e.deltaY * 0.0015);
+      zoomAt(e.clientX, e.clientY, cur * factor, false);
+    };
+
+    // Touch pinch
+    let pinchStartDist = 0;
+    let pinchStartZoom = 1;
+    let pinchCenter = { x: 0, y: 0 };
+    const dist = (a: Touch, b: Touch) =>
+      Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+
+    const onTouchStart = (e: TouchEvent) => {
+      if (e.touches.length === 2) {
+        pinchStartDist = dist(e.touches[0], e.touches[1]);
+        pinchStartZoom = useView.getState().mapZoom;
+        pinchCenter = {
+          x: (e.touches[0].clientX + e.touches[1].clientX) / 2,
+          y: (e.touches[0].clientY + e.touches[1].clientY) / 2,
+        };
+      }
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 2 && pinchStartDist > 0) {
+        e.preventDefault();
+        const d = dist(e.touches[0], e.touches[1]);
+        const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+        const cy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+        pinchCenter = { x: cx, y: cy };
+        zoomAt(cx, cy, pinchStartZoom * (d / pinchStartDist), false);
+      }
+    };
+    const onTouchEnd = (e: TouchEvent) => {
+      if (e.touches.length < 2) pinchStartDist = 0;
+      void pinchCenter;
+    };
+
+    el.addEventListener("wheel", onWheel, { passive: false });
+    el.addEventListener("touchstart", onTouchStart, { passive: true });
+    el.addEventListener("touchmove", onTouchMove, { passive: false });
+    el.addEventListener("touchend", onTouchEnd);
+    return () => {
+      el.removeEventListener("wheel", onWheel);
+      el.removeEventListener("touchstart", onTouchStart);
+      el.removeEventListener("touchmove", onTouchMove);
+      el.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [setMapZoom]);
+
 
   const ghost = useMemo(() => {
     if (!buildPlacement || !hover) return null;
@@ -669,8 +751,9 @@ export function MapView() {
 
   return (
     <div
+      ref={scrollRef}
       className="flex-1 relative overflow-auto scroll-amber grain"
-      style={{ backgroundColor: TILE_PAL.grass.base }}
+      style={{ backgroundColor: TILE_PAL.grass.base, touchAction: "pan-x pan-y" }}
     >
       <div style={{ width: VW, height: VH, position: "relative" }}>
       <svg
@@ -710,7 +793,7 @@ export function MapView() {
         style={{
           transform: `scale(${zoom})`,
           transformOrigin: "0 0",
-          transition: "transform 180ms ease-out",
+          transition: smoothZoom ? "transform 180ms ease-out" : "none",
           backgroundColor: TILE_PAL.grass.base,
           cursor: (buildPlacement || borderMode) ? "crosshair" : "default",
         }}
