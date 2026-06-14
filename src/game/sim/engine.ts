@@ -1,6 +1,6 @@
 import { nanoid } from "nanoid";
 import type {
-  Building, ChronicleEntry, Family, GameTime, ID, ResourceKind, ResourceNode,
+  Building, ChronicleEntry, Family, GameTime, ID, MarriageProposal, ResourceKind, ResourceNode,
   Survivor, Relationship, SettlementStats, Tile, Memory,
 } from "../types";
 import {
