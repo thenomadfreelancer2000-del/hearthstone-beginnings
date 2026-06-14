@@ -1068,7 +1068,7 @@ export const useGame = create<GameState>((set, get) => ({
   enactFoundingCharter: (lawIds) => {
     const st = get();
     if (!st.pendingFoundingCharter || st.hasHeldFirstCouncil) return;
-    const { LAW_BY_ID } = require("./sim/laws") as typeof import("./sim/laws");
+    
     const valid = lawIds.filter((id) => LAW_BY_ID[id]);
     if (valid.length === 0) return;
 
@@ -1125,7 +1125,7 @@ export const useGame = create<GameState>((set, get) => ({
     const st = get();
     const law = st.laws.find((l) => l.lawId === lawId);
     if (!law) return;
-    const { LAW_BY_ID } = require("./sim/laws") as typeof import("./sim/laws");
+    
     const def = LAW_BY_ID[law.lawId];
     // Reverse half of the original trait drift on repeal (sentiments fade, don't snap).
     const newSurvivors = st.survivors.map((s) => {
