@@ -852,6 +852,8 @@ export const useGame = create<GameState>((set, get) => ({
       stats: { ...st.stats },
       seed: st.seed,
       proposals: st.proposals.map(p => ({ ...p })),
+      animals: st.animals.map(a => ({ ...a })),
+      livestockRequests: st.livestockRequests.map(r => ({ ...r })),
       foundingPhase: st.foundingPhase,
     };
 
