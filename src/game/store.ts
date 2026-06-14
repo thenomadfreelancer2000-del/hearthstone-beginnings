@@ -162,7 +162,7 @@ interface GameState {
   decideMinisterRequest: (id: ID, decision: "approve" | "partial" | "reject" | "postpone", transferIds?: ID[]) => void;
   reassignWorker: (survivorId: ID, occupation: Survivor["occupation"]) => void;
   // Council
-  resolveCouncilVote: (action: CouncilAction) => void;
+  resolveCouncilVote: (action: CouncilAction, demandIndex?: number) => void;
   // Laws
   enactFoundingCharter: (lawIds: string[]) => void;
   repealLaw: (lawId: string) => void;
