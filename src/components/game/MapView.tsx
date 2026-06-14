@@ -744,12 +744,13 @@ export function MapView() {
           return details.length ? <g key={`d-${t.x}-${t.y}`}>{details}</g> : null;
         })}
 
-        {/* Territory ring */}
+        {/* Territory bounds (rectangle) */}
         {territory && territory.radius > 0 && (
-          <circle
-            cx={territory.cx * TILE}
-            cy={territory.cy * TILE}
-            r={territory.radius * TILE}
+          <rect
+            x={(territory.cx - territory.radius) * TILE}
+            y={(territory.cy - territory.radius) * TILE}
+            width={territory.radius * 2 * TILE}
+            height={territory.radius * 2 * TILE}
             fill="rgba(201,161,74,0.04)"
             stroke={PAL.gold}
             strokeWidth={1.5}
@@ -759,13 +760,14 @@ export function MapView() {
         )}
         {borderMode && territory && hover && (() => {
           const r = Math.max(3, Math.min(40, Math.round(
-            Math.hypot(hover.x + 0.5 - territory.cx, hover.y + 0.5 - territory.cy)
+            Math.max(Math.abs(hover.x + 0.5 - territory.cx), Math.abs(hover.y + 0.5 - territory.cy))
           )));
           return (
-            <circle
-              cx={territory.cx * TILE}
-              cy={territory.cy * TILE}
-              r={r * TILE}
+            <rect
+              x={(territory.cx - r) * TILE}
+              y={(territory.cy - r) * TILE}
+              width={r * 2 * TILE}
+              height={r * 2 * TILE}
               fill="rgba(201,161,74,0.08)"
               stroke="#f5d98a"
               strokeWidth={1.5}
@@ -774,6 +776,7 @@ export function MapView() {
             />
           );
         })()}
+
 
         {/* Resource nodes */}
         {nodes.map((n) => {
