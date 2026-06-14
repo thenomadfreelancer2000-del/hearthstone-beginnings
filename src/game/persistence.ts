@@ -17,7 +17,7 @@ export function loadFromLocal(): SaveGame | null {
     const raw = localStorage.getItem(KEY);
     if (!raw) return null;
     const data = JSON.parse(raw) as SaveGame;
-    if (data.version !== 2 && data.version !== 3 && data.version !== 4 && data.version !== 5) return null;
+    if (data.version !== 2 && data.version !== 3 && data.version !== 4 && data.version !== 5 && data.version !== 6) return null;
     if (data.version === 2) {
       (data as SaveGame).proposals = [];
       (data as SaveGame).version = 3;
@@ -38,6 +38,11 @@ export function loadFromLocal(): SaveGame | null {
       (data as SaveGame).ministerRequests = [];
       (data as SaveGame).ministerReports = [];
       (data as SaveGame).version = 5;
+    }
+    if (data.version === 5) {
+      // Migrate v5 → v6: add empty expeditions array.
+      (data as SaveGame).expeditions = [];
+      (data as SaveGame).version = 6;
     }
     return data;
   } catch {
