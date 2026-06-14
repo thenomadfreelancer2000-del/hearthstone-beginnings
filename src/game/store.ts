@@ -729,6 +729,8 @@ export const useGame = create<GameState>((set, get) => ({
       },
       borderMode: false,
       proposals: [],
+      animals: [],
+      livestockRequests: [],
     });
   },
 
@@ -754,7 +756,10 @@ export const useGame = create<GameState>((set, get) => ({
         normalizeConstructionBuilding(b);
         return b;
       }),
-      resources: save.resources,
+      resources: {
+        eggs: 0, milk: 0, wool: 0,
+        ...save.resources,
+      },
       survivors: save.survivors.map(s => ({
         ...s,
         skills: { ...{ social: 1 }, ...s.skills, social: s.skills?.social ?? 1 },
@@ -775,6 +780,8 @@ export const useGame = create<GameState>((set, get) => ({
       foundingPhase: save.foundingPhase ?? false,
       territory: save.territory ?? null,
       proposals: save.proposals ?? [],
+      animals: save.animals ?? [],
+      livestockRequests: save.livestockRequests ?? [],
       borderMode: false,
     });
     return true;
@@ -783,7 +790,7 @@ export const useGame = create<GameState>((set, get) => ({
   save: () => {
     const st = get();
     const data: SaveGame = {
-      version: 3,
+      version: 4,
       ranchName: st.ranchName,
       seed: st.seed,
       time: st.time,
@@ -805,6 +812,8 @@ export const useGame = create<GameState>((set, get) => ({
       foundingPhase: st.foundingPhase,
       territory: st.territory,
       proposals: st.proposals,
+      animals: st.animals,
+      livestockRequests: st.livestockRequests,
       factions: [], laws: [], externalSettlements: [],
     };
     return saveToLocal(data);
