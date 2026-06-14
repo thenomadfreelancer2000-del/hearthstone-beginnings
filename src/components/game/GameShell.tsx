@@ -71,57 +71,15 @@ export function GameShell() {
         <LivestockRequestsPanel />
         <MinisterRequestsPanel />
         <div
-          className="absolute top-2 z-40 flex flex-col gap-1 items-end transition-all"
+          className="absolute top-2 z-40 flex flex-col gap-1 items-stretch transition-all"
           style={{ right: !isMobile && !inspectorCollapsed ? 348 : (!isMobile && inspectorCollapsed ? 40 : 8) }}
         >
-          <button
-            onClick={() => setLivestockOpen(true)}
-            className="btn-ranch btn-ranch-ghost text-base backdrop-blur-sm bg-coal/70 w-9 h-9 flex items-center justify-center p-0"
-            title="Livestock Ledger"
-            aria-label="Livestock"
-          >
-            🐄
-          </button>
-          <button
-            onClick={() => setAdminOpen(true)}
-            className="btn-ranch btn-ranch-ghost text-base backdrop-blur-sm bg-coal/70 w-9 h-9 flex items-center justify-center p-0"
-            title="Managers & Administration"
-            aria-label="Managers"
-          >
-            ⚖
-          </button>
-          <button
-            onClick={() => setPoliticsOpen(true)}
-            className="btn-ranch btn-ranch-ghost text-base backdrop-blur-sm bg-coal/70 w-9 h-9 flex items-center justify-center p-0"
-            title="Family Council & Politics"
-            aria-label="Politics"
-          >
-            ⚜
-          </button>
-          <button
-            onClick={() => setFactionsOpen(true)}
-            className="btn-ranch btn-ranch-ghost text-base backdrop-blur-sm bg-coal/70 w-9 h-9 flex items-center justify-center p-0"
-            title="Political Factions"
-            aria-label="Political Factions"
-          >
-            ☰
-          </button>
-          <button
-            onClick={() => setExpeditionsOpen(true)}
-            className="btn-ranch btn-ranch-ghost text-base backdrop-blur-sm bg-coal/70 w-9 h-9 flex items-center justify-center p-0"
-            title="Expeditions"
-            aria-label="Expeditions"
-          >
-            🧭
-          </button>
-          <button
-            onClick={() => setOverlay("tree")}
-            className="btn-ranch btn-ranch-ghost text-base backdrop-blur-sm bg-coal/70 w-9 h-9 flex items-center justify-center p-0"
-            title="Dynasty Tree"
-            aria-label="Dynasty"
-          >
-            🜲
-          </button>
+          <SideButton onClick={() => setLivestockOpen(true)} label="Livestock" />
+          <SideButton onClick={() => setAdminOpen(true)} label="Ministers" />
+          <SideButton onClick={() => setPoliticsOpen(true)} label="Council" />
+          <SideButton onClick={() => setFactionsOpen(true)} label="Factions" />
+          <SideButton onClick={() => setExpeditionsOpen(true)} label="Expeditions" />
+          <SideButton onClick={() => setOverlay("tree")} label="Dynasty" />
         </div>
         {livestockOpen && <LivestockPanel onClose={() => setLivestockOpen(false)} />}
         {adminOpen && <AdministrationPanel onClose={() => setAdminOpen(false)} />}
