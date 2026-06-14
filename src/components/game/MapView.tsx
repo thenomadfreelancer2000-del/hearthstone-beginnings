@@ -960,18 +960,16 @@ export function MapView() {
   const H = mapH * TILE;
   const VW = W * zoom;
   const VH = H * zoom;
+  const initialCenterDone = useRef(false);
 
   useEffect(() => {
     expandWorldToCurrentSize();
   }, [expandWorldToCurrentSize]);
 
-  // Center on the ranch when the player requests it (button next to zoom).
-  useEffect(() => {
-    if (centerRequestId === 0) return;
+  function scrollToRanch(behavior: ScrollBehavior) {
     const el = scrollRef.current;
     if (!el) return;
     const state = useGame.getState();
-    // Prefer the claimed territory center; fall back to the homestead.
     let cx = mapW / 2;
     let cy = mapH / 2;
     if (state.territory) { cx = state.territory.cx; cy = state.territory.cy; }
@@ -979,18 +977,29 @@ export function MapView() {
       const h = state.buildings.find(b => b.kind === "homestead");
       if (h) { cx = h.x + h.w / 2; cy = h.y + h.h / 2; }
     }
-    // Scroll after the zoom=1 layout has been applied.
     requestAnimationFrame(() => {
       const target = scrollRef.current;
       if (!target) return;
-      const sx = cx * TILE * 1 - target.clientWidth / 2;
-      const sy = cy * TILE * 1 - target.clientHeight / 2;
+      const sx = cx * TILE * zoom - target.clientWidth / 2;
+      const sy = cy * TILE * zoom - target.clientHeight / 2;
       target.scrollTo({
         left: Math.max(0, sx),
         top: Math.max(0, sy),
-        behavior: "smooth",
+        behavior,
       });
     });
+  }
+
+  useEffect(() => {
+    if (initialCenterDone.current || buildings.length === 0) return;
+    initialCenterDone.current = true;
+    scrollToRanch("auto");
+  }, [buildings.length, mapW, mapH]);
+
+  // Center on the ranch when the player requests it (button next to zoom).
+  useEffect(() => {
+    if (centerRequestId === 0) return;
+    scrollToRanch("smooth");
   }, [centerRequestId, mapW, mapH]);
 
 
