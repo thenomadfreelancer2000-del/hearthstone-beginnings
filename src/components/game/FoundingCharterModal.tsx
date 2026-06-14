@@ -51,7 +51,7 @@ export function FoundingCharterModal() {
         <div className="ranch-handwritten text-xs text-dust-light italic mt-1">
           Ten houses sit in the long room. They will not depose the founder today —
           but the laws written now will shape every council that follows.
-          Pick one law in at least three domains.
+          Pick one law in at least {MIN_PICKS} domains.
         </div>
 
         <div className="grid sm:grid-cols-2 gap-3 mt-4">
