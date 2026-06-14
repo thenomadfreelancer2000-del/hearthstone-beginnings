@@ -6,7 +6,7 @@ import { nanoid } from "nanoid";
 import type {
   Animal, AnimalSpecies, ChronicleEntry, Family, ID, ResourceKind, Survivor,
 } from "../types";
-import { makeRng, type RNG } from "./rng";
+import { makeRng } from "./rng";
 import { makeWanderer, makeWandererFamily } from "./world";
 
 export const TICKS_PER_DAY = 24;
@@ -163,11 +163,10 @@ export interface ResolveOutput {
 
 export function resolveExpedition(input: ResolveInput): ResolveOutput {
   const { expedition, members, currentYear, currentSeason, currentDay, currentTick } = input;
-  const rng: RNG = makeRng((expedition.startTick ^ expedition.returnTick ^ 0xEAD9) >>> 0);
+  const rng = makeRng((expedition.startTick ^ expedition.returnTick ^ 0xEAD9) >>> 0);
 
   const ts = teamStrength(members);
-  const expectedFood = members.length * expedition.durationDays;
-  const supplyRatio = expectedFood > 0 ? expedition.supplies / expectedFood : 1;
+  void ts;
   const successRoll = rng() * 100;
   // Effective success: 0..100
   const eff = Math.min(100, Math.max(0,
