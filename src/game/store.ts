@@ -2,7 +2,8 @@ import { create } from "zustand";
 import { nanoid } from "nanoid";
 import { toast } from "sonner";
 import type {
-  ArrivalEvent, Building, BuildingKind, ChronicleEntry, Family, GameSpeed, GameTime, ID,
+  Animal, AnimalSpecies, ArrivalEvent, Building, BuildingKind, ChronicleEntry, Family,
+  GameSpeed, GameTime, ID, LivestockRequest,
   MarriageProposal, Relationship, ResourceKind, ResourceNode, SaveGame, SettlementStats,
   Survivor, Territory, Tile,
 } from "./types";
@@ -15,6 +16,7 @@ import {
 import { advance, type Engine } from "./sim/engine";
 import { createArrangedProposal } from "./sim/marriage";
 import { BUILDINGS } from "./data/content";
+import { makeAnimal, SPECIES_BUILDING, SPECIES_LABEL } from "./sim/livestock";
 import { saveToLocal, loadFromLocal } from "./persistence";
 import { makeRng } from "./sim/rng";
 import { normalizeConstructionBuilding } from "./sim/construction";
@@ -59,6 +61,8 @@ interface GameState {
   chronicle: ChronicleEntry[];
   stats: SettlementStats;
   proposals: MarriageProposal[];
+  animals: Animal[];
+  livestockRequests: LivestockRequest[];
 
 
   selection: Selection;
@@ -124,6 +128,10 @@ interface GameState {
   // Marriage
   decideProposal: (id: ID, decision: "approve" | "reject" | "postpone") => void;
   arrangeMarriage: (initiatorId: ID, targetId: ID) => boolean;
+  // Livestock
+  decideLivestockRequest: (id: ID, decision: "approve" | "reject" | "postpone") => void;
+  assignRancher: (buildingId: ID, survivorId: ID | null) => void;
+  setPenOwner: (buildingId: ID, familyId: ID | null) => void;
 }
 
 const emptyResources = (): Record<ResourceKind, number> => ({
