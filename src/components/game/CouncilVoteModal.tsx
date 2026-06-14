@@ -1,5 +1,5 @@
 import { useGame } from "@/game/store";
-import { COUNCIL_ACTION_INFO, type CouncilAction } from "@/game/sim/councilVote";
+import { COUNCIL_ACTION_INFO, forecastActionRisk, type CouncilAction } from "@/game/sim/councilVote";
 import type { ResourceKind } from "@/game/types";
 
 export function CouncilVoteModal() {
@@ -14,12 +14,23 @@ export function CouncilVoteModal() {
   const canChallenge = !!ev.challengerHouseId;
   const requiresChallenger: CouncilAction[] = ["office", "crush", "stepdown"];
 
+  const leader = useGame((s) => s.survivors.find((x) => x.id === s.currentLeaderId));
+  const leadSkill = leader?.skills.lead ?? 0;
+
   const ActionCard = ({ action, danger }: { action: CouncilAction; danger?: boolean }) => {
     const info = COUNCIL_ACTION_INFO[action];
+    const risk = forecastActionRisk(ev, action, leadSkill);
     const needsCh = requiresChallenger.includes(action);
     const lacksCh = needsCh && !canChallenge;
     const lacksRes = !canAfford(info.cost);
     const disabled = lacksCh || lacksRes;
+    const riskColor =
+      risk.label === "Reckless" ? "bg-danger" :
+      risk.label === "High" ? "bg-danger/70" :
+      risk.label === "Moderate" ? "bg-amber" : "bg-amber/40";
+    const riskText =
+      risk.label === "Reckless" || risk.label === "High" ? "text-danger" :
+      risk.label === "Moderate" ? "text-amber" : "text-amber/70";
     return (
       <button
         disabled={disabled}
@@ -41,17 +52,57 @@ export function CouncilVoteModal() {
           )}
         </div>
         <div className="ranch-handwritten text-[11px] text-dust-light italic mt-0.5">{info.hint}</div>
+
+        {/* Risk bar */}
+        <div className="mt-2">
+          <div className="flex justify-between items-center">
+            <span className="ranch-label text-[9px] text-dust">Risk</span>
+            <span className={`ranch-data text-[10px] ${riskText}`}>{risk.label} · {risk.score}/100</span>
+          </div>
+          <div className="h-1.5 bg-coal border border-amber/15 mt-0.5">
+            <div className={`h-full ${riskColor}`} style={{ width: `${risk.score}%` }} />
+          </div>
+        </div>
+
         {lacksCh && (
           <div className="ranch-body text-[10px] text-danger mt-1">No challenger to act against.</div>
         )}
+
+        {/* Effects */}
         <ul className="mt-1.5 space-y-0.5">
           {info.effects.map((e, i) => (
             <li key={`e${i}`} className="ranch-body text-[10px] text-amber/90">+ {e}</li>
           ))}
-          {info.risks.map((r, i) => (
-            <li key={`r${i}`} className="ranch-body text-[10px] text-danger/80">! {r}</li>
-          ))}
         </ul>
+
+        {/* Blowback (faction reactions) */}
+        {risk.backlash.length > 0 && (
+          <div className="mt-1.5 border-t border-amber/10 pt-1">
+            <div className="ranch-label text-[9px] text-danger/80">Blowback</div>
+            <ul className="space-y-0.5">
+              {risk.backlash.map((b, i) => (
+                <li key={`b${i}`} className="ranch-body text-[10px] text-danger/80">! {b}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Reputation axis shifts */}
+        {risk.repShifts.length > 0 && (
+          <div className="mt-1.5 flex flex-wrap gap-1">
+            {risk.repShifts.map((s, i) => (
+              <span
+                key={i}
+                title={s.reason}
+                className={`ranch-label text-[9px] border px-1 py-0.5 ${
+                  s.delta >= 0 ? "text-amber border-amber/40" : "text-danger border-danger/40"
+                }`}
+              >
+                {s.delta >= 0 ? "+" : ""}{s.delta} {s.axis}
+              </span>
+            ))}
+          </div>
+        )}
       </button>
     );
   };

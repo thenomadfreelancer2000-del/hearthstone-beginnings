@@ -229,6 +229,98 @@ export const COUNCIL_ACTION_INFO: Record<CouncilAction, ActionInfo> = {
   },
 };
 
+// ── Risk forecasting ─────────────────────────────────────────────
+
+export interface ActionRisk {
+  score: number;             // 0..100, perceived risk
+  label: "Low" | "Moderate" | "High" | "Reckless";
+  backlash: string[];        // faction/house reactions in plain language
+  repShifts: { axis: keyof ReputationProfile; delta: number; reason: string }[];
+}
+
+export function forecastActionRisk(
+  ev: CouncilVoteEvent,
+  action: CouncilAction,
+  leaderLeadSkill: number,
+): ActionRisk {
+  const opposing = ev.votes.filter(v => !v.forLeader);
+  const supporting = ev.votes.filter(v => v.forLeader);
+  const challengerName = ev.challengerHouseName ?? "the rival";
+  let score = 5;
+  const backlash: string[] = [];
+  const repShifts: ActionRisk["repShifts"] = [];
+
+  switch (action) {
+    case "speech": {
+      // Risk = chance of failure.
+      const target = 35 + leaderLeadSkill * 2 +
+        (ev.forCount - ev.againstCount) * 6 +
+        (ev.leaderPower - ev.challengerPower) * 0.4;
+      const failChance = Math.max(5, Math.min(95, 100 - target));
+      score = Math.round(failChance);
+      backlash.push(`${Math.round(failChance)}% chance the hall is unmoved`);
+      if (ev.againstCount > ev.forCount) backlash.push(`Opposing houses outnumber loyalists`);
+      if (leaderLeadSkill < 3) backlash.push(`Leader's oratory is weak (Lead ${leaderLeadSkill.toFixed(1)})`);
+      repShifts.push({ axis: "honest", delta: 4, reason: "speaks plainly" });
+      break;
+    }
+    case "bribe": {
+      score = 35;
+      backlash.push(`Discontented houses will remember the gold`);
+      if (opposing.length > 0)
+        backlash.push(`${opposing.map(o => `House ${o.houseName}`).join(", ")} take payment but lose respect`);
+      backlash.push(`Loyalty across the ranch drops slightly`);
+      repShifts.push({ axis: "ruthless", delta: 5, reason: "buys silence" });
+      repShifts.push({ axis: "honest", delta: -3, reason: "deals under the table" });
+      break;
+    }
+    case "office": {
+      score = 15;
+      if (!ev.challengerHouseId) { score = 100; backlash.push("No challenger to placate"); break; }
+      backlash.push(`House ${challengerName} gains real power on the council`);
+      if (supporting.length > 0)
+        backlash.push(`Loyalists may feel taken for granted (no friction now, friction later)`);
+      repShifts.push({ axis: "compassionate", delta: 3, reason: "shares power" });
+      repShifts.push({ axis: "honest", delta: 2, reason: "honors ambition openly" });
+      break;
+    }
+    case "crush": {
+      const successTarget = 40 + leaderLeadSkill * 3;
+      const failChance = Math.max(5, Math.min(95, 100 - successTarget));
+      // Crush is dangerous even on success — ranch-wide fear.
+      score = Math.round(Math.max(60, failChance + 20));
+      backlash.push(`${Math.round(failChance)}% chance the crackdown backfires`);
+      backlash.push(`House ${challengerName} becomes a long-term rival`);
+      backlash.push(`Loyalty drops across every house (fear, not love)`);
+      if (opposing.length >= 2)
+        backlash.push(`${opposing.length} opposing houses may close ranks together`);
+      repShifts.push({ axis: "ruthless", delta: 10, reason: "uses force" });
+      repShifts.push({ axis: "compassionate", delta: -5, reason: "breaks a house publicly" });
+      break;
+    }
+    case "stepdown": {
+      score = 80;
+      backlash.push(`You lose leadership of the ranch`);
+      backlash.push(`Your house keeps its dignity but loses the porch`);
+      backlash.push(`The founder's bloodline may never lead again`);
+      repShifts.push({ axis: "honest", delta: 5, reason: "yields with grace" });
+      break;
+    }
+    case "abdicate-peace": {
+      score = 5;
+      backlash.push(`Nothing changes; rivals will return next year`);
+      break;
+    }
+  }
+
+  const label: ActionRisk["label"] =
+    score >= 75 ? "Reckless" :
+    score >= 50 ? "High" :
+    score >= 25 ? "Moderate" : "Low";
+
+  return { score: Math.max(0, Math.min(100, score)), label, backlash, repShifts };
+}
+
 export interface ResolutionOutcome {
   ok: boolean;
   title: string;
