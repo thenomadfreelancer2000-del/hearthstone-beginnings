@@ -63,10 +63,11 @@ export function GameShell() {
           <button
             onClick={() => setAdminOpen(true)}
             className="btn-ranch btn-ranch-ghost text-[10px] px-2 py-1"
-            title="Administration & Ministers"
+            title="Administration & Managers"
           >
-            ⚖ Ministers
+            ⚖ Managers
           </button>
+
         </div>
         {livestockOpen && <LivestockPanel onClose={() => setLivestockOpen(false)} />}
         {adminOpen && <AdministrationPanel onClose={() => setAdminOpen(false)} />}

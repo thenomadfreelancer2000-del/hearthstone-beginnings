@@ -15,18 +15,19 @@ import type {
 export const TICKS_PER_DAY = 24;
 
 export const ROLE_LABEL: Record<MinisterRole, string> = {
-  "head-farmer": "Head Farmer",
-  "head-builder": "Head Builder",
-  "head-rancher": "Head Rancher",
-  "quartermaster": "Quartermaster",
+  "head-farmer": "Farm Manager",
+  "head-builder": "Build Manager",
+  "head-rancher": "Ranch Manager",
+  "quartermaster": "Stores Manager",
 };
 
 export const ROLE_BLURB: Record<MinisterRole, string> = {
-  "head-farmer": "Oversees fields, crops, and harvests.",
-  "head-builder": "Directs construction and repairs.",
-  "head-rancher": "Tends livestock and pens.",
-  "quartermaster": "Runs storage, hauling, and supply.",
+  "head-farmer": "Oversees fields, crops, and harvests. Assigns farmers.",
+  "head-builder": "Directs construction and repairs. Assigns builders.",
+  "head-rancher": "Tends livestock and pens. Assigns ranchers.",
+  "quartermaster": "Runs storage, hauling, and supply. Assigns haulers.",
 };
+
 
 export const ROLE_OCCUPATION: Record<MinisterRole, Survivor["occupation"]> = {
   "head-farmer": "farmer",
@@ -153,29 +154,10 @@ export function dailyMinistersTick(deps: {
       s.loyaltyToFounder = Math.max(-100, Math.min(100, s.loyaltyToFounder + delta));
     }
 
-    // Generate a worker request when significantly understaffed
-    const hasPending = deps.ministerRequests.some(
-      (r) => r.ministerId === m.id && r.status === "pending",
-    );
-    const enoughDaysPassed =
-      m.lastRequestTick == null || (deps.time.tick - m.lastRequestTick) > TICKS_PER_DAY * 8;
-    const gap = dept.needed - dept.assigned;
-    if (!hasPending && enoughDaysPassed && gap >= 2 && rng() < 0.5) {
-      const req: MinisterRequest = {
-        id: nanoid(8),
-        ministerId: m.id,
-        role: m.role,
-        survivorId: m.survivorId,
-        requestedWorkers: Math.min(gap, 4),
-        approvedWorkers: 0,
-        createdTick: deps.time.tick,
-        createdYear: deps.time.year,
-        status: "pending",
-        reason: gapReason(m.role, gap),
-      };
-      deps.ministerRequests.push(req);
-      m.lastRequestTick = deps.time.tick;
-    }
+    // Managers now silently fill their departments (see autoAssignWorkers).
+    // We no longer generate Founder-facing worker requests for staffing.
+    void gapReason; // kept for any future opt-in request flows
+
 
     // Periodic reports (~ every 30 days)
     if (m.lastReportTick == null || deps.time.tick - m.lastReportTick >= TICKS_PER_DAY * 30) {
@@ -226,6 +208,69 @@ function composeReport(role: MinisterRole, dept: DepartmentStatus, sat: number):
     default: return `${status} — ${dept.assigned}/${dept.needed} hands ${mood}`;
   }
 }
+
+/**
+ * Managers are autonomous: each day they pull idle (or otherwise available)
+ * survivors into their department until staffing matches the calculated need.
+ * The Founder is never consulted — managers act on their own authority.
+ */
+export function autoAssignWorkers(deps: {
+  ministers: Minister[];
+  survivors: Survivor[];
+  buildings: Building[];
+  animals: Animal[];
+  founderId: ID;
+}) {
+  const departments = computeDepartments({
+    survivors: deps.survivors,
+    buildings: deps.buildings,
+    animals: deps.animals,
+  });
+  const depByRole = new Map(departments.map((d) => [d.role, d] as const));
+
+  for (const m of deps.ministers) {
+    const dept = depByRole.get(m.role);
+    if (!dept) continue;
+    const gap = dept.needed - dept.assigned;
+    if (gap <= 0) continue;
+    const targetOcc = ROLE_OCCUPATION[m.role];
+    const skillKey = ROLE_SKILL[m.role];
+
+    // Pool: idle adults first, then other generic occupations (forager / woodcutter /
+    // hauler / miner) — never poach another manager, the founder, or a leader.
+    const takenIds = new Set(deps.ministers.map((x) => x.survivorId));
+    const candidates = deps.survivors.filter((s) =>
+      s.health > 0 &&
+      (s.stage === "adult" || s.stage === "youth" || s.stage === "elder") &&
+      s.id !== deps.founderId &&
+      !takenIds.has(s.id) &&
+      s.occupation !== targetOcc &&
+      s.occupation !== "leader",
+    );
+    // priority: idle > forager > hauler > woodcutter > miner; tiebreak by skill
+    const rank = (s: Survivor): number =>
+      s.occupation === "idle" ? 0 :
+      s.occupation === "forager" ? 1 :
+      s.occupation === "hauler" ? 2 :
+      s.occupation === "woodcutter" ? 3 :
+      s.occupation === "miner" ? 4 : 5;
+    candidates.sort((a, b) => {
+      const r = rank(a) - rank(b);
+      if (r !== 0) return r;
+      const sa = ((a.skills as any)[skillKey]) ?? 1;
+      const sb = ((b.skills as any)[skillKey]) ?? 1;
+      return sb - sa;
+    });
+    const pick = candidates.slice(0, gap);
+    for (const s of pick) {
+      s.occupation = targetOcc;
+    }
+    if (pick.length > 0) {
+      m.satisfaction = Math.min(100, m.satisfaction + 2 * pick.length);
+    }
+  }
+}
+
 
 /** Apply an approval (full or partial) to a minister request. */
 export function applyApproval(deps: {

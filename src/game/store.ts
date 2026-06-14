@@ -234,23 +234,25 @@ export const useGame = create<GameState>((set, get) => ({
     ) {
       const { cx, cy, radius } = st.territory;
       const used = new Set<string>();
-      // Sample circle densely; round to integer tiles, dedupe.
-      const steps = Math.max(48, Math.ceil(2 * Math.PI * radius * 1.2));
+      // Rectangular perimeter: walk the four sides of the square bbox.
+      const x0 = Math.round(cx - radius);
+      const y0 = Math.round(cy - radius);
+      const x1 = Math.round(cx + radius);
+      const y1 = Math.round(cy + radius);
       const tiles: { x: number; y: number }[] = [];
-      for (let i = 0; i < steps; i++) {
-        const a = (i / steps) * Math.PI * 2;
-        const x = Math.round(cx + Math.cos(a) * radius - 0.5);
-        const y = Math.round(cy + Math.sin(a) * radius - 0.5);
-        if (x < 0 || y < 0 || x >= st.mapW || y >= st.mapH) continue;
+      const pushTile = (x: number, y: number) => {
+        if (x < 0 || y < 0 || x >= st.mapW || y >= st.mapH) return;
         const key = `${x},${y}`;
-        if (used.has(key)) continue;
-        // skip if collides with existing building
-        if (st.buildings.some((b) => x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h)) continue;
+        if (used.has(key)) return;
+        if (st.buildings.some((b) => x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h)) return;
         const t = st.tiles[y * st.mapW + x];
-        if (!t || t.kind === "water" || t.kind === "stone") continue;
+        if (!t || t.kind === "water" || t.kind === "stone") return;
         used.add(key);
         tiles.push({ x, y });
-      }
+      };
+      for (let x = x0; x <= x1; x++) { pushTile(x, y0); pushTile(x, y1); }
+      for (let y = y0 + 1; y < y1; y++) { pushTile(x0, y); pushTile(x1, y); }
+
       const newFences: Building[] = tiles.map((p) => ({
         id: nanoid(10),
         kind: "fence",
@@ -301,11 +303,12 @@ export const useGame = create<GameState>((set, get) => ({
     if (st.territory && st.territory.radius > 0) {
       const tx = x + def.size.w / 2;
       const ty = y + def.size.h / 2;
-      if (Math.hypot(tx - st.territory.cx, ty - st.territory.cy) > st.territory.radius) {
+      if (Math.max(Math.abs(tx - st.territory.cx), Math.abs(ty - st.territory.cy)) > st.territory.radius) {
         toast.error("Outside ranch territory");
         return false;
       }
     }
+
     for (const [r, amt] of Object.entries(def.cost)) {
       if ((st.resources as any)[r] < (amt ?? 0)) return false;
     }
@@ -1144,7 +1147,7 @@ export const useGame = create<GameState>((set, get) => ({
     if (!st.borderMode) return;
     const t = st.territory;
     if (!t) return;
-    const r = Math.max(3, Math.min(40, Math.round(Math.hypot(x - t.cx, y - t.cy))));
+    const r = Math.max(3, Math.min(40, Math.round(Math.max(Math.abs(x - t.cx), Math.abs(y - t.cy)))));
     set({ territory: { ...t, radius: r }, borderMode: false });
     toast.success(`Ranch border claimed — ${territoryAcres(r)} acres`);
     maybeCompleteFounding(get, set);
@@ -1487,9 +1490,11 @@ export const useGame = create<GameState>((set, get) => ({
 }));
 
 function territoryAcres(radius: number): number {
-  // 1 tile ≈ 0.1 acre (arbitrary but readable scale).
-  return Math.max(1, Math.round(Math.PI * radius * radius * 0.1));
+  // Square bbox: side = 2*radius. 1 tile ≈ 0.1 acre (arbitrary but readable).
+  const side = 2 * radius;
+  return Math.max(1, Math.round(side * side * 0.1));
 }
+
 
 function maybeCompleteFounding(
   get: () => GameState,

@@ -30,8 +30,9 @@ export function AdministrationPanel({ onClose }: { onClose: () => void }) {
         <div className="flex items-baseline justify-between">
           <div>
             <p className="ranch-label text-amber text-[10px]">Administration</p>
-            <h2 className="ranch-display text-2xl mt-1">Ministers & Departments</h2>
+            <h2 className="ranch-display text-2xl mt-1">Managers & Departments</h2>
           </div>
+
           <button onClick={onClose} className="btn-ranch btn-ranch-ghost text-[10px]">Close</button>
         </div>
         <div className="divider-amber my-3" />
@@ -93,7 +94,7 @@ export function AdministrationPanel({ onClose }: { onClose: () => void }) {
                         onClick={() => setPickingRole(role)}
                         className="btn-ranch btn-ranch-primary text-[10px]"
                       >
-                        Appoint Minister
+                        Appoint Manager
                       </button>
                     )}
                   </div>
@@ -148,7 +149,7 @@ export function AdministrationPanel({ onClose }: { onClose: () => void }) {
       : "lead";
     return (
       <div className="space-y-1">
-        <div className="ranch-label text-[9px] text-amber">Choose a Minister</div>
+        <div className="ranch-label text-[9px] text-amber">Choose a Manager</div>
         {candidates.map((c) => {
           const sk = Math.round(((c.skills as any)[skillKey]) ?? 1);
           return (

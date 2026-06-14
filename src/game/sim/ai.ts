@@ -209,7 +209,15 @@ const CARRY_CAP = 12;
 export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
   if (s.health <= 0) return;
 
+  // The founder is a manager, not a porter. Strip any stale "carrying" so they
+  // don't oscillate between hauling and building.
+  if (s.isFounder && s.carrying) s.carrying = null;
+  // Clear empty carrying refs so the haul block can't fire on a zero-amount lump.
+  if (s.carrying && s.carrying.amount <= 0) s.carrying = null;
+
   // Children just follow parents / wander, no labor
+
+
   if (s.stage === "child" || s.stage === "teen") {
     if (s.state === "moving") { moveToward(s, dt); return; }
     if (s.needs.water < 28) {
@@ -361,12 +369,20 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
     s.occupation === "hauler" ||
     s.occupation === "forager" || s.isFounder;
   if (helpsBuild) {
-    const b = assigned ?? nearestUnfinished(s, deps.buildings);
+    // Honor an existing work target so the helper sticks with a chosen site
+    // instead of re-evaluating "nearest" every tick mid-walk.
+    let prior: Building | null = null;
+    if (s.workTarget?.kind === "building") {
+      const wt = deps.buildings.find(x => x.id === s.workTarget!.id);
+      if (wt && wt.builtProgress < 1) prior = wt;
+    }
+    const b = assigned ?? prior ?? nearestUnfinished(s, deps.buildings);
     if (b) {
       normalizeConstructionBuilding(b);
       const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
       s.workTarget = { kind: "building", id: b.id };
       const isAssigned = assigned?.id === b.id;
+
       // Establish a long-running commitment for the assigned builder so they
       // stop thrashing between tasks each tick.
       if (isAssigned && (!s.commitment || s.commitment.buildingId !== b.id)) {

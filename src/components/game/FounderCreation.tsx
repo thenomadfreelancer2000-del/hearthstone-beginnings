@@ -111,7 +111,7 @@ export function FounderCreation() {
       <div className="pointer-events-none fixed inset-4 md:inset-8 border border-amber/15 hidden sm:block" />
 
       {/* Top chrome — step indicator */}
-      <header className="px-4 sm:px-8 pt-2 sm:pt-6 pb-2 sm:pb-4 flex items-center justify-between gap-3 shrink-0">
+      <header className="px-3 sm:px-8 pt-2 sm:pt-6 pb-2 sm:pb-4 flex items-center justify-between gap-2 shrink-0 min-w-0">
         <button
           onClick={back}
           className="ranch-label text-[9px] sm:text-[10px] hover:text-amber transition shrink-0"
@@ -119,21 +119,21 @@ export function FounderCreation() {
           ← {step === 1 ? "Menu" : "Back"}
         </button>
 
-        <div className="flex items-center gap-1.5 sm:gap-3 overflow-hidden">
+        <div className="flex items-center gap-1 sm:gap-3 overflow-x-auto no-scrollbar min-w-0">
           {STEPS.map((s, i) => {
             const active = s.id === step;
             const done = s.id < step;
             return (
-              <div key={s.id} className="flex items-center gap-1.5 sm:gap-3">
+              <div key={s.id} className="flex items-center gap-1 sm:gap-3 shrink-0">
                 <button
                   onClick={() => done && setStep(s.id)}
                   disabled={!done && !active}
-                  className={`flex items-center gap-1.5 sm:gap-2 ${
+                  className={`flex items-center gap-1 sm:gap-2 ${
                     active ? "text-amber" : done ? "text-parchment-dark hover:text-amber" : "text-dust/60"
                   }`}
                 >
                   <span
-                    className={`w-5 h-5 sm:w-6 sm:h-6 grid place-items-center border text-[10px] sm:text-[11px] font-data ${
+                    className={`w-4 h-4 sm:w-6 sm:h-6 grid place-items-center border text-[9px] sm:text-[11px] font-data shrink-0 ${
                       active
                         ? "border-amber bg-amber text-ink"
                         : done
@@ -146,7 +146,7 @@ export function FounderCreation() {
                   <span className="ranch-label text-[8px] sm:text-[10px] hidden sm:inline">{s.label}</span>
                 </button>
                 {i < STEPS.length - 1 && (
-                  <span className={`w-4 sm:w-8 h-px ${done ? "bg-amber/50" : "bg-dust/20"}`} />
+                  <span className={`w-2 sm:w-8 h-px shrink-0 ${done ? "bg-amber/50" : "bg-dust/20"}`} />
                 )}
               </div>
             );
@@ -158,9 +158,10 @@ export function FounderCreation() {
         </div>
       </header>
 
+
       {/* Scrollable body */}
-      <main className="flex-1 overflow-y-auto scroll-amber px-4 sm:px-8 pb-32">
-        <div className="max-w-3xl mx-auto w-full">
+      <main className="flex-1 overflow-y-auto scroll-amber px-3 sm:px-8 pb-36 sm:pb-32 min-w-0">
+        <div className="max-w-3xl mx-auto w-full min-w-0">
           <AnimatePresence mode="wait">
             <motion.div
               key={step}
@@ -168,24 +169,25 @@ export function FounderCreation() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-              className="pt-2 sm:pt-6"
+              className="pt-2 sm:pt-6 min-w-0"
             >
               <p
-                className="ranch-label mb-3 text-[9px] sm:text-[10px]"
+                className="ranch-label mb-2 text-[9px] sm:text-[10px]"
                 style={{ letterSpacing: "0.2em" }}
               >
                 {t.eyebrow}
               </p>
               <h1
-                className="ranch-display leading-[1.05] mb-2 sm:mb-4"
-                style={{ fontSize: "clamp(22px, 5.5vw, 60px)" }}
+                className="ranch-display leading-[1.05] mb-2 sm:mb-4 break-words"
+                style={{ fontSize: "clamp(18px, 5vw, 60px)" }}
               >
                 {t.title}
               </h1>
-              <p className="ranch-display italic text-dust-light text-sm sm:text-lg max-w-2xl leading-snug">
+              <p className="ranch-display italic text-dust-light text-xs sm:text-lg max-w-2xl leading-snug">
                 {t.sub}
               </p>
-              <div className="divider-amber my-5 sm:my-8" />
+              <div className="divider-amber my-4 sm:my-8" />
+
 
 
               {step === 1 && (
@@ -277,7 +279,7 @@ function StepIdentity(props: {
     <section className="grid md:grid-cols-2 gap-4 md:gap-5 items-start">
 
       {/* Panel A — Face */}
-      <div className="parchment-panel corner-brackets p-5 sm:p-7">
+      <div className="parchment-panel corner-brackets p-3 sm:p-7">
         <div className="flex items-baseline justify-between mb-4">
           <p className="ranch-label text-[10px]">A — Choose a Face</p>
           <span className="ranch-data text-[10px] text-dust-light">{availablePortraits.length} options</span>
@@ -324,7 +326,7 @@ function StepIdentity(props: {
       </div>
 
       {/* Panel B — Name */}
-      <div className="parchment-panel corner-brackets p-5 sm:p-7">
+      <div className="parchment-panel corner-brackets p-3 sm:p-7">
         <p className="ranch-label text-[10px] mb-4">B — Name & Homestead</p>
 
         <div className="grid sm:grid-cols-2 gap-4 sm:gap-5">
