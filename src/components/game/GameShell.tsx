@@ -14,6 +14,8 @@ import { LeaderProfile } from "./LeaderProfile";
 import { MarriageProposalsPanel } from "./MarriageProposalsPanel";
 import { LivestockRequestsPanel } from "./LivestockRequestsPanel";
 import { LivestockPanel } from "./LivestockPanel";
+import { MinisterRequestsPanel } from "./MinisterRequestsPanel";
+import { AdministrationPanel } from "./AdministrationPanel";
 import { useGame } from "@/game/store";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -25,6 +27,7 @@ export function GameShell() {
   const [dockOpen, setDockOpen] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [livestockOpen, setLivestockOpen] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
 
   // Auto-open inspector when something is selected on mobile.
   useEffect(() => {
@@ -48,14 +51,25 @@ export function GameShell() {
         <LeaderProfile dockOpen={dockOpen} />
         <MarriageProposalsPanel />
         <LivestockRequestsPanel />
-        <button
-          onClick={() => setLivestockOpen(true)}
-          className="absolute bottom-2 left-2 z-30 btn-ranch btn-ranch-ghost text-[10px] px-2 py-1"
-          title="Open Livestock Ledger"
-        >
-          🐄 Livestock
-        </button>
+        <MinisterRequestsPanel />
+        <div className="absolute bottom-2 left-2 z-30 flex gap-1">
+          <button
+            onClick={() => setLivestockOpen(true)}
+            className="btn-ranch btn-ranch-ghost text-[10px] px-2 py-1"
+            title="Open Livestock Ledger"
+          >
+            🐄 Livestock
+          </button>
+          <button
+            onClick={() => setAdminOpen(true)}
+            className="btn-ranch btn-ranch-ghost text-[10px] px-2 py-1"
+            title="Administration & Ministers"
+          >
+            ⚖ Ministers
+          </button>
+        </div>
         {livestockOpen && <LivestockPanel onClose={() => setLivestockOpen(false)} />}
+        {adminOpen && <AdministrationPanel onClose={() => setAdminOpen(false)} />}
 
 
         {!isMobile && <Inspector />}
