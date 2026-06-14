@@ -450,7 +450,10 @@ function TilePanel({ x, y }: { x: number; y: number }) {
   );
   return (
     <aside className="parchment-panel w-full sm:w-[340px] p-4 border-l border-amber/20 overflow-auto scroll-amber">
-      <button onClick={clearSelection} className="ranch-label hover:text-amber">← Deselect</button>
+      <div className="flex justify-between items-center">
+        <button onClick={clearSelection} className="ranch-label hover:text-amber">← Deselect</button>
+        {onHide && <button onClick={onHide} className="ranch-label text-[10px] hover:text-amber">Hide panel →</button>}
+      </div>
       <h3 className="ranch-display text-2xl mt-3">{tile ? cap(tile.kind.replace("-", " ")) : "Tile"}</h3>
       <p className="ranch-handwritten text-sm text-dust-light">Tile ({x}, {y})</p>
       <div className="divider-amber my-3" />
