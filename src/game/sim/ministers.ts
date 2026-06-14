@@ -209,6 +209,69 @@ function composeReport(role: MinisterRole, dept: DepartmentStatus, sat: number):
   }
 }
 
+/**
+ * Managers are autonomous: each day they pull idle (or otherwise available)
+ * survivors into their department until staffing matches the calculated need.
+ * The Founder is never consulted — managers act on their own authority.
+ */
+export function autoAssignWorkers(deps: {
+  ministers: Minister[];
+  survivors: Survivor[];
+  buildings: Building[];
+  animals: Animal[];
+  founderId: ID;
+}) {
+  const departments = computeDepartments({
+    survivors: deps.survivors,
+    buildings: deps.buildings,
+    animals: deps.animals,
+  });
+  const depByRole = new Map(departments.map((d) => [d.role, d] as const));
+
+  for (const m of deps.ministers) {
+    const dept = depByRole.get(m.role);
+    if (!dept) continue;
+    const gap = dept.needed - dept.assigned;
+    if (gap <= 0) continue;
+    const targetOcc = ROLE_OCCUPATION[m.role];
+    const skillKey = ROLE_SKILL[m.role];
+
+    // Pool: idle adults first, then other generic occupations (forager / woodcutter /
+    // hauler / miner) — never poach another manager, the founder, or a leader.
+    const takenIds = new Set(deps.ministers.map((x) => x.survivorId));
+    const candidates = deps.survivors.filter((s) =>
+      s.health > 0 &&
+      (s.stage === "adult" || s.stage === "youth" || s.stage === "elder") &&
+      s.id !== deps.founderId &&
+      !takenIds.has(s.id) &&
+      s.occupation !== targetOcc &&
+      s.occupation !== "leader",
+    );
+    // priority: idle > forager > hauler > woodcutter > miner; tiebreak by skill
+    const rank = (s: Survivor): number =>
+      s.occupation === "idle" ? 0 :
+      s.occupation === "forager" ? 1 :
+      s.occupation === "hauler" ? 2 :
+      s.occupation === "woodcutter" ? 3 :
+      s.occupation === "miner" ? 4 : 5;
+    candidates.sort((a, b) => {
+      const r = rank(a) - rank(b);
+      if (r !== 0) return r;
+      const sa = ((a.skills as any)[skillKey]) ?? 1;
+      const sb = ((b.skills as any)[skillKey]) ?? 1;
+      return sb - sa;
+    });
+    const pick = candidates.slice(0, gap);
+    for (const s of pick) {
+      s.occupation = targetOcc;
+    }
+    if (pick.length > 0) {
+      m.satisfaction = Math.min(100, m.satisfaction + 2 * pick.length);
+    }
+  }
+}
+
+
 /** Apply an approval (full or partial) to a minister request. */
 export function applyApproval(deps: {
   request: MinisterRequest;
