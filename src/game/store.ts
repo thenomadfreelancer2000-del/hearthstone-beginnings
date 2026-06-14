@@ -128,6 +128,7 @@ interface GameState {
 
 const emptyResources = (): Record<ResourceKind, number> => ({
   wood: 18, stone: 8, food: 70, water: 60, fiber: 8, tools: 1,
+  eggs: 0, milk: 0, wool: 0,
 });
 
 const emptyStats = (year: number, dynasty: string): SettlementStats => ({
