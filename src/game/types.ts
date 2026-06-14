@@ -323,6 +323,52 @@ export interface LivestockRequest {
   resolveAfterTick?: number;
 }
 
+// ── Ministers / Administration (v5) ──────────────────────────────
+export type MinisterRole =
+  | "head-farmer" | "head-builder" | "head-rancher" | "quartermaster";
+
+export interface Minister {
+  id: ID;
+  role: MinisterRole;
+  survivorId: ID;
+  appointedTick: number;
+  /** 0..100, drives loyalty drift and report tone. */
+  satisfaction: number;
+  requestsApproved: number;
+  requestsRejected: number;
+  lastRequestTick?: number | null;
+  lastReportTick?: number | null;
+}
+
+export type MinisterRequestStatus =
+  | "pending" | "approved" | "partial" | "rejected" | "postponed";
+
+export interface MinisterRequest {
+  id: ID;
+  ministerId: ID;
+  role: MinisterRole;
+  survivorId: ID;
+  requestedWorkers: number;
+  approvedWorkers: number;
+  createdTick: number;
+  createdYear: number;
+  status: MinisterRequestStatus;
+  reason: string;
+  resolveAfterTick?: number;
+}
+
+export interface MinisterReport {
+  id: ID;
+  ministerId: ID;
+  role: MinisterRole;
+  tick: number;
+  year: number;
+  season: Season;
+  day: number;
+  text: string;
+  tone: "positive" | "neutral" | "negative";
+}
+
 export interface BuildingDef {
   kind: BuildingKind;
   name: string;
@@ -415,7 +461,7 @@ export interface SettlementStats {
 
 // ── Save Game ────────────────────────────────────────────────────
 export interface SaveGame {
-  version: 2 | 3 | 4;
+  version: 2 | 3 | 4 | 5;
   ranchName: string;
   seed: number;
   time: GameTime;
@@ -442,6 +488,10 @@ export interface SaveGame {
   // Livestock (v4+)
   animals?: Animal[];
   livestockRequests?: LivestockRequest[];
+  // Ministers (v5+)
+  ministers?: Minister[];
+  ministerRequests?: MinisterRequest[];
+  ministerReports?: MinisterReport[];
   // Phase 3+ reservations (always present, empty for now):
   factions: unknown[];
   laws: unknown[];

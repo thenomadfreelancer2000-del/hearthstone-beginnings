@@ -1,7 +1,7 @@
 import { nanoid } from "nanoid";
 import type {
   Animal, Building, ChronicleEntry, Family, GameTime, ID, LivestockRequest,
-  MarriageProposal, ResourceKind, ResourceNode,
+  MarriageProposal, Minister, MinisterRequest, MinisterReport, ResourceKind, ResourceNode,
   Survivor, Relationship, SettlementStats, Tile, Memory,
 } from "../types";
 import {
@@ -20,6 +20,7 @@ import { applyAgingEffects, applyLeadershipTransition, lifeStageLabel } from "./
 import { BUILDINGS } from "../data/content";
 import { enqueueProposalsForSeason, resolveProposalsDaily } from "./marriage";
 import { dailyLivestockTick } from "./livestock";
+import { dailyMinistersTick } from "./ministers";
 
 export interface Engine {
   time: GameTime;
@@ -43,6 +44,10 @@ export interface Engine {
   /** Livestock (v4). */
   animals: Animal[];
   livestockRequests: LivestockRequest[];
+  /** Ministers (v5). */
+  ministers: Minister[];
+  ministerRequests: MinisterRequest[];
+  ministerReports: MinisterReport[];
   /** During the Founding Phase, needs do not decay and arrivals are paused. */
   foundingPhase?: boolean;
 }
@@ -249,6 +254,19 @@ function dailyTick(eng: Engine, opts?: { onArrival?: (s: Survivor) => Survivor |
     founderId: eng.founderId,
     animals: eng.animals,
     livestockRequests: eng.livestockRequests,
+  }, rng);
+
+  // Ministers (Administration update)
+  dailyMinistersTick({
+    time: { tick: eng.time.tick, year: eng.time.year, season: eng.time.season, day: eng.time.day },
+    ministers: eng.ministers,
+    ministerRequests: eng.ministerRequests,
+    ministerReports: eng.ministerReports,
+    survivors: eng.survivors,
+    buildings: eng.buildings,
+    animals: eng.animals,
+    families: eng.families,
+    founderId: eng.founderId,
   }, rng);
 
   // Memories decay daily — major events have a floor that keeps them alive.
