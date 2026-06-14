@@ -291,7 +291,35 @@ export const COUNCIL_ACTION_INFO: Record<CouncilAction, ActionInfo> = {
       "−20 relations with the leading opposition house",
     ],
   },
+  "enact-law": {
+    label: "Concede — write the law",
+    hint: "Sign the new law into the book. The petitioning faction is satisfied.",
+    cost: {},
+    effects: [
+      "Law added to the book; sponsoring faction stands down",
+      "+5 prestige to your house (statesmanship)",
+      "+4 'compassionate' reputation",
+    ],
+    risks: [
+      "Rival factions that hate the new law lose loyalty (−6)",
+      "Future councils will press for more changes",
+    ],
+  },
+  "refuse-enact": {
+    label: "Refuse — no new law",
+    hint: "The book is not opened. The petitioners walk out.",
+    cost: {},
+    effects: [
+      "No law is added",
+      "+3 'ruthless' reputation, +2 prestige to your house",
+    ],
+    risks: [
+      "Sponsoring faction loses 8 loyalty and will return louder",
+      "−15 relations with the sponsoring house",
+    ],
+  },
 };
+
 
 // ── Risk forecasting ─────────────────────────────────────────────
 
