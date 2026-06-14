@@ -16,6 +16,7 @@ import { LivestockRequestsPanel } from "./LivestockRequestsPanel";
 import { LivestockPanel } from "./LivestockPanel";
 import { MinisterRequestsPanel } from "./MinisterRequestsPanel";
 import { AdministrationPanel } from "./AdministrationPanel";
+import { PoliticsPanel } from "./PoliticsPanel";
 import { useGame } from "@/game/store";
 import { useIsMobile } from "@/hooks/use-mobile";
 
