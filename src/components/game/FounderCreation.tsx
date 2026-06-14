@@ -60,6 +60,7 @@ export function FounderCreation() {
   const [values, setValues] = useState<Value[]>(["Family", "Community"]);
   const [companions, setCompanions] = useState<CompanionsChoice>("alone");
   const [portraitId, setPortraitId] = useState<string>(defaultPortraitFor("m"));
+  const [isBeginning, setIsBeginning] = useState(false);
 
   const firstNames = useMemo(() => (gender === "m" ? FIRST_NAMES_M : FIRST_NAMES_F), [gender]);
 
@@ -92,8 +93,11 @@ export function FounderCreation() {
     else setStep(step - 1);
   }
   function begin() {
-    if (!stepValid[5]) return;
-    newGame(ranchName, { firstName, surname, gender, background, traits, values, companions, portraitId });
+    if (!stepValid[5] || isBeginning) return;
+    setIsBeginning(true);
+    window.setTimeout(() => {
+      newGame(ranchName, { firstName, surname, gender, background, traits, values, companions, portraitId });
+    }, 80);
   }
 
   function handleSetGender(g: "m" | "f") {
@@ -242,10 +246,10 @@ export function FounderCreation() {
           </button>
           <button
             onClick={next}
-            disabled={!stepValid[step]}
+            disabled={!stepValid[step] || isBeginning}
             className="btn-ranch btn-ranch-primary flex-1 sm:flex-none whitespace-nowrap"
           >
-            {step < 5 ? "Continue" : (
+            {isBeginning ? "Loading…" : step < 5 ? "Continue" : (
               <>
                 <span className="sm:hidden">Begin</span>
                 <span className="hidden sm:inline">Walk onto the porch</span>
@@ -254,6 +258,30 @@ export function FounderCreation() {
           </button>
         </div>
       </footer>
+
+      <AnimatePresence>
+        {isBeginning && (
+          <motion.div
+            className="fixed inset-0 z-[100] grid place-items-center bg-ink text-parchment grain"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+          >
+            <div className="w-[min(320px,86vw)] text-center">
+              <div className="ranch-label text-amber text-[10px] mb-4">Opening the porch</div>
+              <div className="h-1 border border-amber/40 overflow-hidden bg-coal">
+                <motion.div
+                  className="h-full bg-amber"
+                  initial={{ x: "-100%" }}
+                  animate={{ x: "100%" }}
+                  transition={{ duration: 0.9, repeat: Infinity, ease: "easeInOut" }}
+                />
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
