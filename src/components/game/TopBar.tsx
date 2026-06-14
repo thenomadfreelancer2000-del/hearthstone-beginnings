@@ -111,7 +111,6 @@ export function TopBar({ onToggleDock, dockOpen }: Props) {
           ))}
         </div>
         <div className="flex items-center gap-1">
-          <button className="btn-ranch btn-ranch-ghost !py-0.5 !px-1.5 text-[10px]" onClick={() => setOverlay("tree")} title="Dynasty">Dynasty</button>
           <button className="btn-ranch btn-ranch-ghost !py-0.5 !px-1.5 text-[10px]" onClick={() => save()} title="Save">Save</button>
           <button className="btn-ranch btn-ranch-ghost !py-0.5 !px-1.5 text-[10px]" onClick={() => setScreen("menu")} title="Menu">Menu</button>
           <SettingsMenu />
