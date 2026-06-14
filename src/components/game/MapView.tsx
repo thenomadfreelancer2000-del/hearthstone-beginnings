@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useState } from "react";
 import { useGame } from "@/game/store";
+import { useView } from "@/game/viewStore";
 import { BUILDINGS } from "@/game/data/content";
 import type { Tile } from "@/game/types";
 
@@ -639,8 +640,11 @@ export function MapView() {
   const [hover, setHover] = useState<{ x: number; y: number } | null>(null);
   const ref = useRef<SVGSVGElement>(null);
 
+  const zoom = useView((s) => s.mapZoom);
   const W = mapW * TILE;
   const H = mapH * TILE;
+  const VW = W * zoom;
+  const VH = H * zoom;
 
   const ghost = useMemo(() => {
     if (!buildPlacement || !hover) return null;
@@ -662,10 +666,11 @@ export function MapView() {
     <div className="flex-1 relative overflow-auto scroll-amber bg-coal grain">
       <svg
         ref={ref}
-        width={W}
-        height={H}
+        width={VW}
+        height={VH}
         viewBox={`0 0 ${W} ${H}`}
         className="block"
+
         shapeRendering="geometricPrecision"
         onMouseMove={(e) => {
           const p = svgToTile(e);
