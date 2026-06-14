@@ -17,11 +17,20 @@ export function loadFromLocal(): SaveGame | null {
     const raw = localStorage.getItem(KEY);
     if (!raw) return null;
     const data = JSON.parse(raw) as SaveGame;
-    if (data.version !== 2 && data.version !== 3) return null;
+    if (data.version !== 2 && data.version !== 3 && data.version !== 4) return null;
     if (data.version === 2) {
-      // Migrate v2 → v3: add empty proposals.
       (data as SaveGame).proposals = [];
       (data as SaveGame).version = 3;
+    }
+    if (data.version === 3) {
+      // Migrate v3 → v4: add empty livestock arrays + missing resources.
+      (data as SaveGame).animals = [];
+      (data as SaveGame).livestockRequests = [];
+      const r = data.resources as Record<string, number>;
+      if (r.eggs == null) r.eggs = 0;
+      if (r.milk == null) r.milk = 0;
+      if (r.wool == null) r.wool = 0;
+      (data as SaveGame).version = 4;
     }
     return data;
   } catch {
