@@ -34,7 +34,7 @@ import {
   type CouncilVoteEvent, type CouncilAction, type CouncilReactionLogEntry,
 } from "./sim/councilVote";
 import { LAW_BY_ID, type EnactedLaw } from "./sim/laws";
-import { computeFactions, mostHatedLaw } from "./sim/factions";
+import { computeFactions, mostHatedLaw, pressingLawDemands } from "./sim/factions";
 
 export type Screen = "menu" | "founder" | "game";
 export type Overlay = "tree" | "family" | "chronicle" | null;
