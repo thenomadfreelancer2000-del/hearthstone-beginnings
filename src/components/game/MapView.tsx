@@ -402,6 +402,20 @@ function NodeArt({ kind, size, seed }: { kind: string; size: number; seed: numbe
       </g>
     );
   }
+  if (kind === "fiber-grass") {
+    // Tall reedy stalks with seed-tufts — flax/hemp hint
+    return (
+      <g>
+        <ellipse cx={s / 2} cy={s * 0.92} rx={s * 0.26} ry={s * 0.05} fill={PAL.shadow} />
+        <line x1={s*0.35} y1={s*0.9} x2={s*0.32} y2={s*0.15} stroke="#8a7a3a" strokeWidth={0.9} />
+        <line x1={s*0.5}  y1={s*0.9} x2={s*0.52} y2={s*0.08} stroke="#a89548" strokeWidth={1.0} />
+        <line x1={s*0.65} y1={s*0.9} x2={s*0.7}  y2={s*0.18} stroke="#8a7a3a" strokeWidth={0.9} />
+        <circle cx={s*0.32} cy={s*0.15} r={s*0.06} fill="#d8c878" stroke={PAL.ink} strokeWidth={0.4} />
+        <circle cx={s*0.52} cy={s*0.08} r={s*0.07} fill="#e6d68a" stroke={PAL.ink} strokeWidth={0.4} />
+        <circle cx={s*0.7}  cy={s*0.18} r={s*0.06} fill="#d8c878" stroke={PAL.ink} strokeWidth={0.4} />
+      </g>
+    );
+  }
   // berries
   return (
     <g>
