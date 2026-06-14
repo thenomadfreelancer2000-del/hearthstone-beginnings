@@ -925,7 +925,68 @@ export const useGame = create<GameState>((set, get) => ({
     return saveToLocal(data);
   },
 
-  tickReal: (deltaMs) => {
+  resolveCouncilVote: (action) => {
+    const st = get();
+    const ev = st.pendingCouncilVote;
+    if (!ev) return;
+    const leader = st.survivors.find(s => s.id === st.currentLeaderId);
+    const leadSkill = leader?.skills.lead ?? 0;
+    const outcome = resolveCouncilVoteLogic(ev, action, {
+      resources: st.resources,
+      leaderLeadSkill: leadSkill,
+    });
+    if (!outcome.ok) {
+      toast.error(outcome.title, { description: outcome.body });
+      return;
+    }
+    // Apply effects.
+    const newResources = { ...st.resources };
+    for (const [r, amt] of Object.entries(outcome.resourceCost)) {
+      (newResources as any)[r] = Math.max(0, ((newResources as any)[r] ?? 0) - (amt ?? 0));
+    }
+    const newFamilies = st.families.map(f => {
+      const dp = outcome.prestigeDeltas[f.id] ?? 0;
+      const dw = outcome.wealthDeltas[f.id] ?? 0;
+      if (!dp && !dw) return f;
+      return {
+        ...f,
+        prestige: Math.max(0, Math.min(200, f.prestige + dp)),
+        wealth: Math.max(0, (f.wealth ?? 0) + dw),
+      };
+    });
+    let newLeaderId = st.currentLeaderId;
+    let newSurvivors = st.survivors;
+    if (outcome.newLeaderId) {
+      newLeaderId = outcome.newLeaderId;
+      newSurvivors = st.survivors.map(s => {
+        if (s.id === st.currentLeaderId && s.occupation === "leader") return { ...s, occupation: "idle" };
+        if (s.id === outcome.newLeaderId) return { ...s, occupation: "leader" };
+        return s;
+      });
+    }
+    const newChronicle: ChronicleEntry = {
+      id: nanoid(8),
+      tick: st.time.tick,
+      year: st.time.year, season: st.time.season, day: st.time.day,
+      category: "succession",
+      title: outcome.title,
+      body: outcome.body,
+      involvedIds: [ev.leaderId, ...(ev.challengerHeadId ? [ev.challengerHeadId] : [])],
+      involvedFamilyIds: [ev.leaderHouseId, ...(ev.challengerHouseId ? [ev.challengerHouseId] : [])],
+    };
+    if (outcome.tone === "good") toast.success(outcome.title, { description: outcome.body });
+    else if (outcome.tone === "bad") toast.error(outcome.title, { description: outcome.body });
+    else toast(outcome.title, { description: outcome.body });
+    set({
+      pendingCouncilVote: null,
+      resources: newResources,
+      families: newFamilies,
+      currentLeaderId: newLeaderId,
+      survivors: newSurvivors,
+      chronicle: [newChronicle, ...st.chronicle].slice(0, 600),
+    });
+  },
+
     const st = get();
     if (st.speed === 0 || st.screen !== "game") return;
     if (st.pendingArrival) return; // pause while the player decides
