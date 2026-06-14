@@ -450,6 +450,12 @@ export function forecastActionRisk(
       repShifts.push({ axis: "ruthless", delta: 3, reason: "denies the petition" });
       break;
     }
+    case "expand-territory": {
+      score = 12;
+      backlash.push(`Some kin grumble at the new fenceline`);
+      repShifts.push({ axis: "compassionate", delta: 1, reason: "provides for the future" });
+      break;
+    }
   }
 
   const label: ActionRisk["label"] =
