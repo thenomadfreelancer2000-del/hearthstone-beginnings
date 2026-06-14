@@ -9,7 +9,8 @@ import { computePolitics } from "./politics";
 export type CouncilAction =
   | "speech" | "bribe" | "office" | "crush" | "stepdown" | "abdicate-peace"
   | "repeal-law" | "refuse-repeal"
-  | "enact-law" | "refuse-enact";
+  | "enact-law" | "refuse-enact"
+  | "expand-territory";
 
 export interface CouncilVote {
   familyId: ID;
