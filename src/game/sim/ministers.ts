@@ -154,29 +154,10 @@ export function dailyMinistersTick(deps: {
       s.loyaltyToFounder = Math.max(-100, Math.min(100, s.loyaltyToFounder + delta));
     }
 
-    // Generate a worker request when significantly understaffed
-    const hasPending = deps.ministerRequests.some(
-      (r) => r.ministerId === m.id && r.status === "pending",
-    );
-    const enoughDaysPassed =
-      m.lastRequestTick == null || (deps.time.tick - m.lastRequestTick) > TICKS_PER_DAY * 8;
-    const gap = dept.needed - dept.assigned;
-    if (!hasPending && enoughDaysPassed && gap >= 2 && rng() < 0.5) {
-      const req: MinisterRequest = {
-        id: nanoid(8),
-        ministerId: m.id,
-        role: m.role,
-        survivorId: m.survivorId,
-        requestedWorkers: Math.min(gap, 4),
-        approvedWorkers: 0,
-        createdTick: deps.time.tick,
-        createdYear: deps.time.year,
-        status: "pending",
-        reason: gapReason(m.role, gap),
-      };
-      deps.ministerRequests.push(req);
-      m.lastRequestTick = deps.time.tick;
-    }
+    // Managers now silently fill their departments (see autoAssignWorkers).
+    // We no longer generate Founder-facing worker requests for staffing.
+    void gapReason; // kept for any future opt-in request flows
+
 
     // Periodic reports (~ every 30 days)
     if (m.lastReportTick == null || deps.time.tick - m.lastReportTick >= TICKS_PER_DAY * 30) {
