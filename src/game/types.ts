@@ -111,6 +111,11 @@ export interface Survivor {
   /** Portrait identifier from PORTRAITS list. Optional; null for procedurally generated NPCs. */
   portraitId?: string | null;
 
+  // Pregnancy (mothers only). When pregnant, the child is not yet spawned;
+  // delivery happens after ~9 in-game months.
+  pregnant?: boolean;
+  pregnancyTick?: number | null;
+
   // Position
   x: number;
   y: number;
