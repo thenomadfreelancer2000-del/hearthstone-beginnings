@@ -1167,8 +1167,6 @@ export const useGame = create<GameState>((set, get) => ({
     if (st.pendingArrival) return; // pause while the player decides
     if (st.pendingCouncilVote) return; // pause during a council vote
     if (st.pendingFoundingCharter) return; // pause during the Founding Charter
-    if (st.pendingArrival) return; // pause while the player decides
-    if (st.pendingCouncilVote) return; // pause during a council vote
     const tps = 8 * (st.speed === 1 ? 1 : st.speed === 2 ? 2 : 4);
     const n = Math.max(1, Math.floor((deltaMs / 1000) * tps));
 
