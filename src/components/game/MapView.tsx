@@ -1,5 +1,6 @@
 import React, { useMemo, useRef, useState } from "react";
 import { useGame } from "@/game/store";
+import { useView } from "@/game/viewStore";
 import { BUILDINGS } from "@/game/data/content";
 import type { Tile } from "@/game/types";
 
