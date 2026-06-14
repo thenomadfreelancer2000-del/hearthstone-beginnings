@@ -13,6 +13,7 @@ import {
 } from "./sim/world";
 
 import { advance, type Engine } from "./sim/engine";
+import { createArrangedProposal } from "./sim/marriage";
 import { BUILDINGS } from "./data/content";
 import { saveToLocal, loadFromLocal } from "./persistence";
 import { makeRng } from "./sim/rng";
