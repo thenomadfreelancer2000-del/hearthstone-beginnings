@@ -1053,6 +1053,10 @@ export const useGame = create<GameState>((set, get) => ({
     const logEntry = buildReactionLog(ev, action, outcome, {
       tick: st.time.tick, day: st.time.day, season: st.time.season,
     });
+    // If conceding a law-repeal demand, drop the law from the active set.
+    const newLaws = (action === "repeal-law" && ev.lawRepealRequest)
+      ? st.laws.filter((l) => l.lawId !== ev.lawRepealRequest!.lawId)
+      : st.laws;
     set({
       pendingCouncilVote: null,
       resources: newResources,
@@ -1060,6 +1064,7 @@ export const useGame = create<GameState>((set, get) => ({
       currentLeaderId: newLeaderId,
       survivors: newSurvivors,
       reputationProfile: newRep,
+      laws: newLaws,
       chronicle: [newChronicle, ...st.chronicle].slice(0, 600),
       councilReactionLog: [logEntry, ...st.councilReactionLog].slice(0, 60),
     });
