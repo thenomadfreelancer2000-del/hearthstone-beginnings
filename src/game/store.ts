@@ -411,7 +411,8 @@ export const useGame = create<GameState>((set, get) => ({
     if (st.territory && st.territory.radius > 0) {
       const tx = x + def.size.w / 2;
       const ty = y + def.size.h / 2;
-      if (Math.max(Math.abs(tx - st.territory.cx), Math.abs(ty - st.territory.cy)) > st.territory.radius) {
+      const { halfW, halfH } = territoryDims(st.territory);
+      if (Math.abs(tx - st.territory.cx) > halfW || Math.abs(ty - st.territory.cy) > halfH) {
         toast.error("Outside ranch territory");
         return false;
       }
