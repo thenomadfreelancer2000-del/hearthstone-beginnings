@@ -944,26 +944,83 @@ export const useGame = create<GameState>((set, get) => ({
     for (const [r, amt] of Object.entries(outcome.resourceCost)) {
       (newResources as any)[r] = Math.max(0, ((newResources as any)[r] ?? 0) - (amt ?? 0));
     }
+    // Family prestige + wealth, plus mutual relations between leader & challenger houses.
     const newFamilies = st.families.map(f => {
       const dp = outcome.prestigeDeltas[f.id] ?? 0;
       const dw = outcome.wealthDeltas[f.id] ?? 0;
-      if (!dp && !dw) return f;
+      const rel = outcome.relationsDelta;
+      const newRelations = { ...f.relations };
+      if (rel) {
+        if (f.id === rel.a) newRelations[rel.b] = Math.max(-100, Math.min(100, (newRelations[rel.b] ?? 0) + rel.delta));
+        if (f.id === rel.b) newRelations[rel.a] = Math.max(-100, Math.min(100, (newRelations[rel.a] ?? 0) + rel.delta));
+      }
+      if (!dp && !dw && (!rel || (f.id !== rel.a && f.id !== rel.b))) return f;
       return {
         ...f,
         prestige: Math.max(0, Math.min(200, f.prestige + dp)),
         wealth: Math.max(0, (f.wealth ?? 0) + dw),
+        relations: newRelations,
       };
     });
+    // Survivor-level effects: loyalty, mood, optional memory.
+    const leaderHouseId = ev.leaderHouseId;
+    const challengerHouseId = ev.challengerHouseId;
     let newLeaderId = st.currentLeaderId;
-    let newSurvivors = st.survivors;
-    if (outcome.newLeaderId) {
-      newLeaderId = outcome.newLeaderId;
-      newSurvivors = st.survivors.map(s => {
-        if (s.id === st.currentLeaderId && s.occupation === "leader") return { ...s, occupation: "idle" };
-        if (s.id === outcome.newLeaderId) return { ...s, occupation: "leader" };
-        return s;
-      });
+    const newSurvivors = st.survivors.map(s => {
+      if (s.health <= 0) return s;
+      const inLeaderHouse = s.familyId === leaderHouseId;
+      const inChallengerHouse = challengerHouseId != null && s.familyId === challengerHouseId;
+      let dLoy = outcome.loyaltyDeltas.all ?? 0;
+      if (inLeaderHouse) dLoy += outcome.loyaltyDeltas.leaderHouse ?? 0;
+      if (inChallengerHouse) dLoy += outcome.loyaltyDeltas.challengerHouse ?? 0;
+      let dMood = outcome.moodDeltas.all ?? 0;
+      if (inLeaderHouse) dMood += outcome.moodDeltas.leaderHouse ?? 0;
+      if (inChallengerHouse) dMood += outcome.moodDeltas.challengerHouse ?? 0;
+
+      let occ = s.occupation;
+      if (outcome.newLeaderId) {
+        if (s.id === st.currentLeaderId && s.occupation === "leader") occ = "idle";
+        if (s.id === outcome.newLeaderId) occ = "leader";
+      }
+
+      let memories = s.memories;
+      const isAdult = s.stage === "adult" || s.stage === "elder" || s.stage === "youth";
+      if (isAdult && outcome.memoryText && outcome.memoryEmotion) {
+        memories = [
+          {
+            id: nanoid(6),
+            tick: st.time.tick,
+            year: st.time.year, season: st.time.season, day: st.time.day,
+            text: outcome.memoryText,
+            emotion: outcome.memoryEmotion,
+            weight: outcome.memoryWeight,
+            aboutSurvivorId: st.currentLeaderId,
+            kind: "council-vote",
+            floor: Math.round(outcome.memoryWeight * 0.3),
+            decayRate: 0.4,
+          },
+          ...s.memories,
+        ].slice(0, 64);
+      }
+
+      if (!dLoy && !dMood && occ === s.occupation && memories === s.memories) return s;
+      return {
+        ...s,
+        occupation: occ,
+        loyaltyToFounder: Math.max(-100, Math.min(100, s.loyaltyToFounder + dLoy)),
+        mood: Math.max(-100, Math.min(100, s.mood + dMood)),
+        memories,
+      };
+    });
+    if (outcome.newLeaderId) newLeaderId = outcome.newLeaderId;
+
+    // Reputation profile axis shifts.
+    const newRep = { ...st.reputationProfile };
+    for (const [axis, delta] of Object.entries(outcome.reputationDeltas)) {
+      const ax = axis as keyof typeof newRep;
+      newRep[ax] = Math.max(0, Math.min(100, (newRep[ax] ?? 0) + (delta ?? 0)));
     }
+
     const newChronicle: ChronicleEntry = {
       id: nanoid(8),
       tick: st.time.tick,
@@ -983,6 +1040,7 @@ export const useGame = create<GameState>((set, get) => ({
       families: newFamilies,
       currentLeaderId: newLeaderId,
       survivors: newSurvivors,
+      reputationProfile: newRep,
       chronicle: [newChronicle, ...st.chronicle].slice(0, 600),
     });
   },
