@@ -1092,6 +1092,15 @@ export const useGame = create<GameState>((set, get) => ({
         ];
       }
     }
+    // Territory expansion (rectangular growth) for the new council action.
+    let newTerritory = st.territory;
+    if (action === "expand-territory" && st.territory && st.territory.radius > 0) {
+      newTerritory = expandTerritoryRectangle(st.territory, st.mapW, st.mapH);
+      const { halfW, halfH } = territoryDims(newTerritory);
+      toast.success("The ranch grows", {
+        description: `Perimeter pushed to ${Math.round(halfW * 2)}×${Math.round(halfH * 2)} tiles.`,
+      });
+    }
     set({
       pendingCouncilVote: null,
       resources: newResources,
@@ -1100,6 +1109,7 @@ export const useGame = create<GameState>((set, get) => ({
       survivors: newSurvivors,
       reputationProfile: newRep,
       laws: newLaws,
+      territory: newTerritory,
       chronicle: [newChronicle, ...st.chronicle].slice(0, 600),
       councilReactionLog: [logEntry, ...st.councilReactionLog].slice(0, 60),
     });
