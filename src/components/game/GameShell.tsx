@@ -43,6 +43,8 @@ export function GameShell() {
         <MapView />
         <FoundingPanel />
         <LeaderProfile dockOpen={dockOpen} />
+        <MarriageProposalsPanel />
+
 
         {!isMobile && <Inspector />}
 
