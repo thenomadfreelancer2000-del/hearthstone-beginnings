@@ -301,10 +301,12 @@ function dailyTick(eng: Engine, opts?: { onArrival?: (s: Survivor) => Survivor |
     );
   }
 
-  // ── Marriages ─────────────────────────────────────────────────
+  // ── Marriage proposals (Dynastic Marriage update) ─────────────
   if (seasonChange) {
-    processMarriages(eng, rng);
+    enqueueProposalsForSeason(eng, rng);
   }
+  resolveProposalsDaily(eng, rng);
+
 
   // ── Births ────────────────────────────────────────────────────
   if (seasonChange) {
