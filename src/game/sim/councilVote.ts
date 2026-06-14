@@ -609,6 +609,35 @@ export function resolveCouncilVote(
       out.body = "No grand promises. The year turns and the houses wait.";
       return out;
     }
+    case "repeal-law": {
+      if (!ev.lawRepealRequest) { out.ok = false; out.title = "No law to repeal"; out.body = ""; return out; }
+      out.title = `The council strikes "${ev.lawRepealRequest.lawTitle}"`;
+      out.body = `${ev.lawRepealRequest.factionName} carry the day. The law comes down from the wall.`;
+      D(out.prestigeDeltas, ev.leaderHouseId, 6);
+      out.loyaltyDeltas.all = -3;
+      out.reputationDeltas.compassionate = 5;
+      out.memoryText = `The founder bent. "${ev.lawRepealRequest.lawTitle}" is no more.`;
+      out.memoryEmotion = "trust";
+      out.memoryWeight = 35;
+      out.tone = "neutral";
+      return out;
+    }
+    case "refuse-repeal": {
+      if (!ev.lawRepealRequest) { out.ok = false; out.title = "No demand to refuse"; out.body = ""; return out; }
+      out.title = `The law stands`;
+      out.body = `The porch refuses. ${ev.lawRepealRequest.factionName} leave the hall in silence.`;
+      D(out.prestigeDeltas, ev.leaderHouseId, 2);
+      if (chId) {
+        out.relationsDelta = { a: ev.leaderHouseId, b: chId, delta: -20 };
+      }
+      out.loyaltyDeltas.all = -4;
+      out.reputationDeltas.ruthless = 4;
+      out.memoryText = `The founder held the line. "${ev.lawRepealRequest.lawTitle}" still stands.`;
+      out.memoryEmotion = "fear";
+      out.memoryWeight = 30;
+      out.tone = "bad";
+      return out;
+    }
   }
   return out;
 }
