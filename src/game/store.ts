@@ -30,7 +30,8 @@ import { TRAIT_INFO, traitRefugeeBias } from "./data/traits";
 import { computeFounderEpithet, founderDeathTitle, founderDeathBody } from "./sim/legacy";
 import {
   generateCouncilVote, resolveCouncilVote as resolveCouncilVoteLogic,
-  type CouncilVoteEvent, type CouncilAction,
+  buildReactionLog,
+  type CouncilVoteEvent, type CouncilAction, type CouncilReactionLogEntry,
 } from "./sim/councilVote";
 
 export type Screen = "menu" | "founder" | "game";
@@ -84,6 +85,7 @@ interface GameState {
   pendingArrival: ArrivalEvent | null;
   // Annual Council vote (transient — pauses the simulation while open)
   pendingCouncilVote: CouncilVoteEvent | null;
+  councilReactionLog: CouncilReactionLogEntry[];
   // Building awaiting builder assignment (transient)
   pendingBuildAssignment: ID | null;
   // Farm plot awaiting crop+farmer selection (transient)
@@ -256,6 +258,7 @@ export const useGame = create<GameState>((set, get) => ({
   buildPlacement: null,
   pendingArrival: null,
   pendingCouncilVote: null,
+  councilReactionLog: [],
   pendingBuildAssignment: null,
   pendingFarmSetup: null,
   unlockedCrops: [...STARTER_CROP_IDS],
@@ -1034,6 +1037,9 @@ export const useGame = create<GameState>((set, get) => ({
     if (outcome.tone === "good") toast.success(outcome.title, { description: outcome.body });
     else if (outcome.tone === "bad") toast.error(outcome.title, { description: outcome.body });
     else toast(outcome.title, { description: outcome.body });
+    const logEntry = buildReactionLog(ev, action, outcome, {
+      tick: st.time.tick, day: st.time.day, season: st.time.season,
+    });
     set({
       pendingCouncilVote: null,
       resources: newResources,
@@ -1042,6 +1048,7 @@ export const useGame = create<GameState>((set, get) => ({
       survivors: newSurvivors,
       reputationProfile: newRep,
       chronicle: [newChronicle, ...st.chronicle].slice(0, 600),
+      councilReactionLog: [logEntry, ...st.councilReactionLog].slice(0, 60),
     });
   },
 

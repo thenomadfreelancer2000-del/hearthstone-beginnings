@@ -321,6 +321,48 @@ export function forecastActionRisk(
   return { score: Math.max(0, Math.min(100, score)), label, backlash, repShifts };
 }
 
+export interface CouncilReactionEntry {
+  familyId: ID;
+  houseName: string;
+  /** "leader" = leader's own house, "challenger" = challenger's house, "other" = bystander */
+  role: "leader" | "challenger" | "other";
+  voted: "for" | "against" | "absent";
+  reason: string;
+  /** Net relationship change toward the leader's house (-100..+100). */
+  relationsDelta: number;
+  /** Prestige change to this house from the vote. */
+  prestigeDelta: number;
+  /** Wealth change to this house from the vote. */
+  wealthDelta: number;
+  /** Loyalty change for members of this house. */
+  loyaltyDelta: number;
+  /** Mood change for members of this house. */
+  moodDelta: number;
+  /** Short, human-readable sentiment summary. */
+  sentiment: "elated" | "pleased" | "neutral" | "uneasy" | "wronged" | "enraged";
+  note: string;
+}
+
+export interface CouncilReactionLogEntry {
+  id: string;
+  year: number;
+  tick: number;
+  day: number;
+  season: string;
+  action: CouncilAction;
+  actionLabel: string;
+  title: string;
+  body: string;
+  tone: "good" | "bad" | "neutral";
+  leaderName: string;
+  leaderHouseId: ID;
+  leaderHouseName: string;
+  challengerHouseId: ID | null;
+  challengerHouseName: string | null;
+  reactions: CouncilReactionEntry[];
+  reputationDeltas: Partial<ReputationProfile>;
+}
+
 export interface ResolutionOutcome {
   ok: boolean;
   title: string;
@@ -519,3 +561,100 @@ export function resolveCouncilVote(
   }
   return out;
 }
+
+function sentimentFor(rel: number, loy: number, mood: number): CouncilReactionEntry["sentiment"] {
+  const score = rel + loy + mood;
+  if (score >= 25) return "elated";
+  if (score >= 8) return "pleased";
+  if (score <= -25) return "enraged";
+  if (score <= -10) return "wronged";
+  if (score <= -3) return "uneasy";
+  return "neutral";
+}
+
+/** Build the per-house reaction log for an event + its resolved outcome. */
+export function buildReactionLog(
+  ev: CouncilVoteEvent,
+  action: CouncilAction,
+  outcome: ResolutionOutcome,
+  meta: { tick: number; day: number; season: string },
+): CouncilReactionLogEntry {
+  const leaderHouseId = ev.leaderHouseId;
+  const chId = ev.challengerHouseId;
+  const rel = outcome.relationsDelta;
+
+  const reactions: CouncilReactionEntry[] = ev.votes.map((v) => {
+    const role: CouncilReactionEntry["role"] =
+      v.familyId === leaderHouseId ? "leader" :
+      chId && v.familyId === chId ? "challenger" : "other";
+
+    // Relations toward leader's house, taken from outcome.relationsDelta.
+    let relationsDelta = 0;
+    if (rel) {
+      if (v.familyId === rel.a && leaderHouseId === rel.b) relationsDelta = rel.delta;
+      else if (v.familyId === rel.b && leaderHouseId === rel.a) relationsDelta = rel.delta;
+    }
+
+    const prestigeDelta = outcome.prestigeDeltas[v.familyId] ?? 0;
+    const wealthDelta = outcome.wealthDeltas[v.familyId] ?? 0;
+
+    const baseLoy = outcome.loyaltyDeltas.all ?? 0;
+    const baseMood = outcome.moodDeltas.all ?? 0;
+    const loyaltyDelta =
+      baseLoy +
+      (role === "leader" ? (outcome.loyaltyDeltas.leaderHouse ?? 0) : 0) +
+      (role === "challenger" ? (outcome.loyaltyDeltas.challengerHouse ?? 0) : 0);
+    const moodDelta =
+      baseMood +
+      (role === "leader" ? (outcome.moodDeltas.leaderHouse ?? 0) : 0) +
+      (role === "challenger" ? (outcome.moodDeltas.challengerHouse ?? 0) : 0);
+
+    const sentiment = sentimentFor(relationsDelta, loyaltyDelta, moodDelta);
+
+    let note = "";
+    switch (sentiment) {
+      case "elated":   note = "Toasts the leader's name in the hall."; break;
+      case "pleased":  note = "Nods quiet approval."; break;
+      case "neutral":  note = "Keeps its counsel."; break;
+      case "uneasy":   note = "Mutters in the back rows."; break;
+      case "wronged":  note = "Will not forget this season."; break;
+      case "enraged":  note = "Speaks openly of revenge."; break;
+    }
+
+    return {
+      familyId: v.familyId,
+      houseName: v.houseName,
+      role,
+      voted: v.forLeader ? "for" : "against",
+      reason: v.reason,
+      relationsDelta,
+      prestigeDelta,
+      wealthDelta,
+      loyaltyDelta,
+      moodDelta,
+      sentiment,
+      note,
+    };
+  });
+
+  return {
+    id: `crl-${ev.year}-${Math.floor(Math.random() * 1e6).toString(36)}`,
+    year: ev.year,
+    tick: meta.tick,
+    day: meta.day,
+    season: meta.season,
+    action,
+    actionLabel: COUNCIL_ACTION_INFO[action].label,
+    title: outcome.title,
+    body: outcome.body,
+    tone: outcome.tone,
+    leaderName: ev.leaderName,
+    leaderHouseId: ev.leaderHouseId,
+    leaderHouseName: ev.leaderHouseName,
+    challengerHouseId: ev.challengerHouseId,
+    challengerHouseName: ev.challengerHouseName,
+    reactions,
+    reputationDeltas: { ...outcome.reputationDeltas },
+  };
+}
+
