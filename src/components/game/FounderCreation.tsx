@@ -276,7 +276,7 @@ function StepIdentity(props: {
   const availablePortraits = PORTRAITS.filter((p) => p.gender === gender);
 
   return (
-    <section className="grid md:grid-cols-2 gap-4 md:gap-5 items-start">
+    <section className="grid md:grid-cols-2 gap-4 md:gap-5 items-stretch [&>div]:h-full">
 
       {/* Panel A — Face */}
       <div className="parchment-panel corner-brackets p-2 sm:p-7 min-w-0">
