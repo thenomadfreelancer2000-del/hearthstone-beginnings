@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Toaster } from "sonner";
 import { TopBar } from "./TopBar";
 import { MapView } from "./MapView";
@@ -38,11 +38,19 @@ export function GameShell() {
   const [factionsOpen, setFactionsOpen] = useState(false);
   const [expeditionsOpen, setExpeditionsOpen] = useState(false);
   const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
+  const selectionKey = selection.kind === "survivor" || selection.kind === "building" || selection.kind === "family"
+    ? `${selection.kind}:${selection.id}`
+    : selection.kind === "tile"
+      ? `tile:${selection.x},${selection.y}`
+      : "none";
+  const lastSelectionKey = useRef(selectionKey);
 
-  // Auto-open inspector when something is selected on mobile.
+  // Auto-open inspector on mobile only after the player changes selection.
   useEffect(() => {
-    if (isMobile && selection.kind !== "none") setInspectorOpen(true);
-  }, [isMobile, selection.kind, selection.kind === "survivor" ? selection.id : selection.kind === "building" ? selection.id : ""]);
+    const changed = lastSelectionKey.current !== selectionKey;
+    lastSelectionKey.current = selectionKey;
+    if (isMobile && changed && selection.kind !== "none") setInspectorOpen(true);
+  }, [isMobile, selection.kind, selectionKey]);
 
   const showInspector = isMobile ? selection.kind !== "none" && inspectorOpen : true;
 

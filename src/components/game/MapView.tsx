@@ -5,6 +5,16 @@ import { BUILDINGS } from "@/game/data/content";
 import type { ResourceNode, Tile } from "@/game/types";
 
 const TILE = 28;
+const LAYER_CHUNK = 1024;
+
+type LayerImage = {
+  id: string;
+  url: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+};
 
 // Unified, muted palette — everything reads as one painted board.
 const PAL = {
@@ -30,6 +40,28 @@ const TILE_PAL: Record<Tile["kind"], { base: string; alt: string; detail: string
 function rand(x: number, y: number, salt = 0) {
   const n = Math.sin(x * 127.1 + y * 311.7 + salt * 13.37) * 43758.5453;
   return n - Math.floor(n);
+}
+
+function layerChunks(width: number, height: number) {
+  const chunks: Omit<LayerImage, "url">[] = [];
+  for (let y = 0; y < height; y += LAYER_CHUNK) {
+    for (let x = 0; x < width; x += LAYER_CHUNK) {
+      chunks.push({
+        id: `${x}-${y}`,
+        x,
+        y,
+        width: Math.min(LAYER_CHUNK, width - x),
+        height: Math.min(LAYER_CHUNK, height - y),
+      });
+    }
+  }
+  return chunks;
+}
+
+function canvasToObjectUrl(canvas: HTMLCanvasElement) {
+  return new Promise<string | null>((resolve) => {
+    canvas.toBlob((blob) => resolve(blob ? URL.createObjectURL(blob) : null), "image/png");
+  });
 }
 
 // ── Hand-drawn building renderers (unified style) ────────────────
@@ -617,242 +649,273 @@ function SurvivorArt({ founder, dead, female }: { founder: boolean; dead: boolea
 }
 
 const StaticTileLayers = React.memo(function StaticTileLayers({ tiles, width, height }: { tiles: Tile[]; width: number; height: number }) {
-  const [terrainUrl, setTerrainUrl] = useState<string | null>(null);
+  const [terrainImages, setTerrainImages] = useState<LayerImage[]>([]);
 
   useEffect(() => {
     let cancelled = false;
-    let url: string | null = null;
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    const urls: string[] = [];
+    const chunks = layerChunks(width, height);
+    const tileByChunk = chunks.map((chunk) => ({
+      chunk,
+      tiles: tiles.filter((t) => {
+        const px = t.x * TILE;
+        const py = t.y * TILE;
+        return px < chunk.x + chunk.width && px + TILE > chunk.x && py < chunk.y + chunk.height && py + TILE > chunk.y;
+      }),
+    }));
 
-    for (const t of tiles) {
-      const pal = TILE_PAL[t.kind];
-      const px = t.x * TILE;
-      const py = t.y * TILE;
-      ctx.fillStyle = t.kind === "water" ? pal.base : (t.variant % 3 === 0 ? pal.alt : pal.base);
-      ctx.fillRect(px, py, TILE, TILE);
-      if (t.kind === "water") {
-        ctx.strokeStyle = TILE_PAL.water.detail;
-        ctx.globalAlpha = 0.55;
-        ctx.lineWidth = 0.6;
-        for (const oy of [4, 8]) {
-          ctx.beginPath();
-          ctx.moveTo(px, py + oy);
-          ctx.quadraticCurveTo(px + 2.5, py + oy - 2, px + 5, py + oy);
-          ctx.quadraticCurveTo(px + 7.5, py + oy + 2, px + 10, py + oy);
-          ctx.stroke();
+    (async () => {
+      const images: LayerImage[] = [];
+      for (const { chunk, tiles: chunkTiles } of tileByChunk) {
+        const canvas = document.createElement("canvas");
+        canvas.width = chunk.width;
+        canvas.height = chunk.height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) continue;
+        ctx.translate(-chunk.x, -chunk.y);
+
+        for (const t of chunkTiles) {
+          const pal = TILE_PAL[t.kind];
+          const px = t.x * TILE;
+          const py = t.y * TILE;
+          ctx.fillStyle = t.kind === "water" ? pal.base : (t.variant % 3 === 0 ? pal.alt : pal.base);
+          ctx.fillRect(px, py, TILE, TILE);
+          if (t.kind === "water") {
+            ctx.strokeStyle = TILE_PAL.water.detail;
+            ctx.globalAlpha = 0.55;
+            ctx.lineWidth = 0.6;
+            for (const oy of [4, 8]) {
+              ctx.beginPath();
+              ctx.moveTo(px, py + oy);
+              ctx.quadraticCurveTo(px + 2.5, py + oy - 2, px + 5, py + oy);
+              ctx.quadraticCurveTo(px + 7.5, py + oy + 2, px + 10, py + oy);
+              ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
+          }
+        }
+
+        ctx.lineCap = "round";
+        for (const t of chunkTiles) {
+          if (t.kind === "water") continue;
+          const px = t.x * TILE;
+          const py = t.y * TILE;
+          const pal = TILE_PAL[t.kind];
+          ctx.strokeStyle = pal.detail;
+          ctx.fillStyle = pal.detail;
+          if (t.kind === "grass" || t.kind === "tall-grass") {
+            const n = t.kind === "tall-grass" ? 5 : 3;
+            const len = t.kind === "tall-grass" ? 4 : 2.5;
+            ctx.globalAlpha = 1;
+            ctx.lineWidth = 0.7;
+            for (let i = 0; i < n; i++) {
+              const rx = px + rand(t.x, t.y, i) * (TILE - 4) + 2;
+              const ry = py + rand(t.x, t.y, i + 10) * (TILE - 4) + 2;
+              ctx.beginPath();
+              ctx.moveTo(rx, ry); ctx.lineTo(rx - 1, ry - len);
+              ctx.moveTo(rx, ry); ctx.lineTo(rx, ry - len - 0.5);
+              ctx.moveTo(rx, ry); ctx.lineTo(rx + 1, ry - len);
+              ctx.stroke();
+            }
+          } else if (t.kind === "dirt" || t.kind === "road") {
+            if (rand(t.x, t.y, 1) > 0.4) {
+              ctx.globalAlpha = 0.7;
+              ctx.beginPath();
+              ctx.arc(px + rand(t.x, t.y, 2) * (TILE - 6) + 3, py + rand(t.x, t.y, 3) * (TILE - 6) + 3, 0.8, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.globalAlpha = 0.5;
+              ctx.beginPath();
+              ctx.arc(px + rand(t.x, t.y, 4) * (TILE - 6) + 3, py + rand(t.x, t.y, 5) * (TILE - 6) + 3, 0.6, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          } else if (t.kind === "stone") {
+            if (rand(t.x, t.y, 1) > 0.3) {
+              ctx.globalAlpha = 0.7;
+              ctx.beginPath();
+              ctx.arc(px + rand(t.x, t.y, 2) * (TILE - 6) + 3, py + rand(t.x, t.y, 3) * (TILE - 6) + 3, 1.1, 0, Math.PI * 2);
+              ctx.fill();
+              ctx.strokeStyle = PAL.ink;
+              ctx.globalAlpha = 1;
+              ctx.lineWidth = 0.3;
+              ctx.stroke();
+            }
+          } else if (t.kind === "forest") {
+            if (rand(t.x, t.y, 1) > 0.4) {
+              ctx.globalAlpha = 0.55;
+              ctx.beginPath();
+              ctx.arc(px + rand(t.x, t.y, 2) * (TILE - 4) + 2, py + rand(t.x, t.y, 3) * (TILE - 4) + 2, 1.3, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          } else if (t.kind === "ruin") {
+            ctx.globalAlpha = 0.7;
+            ctx.lineWidth = 0.7;
+            ctx.beginPath();
+            ctx.moveTo(px + 4, py + TILE - 4);
+            ctx.lineTo(px + 8, py + TILE - 7);
+            ctx.lineTo(px + 11, py + TILE - 5);
+            ctx.stroke();
+          }
         }
         ctx.globalAlpha = 1;
-      }
-    }
 
-    ctx.lineCap = "round";
-    for (const t of tiles) {
-      if (t.kind === "water") continue;
-      const px = t.x * TILE;
-      const py = t.y * TILE;
-      const pal = TILE_PAL[t.kind];
-      ctx.strokeStyle = pal.detail;
-      ctx.fillStyle = pal.detail;
-      if (t.kind === "grass" || t.kind === "tall-grass") {
-        const n = t.kind === "tall-grass" ? 5 : 3;
-        const len = t.kind === "tall-grass" ? 4 : 2.5;
-        ctx.globalAlpha = 1;
-        ctx.lineWidth = 0.7;
-        for (let i = 0; i < n; i++) {
-          const rx = px + rand(t.x, t.y, i) * (TILE - 4) + 2;
-          const ry = py + rand(t.x, t.y, i + 10) * (TILE - 4) + 2;
-          ctx.beginPath();
-          ctx.moveTo(rx, ry); ctx.lineTo(rx - 1, ry - len);
-          ctx.moveTo(rx, ry); ctx.lineTo(rx, ry - len - 0.5);
-          ctx.moveTo(rx, ry); ctx.lineTo(rx + 1, ry - len);
-          ctx.stroke();
+        const url = await canvasToObjectUrl(canvas);
+        if (!url) continue;
+        if (cancelled) {
+          URL.revokeObjectURL(url);
+          continue;
         }
-      } else if (t.kind === "dirt" || t.kind === "road") {
-        if (rand(t.x, t.y, 1) > 0.4) {
-          ctx.globalAlpha = 0.7;
-          ctx.beginPath();
-          ctx.arc(px + rand(t.x, t.y, 2) * (TILE - 6) + 3, py + rand(t.x, t.y, 3) * (TILE - 6) + 3, 0.8, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.globalAlpha = 0.5;
-          ctx.beginPath();
-          ctx.arc(px + rand(t.x, t.y, 4) * (TILE - 6) + 3, py + rand(t.x, t.y, 5) * (TILE - 6) + 3, 0.6, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      } else if (t.kind === "stone") {
-        if (rand(t.x, t.y, 1) > 0.3) {
-          ctx.globalAlpha = 0.7;
-          ctx.beginPath();
-          ctx.arc(px + rand(t.x, t.y, 2) * (TILE - 6) + 3, py + rand(t.x, t.y, 3) * (TILE - 6) + 3, 1.1, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.strokeStyle = PAL.ink;
-          ctx.globalAlpha = 1;
-          ctx.lineWidth = 0.3;
-          ctx.stroke();
-        }
-      } else if (t.kind === "forest") {
-        if (rand(t.x, t.y, 1) > 0.4) {
-          ctx.globalAlpha = 0.55;
-          ctx.beginPath();
-          ctx.arc(px + rand(t.x, t.y, 2) * (TILE - 4) + 2, py + rand(t.x, t.y, 3) * (TILE - 4) + 2, 1.3, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      } else if (t.kind === "ruin") {
-        ctx.globalAlpha = 0.7;
-        ctx.lineWidth = 0.7;
-        ctx.beginPath();
-        ctx.moveTo(px + 4, py + TILE - 4);
-        ctx.lineTo(px + 8, py + TILE - 7);
-        ctx.lineTo(px + 11, py + TILE - 5);
-        ctx.stroke();
+        urls.push(url);
+        images.push({ ...chunk, url });
       }
-    }
-    ctx.globalAlpha = 1;
-
-    canvas.toBlob((blob) => {
-      if (!blob) return;
-      const nextUrl = URL.createObjectURL(blob);
-      if (cancelled) {
-        URL.revokeObjectURL(nextUrl);
-        return;
-      }
-      url = nextUrl;
-      setTerrainUrl(nextUrl);
-    }, "image/png");
+      if (!cancelled) setTerrainImages(images);
+    })();
 
     return () => {
       cancelled = true;
-      if (url) URL.revokeObjectURL(url);
+      urls.forEach((url) => URL.revokeObjectURL(url));
     };
   }, [tiles, width, height]);
 
-  if (!terrainUrl) return <rect x={0} y={0} width={width} height={height} fill={TILE_PAL.grass.base} />;
-  return <image href={terrainUrl} x={0} y={0} width={width} height={height} preserveAspectRatio="none" />;
+  if (terrainImages.length === 0) return <rect x={0} y={0} width={width} height={height} fill={TILE_PAL.grass.base} />;
+  return <>{terrainImages.map((image) => <image key={image.id} href={image.url} x={image.x} y={image.y} width={image.width} height={image.height} preserveAspectRatio="none" />)}</>;
 });
 
 const StaticResourceLayer = React.memo(function StaticResourceLayer({ nodes, width, height }: { nodes: ResourceNode[]; width: number; height: number }) {
-  const [resourceUrl, setResourceUrl] = useState<string | null>(null);
+  const [resourceImages, setResourceImages] = useState<LayerImage[]>([]);
 
   useEffect(() => {
     let cancelled = false;
-    let url: string | null = null;
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
+    const urls: string[] = [];
+    const chunks = layerChunks(width, height);
+    const nodesByChunk = chunks.map((chunk) => ({
+      chunk,
+      nodes: nodes.filter((n) => {
+        const cx = n.x * TILE + TILE / 2;
+        const cy = n.y * TILE + TILE / 2;
+        const size = TILE * (n.kind === "trees" ? 1.3 : n.kind === "rocks" ? 1.05 : 0.95);
+        return cx + size > chunk.x && cx - size < chunk.x + chunk.width && cy + size > chunk.y && cy - size < chunk.y + chunk.height;
+      }),
+    })).filter(({ nodes }) => nodes.some((n) => n.amount > 0));
 
-    for (const n of nodes) {
-      if (n.amount <= 0) continue;
-      const depleted = n.amount < 30;
-      ctx.globalAlpha = depleted ? 0.55 : 1;
-      const cx = n.x * TILE + TILE / 2;
-      const cy = n.y * TILE + TILE / 2;
-      const size = TILE * (n.kind === "trees" ? 1.3 : n.kind === "rocks" ? 1.05 : 0.95);
-      const x = cx;
-      const y = cy - size * 0.2;
-      ctx.fillStyle = PAL.shadow;
-      ctx.beginPath();
-      ctx.ellipse(x, cy + size * 0.25, size * 0.24, size * 0.05, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.globalAlpha = depleted ? 0.65 : 1;
+    (async () => {
+      const images: LayerImage[] = [];
+      for (const { chunk, nodes: chunkNodes } of nodesByChunk) {
+        const canvas = document.createElement("canvas");
+        canvas.width = chunk.width;
+        canvas.height = chunk.height;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) continue;
+        ctx.translate(-chunk.x, -chunk.y);
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
 
-      if (n.kind === "trees") {
-        ctx.fillStyle = "#3d2810";
-        ctx.strokeStyle = PAL.ink;
-        ctx.lineWidth = 0.8;
-        ctx.fillRect(x - size * 0.04, y + size * 0.18, size * 0.08, size * 0.36);
-        ctx.strokeRect(x - size * 0.04, y + size * 0.18, size * 0.08, size * 0.36);
-        ctx.fillStyle = "#3d5226";
-        ctx.beginPath();
-        ctx.moveTo(x, y - size * 0.22);
-        ctx.lineTo(x - size * 0.32, y + size * 0.25);
-        ctx.lineTo(x + size * 0.32, y + size * 0.25);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-        ctx.fillStyle = "#4a6235";
-        ctx.beginPath();
-        ctx.moveTo(x, y);
-        ctx.lineTo(x - size * 0.26, y + size * 0.38);
-        ctx.lineTo(x + size * 0.26, y + size * 0.38);
-        ctx.closePath();
-        ctx.fill();
-      } else if (n.kind === "rocks") {
-        ctx.fillStyle = "#8a8175";
-        ctx.strokeStyle = PAL.ink;
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(x - size * 0.3, cy + size * 0.2);
-        ctx.lineTo(x - size * 0.18, cy - size * 0.18);
-        ctx.lineTo(x + size * 0.08, cy - size * 0.28);
-        ctx.lineTo(x + size * 0.32, cy - size * 0.08);
-        ctx.lineTo(x + size * 0.36, cy + size * 0.2);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-        ctx.fillStyle = "#aaa094";
-        ctx.beginPath();
-        ctx.moveTo(x - size * 0.18, cy - size * 0.18);
-        ctx.lineTo(x + size * 0.08, cy - size * 0.28);
-        ctx.lineTo(x, cy - size * 0.02);
-        ctx.closePath();
-        ctx.fill();
-      } else if (n.kind === "fiber-grass") {
-        ctx.strokeStyle = "#a89548";
-        ctx.lineWidth = 1;
-        for (const off of [-0.15, 0, 0.15]) {
+        for (const n of chunkNodes) {
+          if (n.amount <= 0) continue;
+          const depleted = n.amount < 30;
+          ctx.globalAlpha = depleted ? 0.55 : 1;
+          const cx = n.x * TILE + TILE / 2;
+          const cy = n.y * TILE + TILE / 2;
+          const size = TILE * (n.kind === "trees" ? 1.3 : n.kind === "rocks" ? 1.05 : 0.95);
+          const x = cx;
+          const y = cy - size * 0.2;
+          ctx.fillStyle = PAL.shadow;
           ctx.beginPath();
-          ctx.moveTo(x + size * off, cy + size * 0.22);
-          ctx.lineTo(x + size * (off + 0.04), cy - size * 0.26);
-          ctx.stroke();
-          ctx.fillStyle = "#e6d68a";
-          ctx.beginPath();
-          ctx.arc(x + size * (off + 0.04), cy - size * 0.26, size * 0.045, 0, Math.PI * 2);
+          ctx.ellipse(x, cy + size * 0.25, size * 0.24, size * 0.05, 0, 0, Math.PI * 2);
           ctx.fill();
-        }
-      } else {
-        ctx.fillStyle = "#3d5226";
-        ctx.strokeStyle = PAL.ink;
-        ctx.lineWidth = 0.8;
-        ctx.beginPath();
-        ctx.arc(x, cy, size * 0.25, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-        ctx.fillStyle = "#a83a3a";
-        for (const [ox, oy] of [[-0.08, -0.04], [0.1, -0.08], [0.03, 0.12]]) {
-          ctx.beginPath();
-          ctx.arc(x + size * ox, cy + size * oy, size * 0.045, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-    }
-    ctx.globalAlpha = 1;
+          ctx.globalAlpha = depleted ? 0.65 : 1;
 
-    canvas.toBlob((blob) => {
-      if (!blob) return;
-      const nextUrl = URL.createObjectURL(blob);
-      if (cancelled) {
-        URL.revokeObjectURL(nextUrl);
-        return;
+          if (n.kind === "trees") {
+            ctx.fillStyle = "#3d2810";
+            ctx.strokeStyle = PAL.ink;
+            ctx.lineWidth = 0.8;
+            ctx.fillRect(x - size * 0.04, y + size * 0.18, size * 0.08, size * 0.36);
+            ctx.strokeRect(x - size * 0.04, y + size * 0.18, size * 0.08, size * 0.36);
+            ctx.fillStyle = "#3d5226";
+            ctx.beginPath();
+            ctx.moveTo(x, y - size * 0.22);
+            ctx.lineTo(x - size * 0.32, y + size * 0.25);
+            ctx.lineTo(x + size * 0.32, y + size * 0.25);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = "#4a6235";
+            ctx.beginPath();
+            ctx.moveTo(x, y);
+            ctx.lineTo(x - size * 0.26, y + size * 0.38);
+            ctx.lineTo(x + size * 0.26, y + size * 0.38);
+            ctx.closePath();
+            ctx.fill();
+          } else if (n.kind === "rocks") {
+            ctx.fillStyle = "#8a8175";
+            ctx.strokeStyle = PAL.ink;
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(x - size * 0.3, cy + size * 0.2);
+            ctx.lineTo(x - size * 0.18, cy - size * 0.18);
+            ctx.lineTo(x + size * 0.08, cy - size * 0.28);
+            ctx.lineTo(x + size * 0.32, cy - size * 0.08);
+            ctx.lineTo(x + size * 0.36, cy + size * 0.2);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = "#aaa094";
+            ctx.beginPath();
+            ctx.moveTo(x - size * 0.18, cy - size * 0.18);
+            ctx.lineTo(x + size * 0.08, cy - size * 0.28);
+            ctx.lineTo(x, cy - size * 0.02);
+            ctx.closePath();
+            ctx.fill();
+          } else if (n.kind === "fiber-grass") {
+            ctx.strokeStyle = "#a89548";
+            ctx.lineWidth = 1;
+            for (const off of [-0.15, 0, 0.15]) {
+              ctx.beginPath();
+              ctx.moveTo(x + size * off, cy + size * 0.22);
+              ctx.lineTo(x + size * (off + 0.04), cy - size * 0.26);
+              ctx.stroke();
+              ctx.fillStyle = "#e6d68a";
+              ctx.beginPath();
+              ctx.arc(x + size * (off + 0.04), cy - size * 0.26, size * 0.045, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          } else {
+            ctx.fillStyle = "#3d5226";
+            ctx.strokeStyle = PAL.ink;
+            ctx.lineWidth = 0.8;
+            ctx.beginPath();
+            ctx.arc(x, cy, size * 0.25, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = "#a83a3a";
+            for (const [ox, oy] of [[-0.08, -0.04], [0.1, -0.08], [0.03, 0.12]]) {
+              ctx.beginPath();
+              ctx.arc(x + size * ox, cy + size * oy, size * 0.045, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
+        }
+        ctx.globalAlpha = 1;
+
+        const url = await canvasToObjectUrl(canvas);
+        if (!url) continue;
+        if (cancelled) {
+          URL.revokeObjectURL(url);
+          continue;
+        }
+        urls.push(url);
+        images.push({ ...chunk, url });
       }
-      url = nextUrl;
-      setResourceUrl(nextUrl);
-    }, "image/png");
+      if (!cancelled) setResourceImages(images);
+    })();
 
     return () => {
       cancelled = true;
-      if (url) URL.revokeObjectURL(url);
+      urls.forEach((url) => URL.revokeObjectURL(url));
     };
   }, [nodes, width, height]);
 
-  if (!resourceUrl) return null;
-  return <image href={resourceUrl} x={0} y={0} width={width} height={height} preserveAspectRatio="none" pointerEvents="none" />;
+  if (resourceImages.length === 0) return null;
+  return <>{resourceImages.map((image) => <image key={image.id} href={image.url} x={image.x} y={image.y} width={image.width} height={image.height} preserveAspectRatio="none" pointerEvents="none" />)}</>;
 }, (prev, next) => {
   if (prev.width !== next.width || prev.height !== next.height || prev.nodes.length !== next.nodes.length) return false;
   for (let i = 0; i < prev.nodes.length; i++) {
@@ -897,18 +960,16 @@ export function MapView() {
   const H = mapH * TILE;
   const VW = W * zoom;
   const VH = H * zoom;
+  const initialCenterDone = useRef(false);
 
   useEffect(() => {
     expandWorldToCurrentSize();
   }, [expandWorldToCurrentSize]);
 
-  // Center on the ranch when the player requests it (button next to zoom).
-  useEffect(() => {
-    if (centerRequestId === 0) return;
+  function scrollToRanch(behavior: ScrollBehavior) {
     const el = scrollRef.current;
     if (!el) return;
     const state = useGame.getState();
-    // Prefer the claimed territory center; fall back to the homestead.
     let cx = mapW / 2;
     let cy = mapH / 2;
     if (state.territory) { cx = state.territory.cx; cy = state.territory.cy; }
@@ -916,18 +977,29 @@ export function MapView() {
       const h = state.buildings.find(b => b.kind === "homestead");
       if (h) { cx = h.x + h.w / 2; cy = h.y + h.h / 2; }
     }
-    // Scroll after the zoom=1 layout has been applied.
     requestAnimationFrame(() => {
       const target = scrollRef.current;
       if (!target) return;
-      const sx = cx * TILE * 1 - target.clientWidth / 2;
-      const sy = cy * TILE * 1 - target.clientHeight / 2;
+      const sx = cx * TILE * zoom - target.clientWidth / 2;
+      const sy = cy * TILE * zoom - target.clientHeight / 2;
       target.scrollTo({
         left: Math.max(0, sx),
         top: Math.max(0, sy),
-        behavior: "smooth",
+        behavior,
       });
     });
+  }
+
+  useEffect(() => {
+    if (initialCenterDone.current || buildings.length === 0) return;
+    initialCenterDone.current = true;
+    scrollToRanch("auto");
+  }, [buildings.length, mapW, mapH]);
+
+  // Center on the ranch when the player requests it (button next to zoom).
+  useEffect(() => {
+    if (centerRequestId === 0) return;
+    scrollToRanch("smooth");
   }, [centerRequestId, mapW, mapH]);
 
 
