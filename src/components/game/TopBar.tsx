@@ -20,7 +20,7 @@ export function TopBar({ onToggleDock, dockOpen }: Props) {
   const stats = useGame((s) => s.stats);
   const save = useGame((s) => s.save);
   const setScreen = useGame((s) => s.setScreen);
-  const setOverlay = useGame((s) => s.setOverlay);
+  
   const survivors = useGame((s) => s.survivors);
   const currentLeaderId = useGame((s) => s.currentLeaderId);
   const isMobile = useIsMobile();
