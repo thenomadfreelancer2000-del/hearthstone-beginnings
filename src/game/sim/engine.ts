@@ -239,6 +239,18 @@ function dailyTick(eng: Engine, opts?: { onArrival?: (s: Survivor) => Survivor |
   });
   dailyEducationTick(eng.survivors);
 
+  // Livestock (Livestock & Family Livestock update)
+  dailyLivestockTick({
+    time: { tick: eng.time.tick, year: eng.time.year },
+    buildings: eng.buildings,
+    survivors: eng.survivors,
+    families: eng.families,
+    resources: eng.resources,
+    founderId: eng.founderId,
+    animals: eng.animals,
+    livestockRequests: eng.livestockRequests,
+  }, rng);
+
   // Memories decay daily — major events have a floor that keeps them alive.
   for (const s of eng.survivors) {
     if (s.health <= 0) continue;

@@ -757,8 +757,10 @@ export const useGame = create<GameState>((set, get) => ({
         return b;
       }),
       resources: {
-        eggs: 0, milk: 0, wool: 0,
         ...save.resources,
+        eggs: save.resources.eggs ?? 0,
+        milk: save.resources.milk ?? 0,
+        wool: save.resources.wool ?? 0,
       },
       survivors: save.survivors.map(s => ({
         ...s,
