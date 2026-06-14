@@ -576,7 +576,29 @@ function AnimalArt({ species, dead, adult }: { species: "chicken" | "goat" | "sh
 }
 
 // ── Survivor sprite ──────────────────────────────────────────────
-function SurvivorArt({ founder, dead, female }: { founder: boolean; dead: boolean; female: boolean }) {
+function SurvivorArt({ founder, dead, female, stage, pregnant }: { founder: boolean; dead: boolean; female: boolean; stage?: import("@/game/types").LifeStage; pregnant?: boolean }) {
+  const scale =
+    stage === "child" ? 0.55 :
+    stage === "teen"  ? 0.78 :
+    stage === "elder" ? 0.95 : 1;
+  const elderTint = stage === "elder";
+  const stageBadge =
+    stage === "child" ? "#7ec8a8" :
+    stage === "teen"  ? "#c9a14a" :
+    stage === "elder" ? "#b8b8b8" : null;
+  return (
+    <g>
+      <g transform={`scale(${scale})`}>
+        <SurvivorArtCore founder={founder} dead={dead} female={female} elderTint={elderTint} pregnant={!!pregnant && female} />
+      </g>
+      {stageBadge && !dead && (
+        <circle cx={5} cy={-7} r={1.2} fill={stageBadge} stroke={PAL.ink} strokeWidth={0.3} />
+      )}
+    </g>
+  );
+}
+
+function SurvivorArtCore({ founder, dead, female, elderTint, pregnant }: { founder: boolean; dead: boolean; female: boolean; elderTint?: boolean; pregnant?: boolean }) {
   const skin = "#d9b48a";
   const shirt = female
     ? (founder ? "#9a4a6a" : "#6a4a8a")
