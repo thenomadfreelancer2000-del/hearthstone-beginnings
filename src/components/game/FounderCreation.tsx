@@ -304,29 +304,29 @@ function StepIdentity(props: {
   const availablePortraits = PORTRAITS.filter((p) => p.gender === gender);
 
   return (
-    <section className="grid md:grid-cols-2 gap-4 md:gap-5 items-stretch [&>div]:h-full">
+    <section className="grid md:grid-cols-2 gap-2 sm:gap-5 items-stretch [&>div]:h-full">
 
       {/* Panel A — Face */}
       <div className="parchment-panel corner-brackets p-2 sm:p-7 min-w-0">
-        <div className="flex items-baseline justify-between mb-4">
-          <p className="ranch-label text-[10px]">A — Choose a Face</p>
-          <span className="ranch-data text-[10px] text-dust-light">{availablePortraits.length} options</span>
+        <div className="flex items-baseline justify-between mb-2 sm:mb-4">
+          <p className="ranch-label text-[9px] sm:text-[10px]">A — Choose a Face</p>
+          <span className="ranch-data text-[9px] sm:text-[10px] text-dust-light">{availablePortraits.length} options</span>
         </div>
 
-        <div className="flex gap-2 mb-4">
+        <div className="flex gap-1.5 sm:gap-2 mb-2 sm:mb-4">
           {(["m", "f"] as const).map((g) => (
             <button
               key={g}
               type="button"
               onClick={() => setGender(g)}
-              className={`btn-ranch flex-1 ${gender === g ? "btn-ranch-primary" : ""}`}
+              className={`btn-ranch flex-1 !py-1.5 sm:!py-2 text-xs sm:text-sm ${gender === g ? "btn-ranch-primary" : ""}`}
             >
               {g === "m" ? "He" : "She"}
             </button>
           ))}
         </div>
 
-        <div className="grid grid-cols-4 gap-2 sm:gap-3">
+        <div className="grid grid-cols-4 gap-1.5 sm:gap-3">
           {availablePortraits.map((p) => {
             const active = p.id === portraitId;
             return (
@@ -355,9 +355,9 @@ function StepIdentity(props: {
 
       {/* Panel B — Name */}
       <div className="parchment-panel corner-brackets p-2 sm:p-7 min-w-0">
-        <p className="ranch-label text-[10px] mb-4">B — Name & Homestead</p>
+        <p className="ranch-label text-[9px] sm:text-[10px] mb-2 sm:mb-4">B — Name & Homestead</p>
 
-        <div className="grid sm:grid-cols-2 gap-4 sm:gap-5">
+        <div className="grid sm:grid-cols-2 gap-2 sm:gap-5">
           <Field label="First Name">
             <select
               value={firstName}
@@ -388,8 +388,8 @@ function StepIdentity(props: {
           </div>
         </div>
 
-        <p className="ranch-handwritten text-sm mt-5 text-dust-light">
-          “{firstName} {surname}” will be the first name in your Chronicle.
+        <p className="ranch-handwritten text-xs sm:text-sm mt-3 sm:mt-5 text-dust-light">
+          "{firstName} {surname}" will be the first name in your Chronicle.
         </p>
       </div>
 
@@ -398,12 +398,15 @@ function StepIdentity(props: {
           width: 100%;
           background: rgba(5,4,2,0.6);
           border: 1px solid rgba(201,161,74,0.28);
-          padding: 10px 12px;
+          padding: 6px 10px;
           font-family: var(--font-body);
           color: var(--parchment);
-          font-size: 14px;
+          font-size: 13px;
           outline: none;
           transition: border-color 200ms;
+        }
+        @media (min-width: 640px) {
+          .ranch-input { padding: 10px 12px; font-size: 14px; }
         }
         .ranch-input:focus { border-color: var(--amber); }
       `}</style>
