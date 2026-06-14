@@ -427,18 +427,31 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
       s.occupation === "woodcutter" ? ["wood"] :
       s.occupation === "miner" ? ["stone"] :
       s.occupation === "farmer" ? ["food"] :
-      s.occupation === "forager" ? ["food", "fiber"] :
+      s.occupation === "forager" ? ["fiber", "food"] :
       s.isFounder ? [] :
       ["wood"];
     let node: ResourceNode | null = null;
     let wants: ResourceKind | null = null;
-    let bestD = Infinity;
-    for (const w of candidates) {
-      const n = nearestNode(s, deps.nodes, w);
-      if (!n) continue;
-      const d = dist(s.x, s.y, n.x, n.y);
-      if (d < bestD) { bestD = d; node = n; wants = w; }
+    // Honor explicit player assignment first.
+    if (s.workTarget?.kind === "node") {
+      const assigned = deps.nodes.find(n => n.id === s.workTarget!.id);
+      if (assigned && assigned.amount > 0) {
+        node = assigned;
+        wants = assigned.yields;
+      } else {
+        s.workTarget = null;
+      }
     }
+    if (!node) {
+      let bestD = Infinity;
+      for (const w of candidates) {
+        const n = nearestNode(s, deps.nodes, w);
+        if (!n) continue;
+        const d = dist(s.x, s.y, n.x, n.y);
+        if (d < bestD) { bestD = d; node = n; wants = w; }
+      }
+    }
+
     if (wants && node && node.amount > 0) {
       if (dist(s.x, s.y, node.x, node.y) < 1.3) {
         const skill =
