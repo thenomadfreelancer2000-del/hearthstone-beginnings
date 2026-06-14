@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useGame } from "@/game/store";
 import { useView } from "@/game/viewStore";
 import { BUILDINGS } from "@/game/data/content";
@@ -636,6 +636,7 @@ export function MapView() {
   const borderMode = useGame((s) => s.borderMode);
   const exitBorderMode = useGame((s) => s.exitBorderMode);
   const setBorderFromClick = useGame((s) => s.setBorderFromClick);
+  const expandWorldToCurrentSize = useGame((s) => s.expandWorldToCurrentSize);
 
   const [hover, setHover] = useState<{ x: number; y: number } | null>(null);
   const ref = useRef<SVGSVGElement>(null);
@@ -645,6 +646,10 @@ export function MapView() {
   const H = mapH * TILE;
   const VW = W * zoom;
   const VH = H * zoom;
+
+  useEffect(() => {
+    expandWorldToCurrentSize();
+  }, [expandWorldToCurrentSize]);
 
   const ghost = useMemo(() => {
     if (!buildPlacement || !hover) return null;
