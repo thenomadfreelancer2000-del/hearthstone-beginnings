@@ -85,16 +85,18 @@ export function GameShell() {
 
 
         {!isMobile && (
-          <div className="flex">
+          inspectorCollapsed ? (
             <button
-              onClick={() => setInspectorCollapsed((v) => !v)}
-              className="self-start mt-2 z-40 btn-ranch btn-ranch-ghost text-[10px] px-1.5 py-3 backdrop-blur-sm bg-coal/80"
-              title={inspectorCollapsed ? "Show inspector" : "Hide inspector"}
+              onClick={() => setInspectorCollapsed(false)}
+              className="absolute top-2 right-2 z-40 btn-ranch btn-ranch-ghost text-[10px] px-1.5 py-3 backdrop-blur-sm bg-coal/80"
+              title="Show inspector"
+              style={{ right: 8 }}
             >
-              {inspectorCollapsed ? "◀" : "▶"}
+              ◀
             </button>
-            {!inspectorCollapsed && <Inspector />}
-          </div>
+          ) : (
+            <Inspector onHide={() => setInspectorCollapsed(true)} />
+          )
         )}
 
         {/* Mobile inspector as right drawer */}
