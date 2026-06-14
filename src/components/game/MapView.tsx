@@ -576,13 +576,36 @@ function AnimalArt({ species, dead, adult }: { species: "chicken" | "goat" | "sh
 }
 
 // ── Survivor sprite ──────────────────────────────────────────────
-function SurvivorArt({ founder, dead, female }: { founder: boolean; dead: boolean; female: boolean }) {
+function SurvivorArt({ founder, dead, female, stage, pregnant }: { founder: boolean; dead: boolean; female: boolean; stage?: import("@/game/types").LifeStage; pregnant?: boolean }) {
+  const scale =
+    stage === "child" ? 0.55 :
+    stage === "teen"  ? 0.78 :
+    stage === "elder" ? 0.95 : 1;
+  const elderTint = stage === "elder";
+  const stageBadge =
+    stage === "child" ? "#7ec8a8" :
+    stage === "teen"  ? "#c9a14a" :
+    stage === "elder" ? "#b8b8b8" : null;
+  return (
+    <g>
+      <g transform={`scale(${scale})`}>
+        <SurvivorArtCore founder={founder} dead={dead} female={female} elderTint={elderTint} pregnant={!!pregnant && female} />
+      </g>
+      {stageBadge && !dead && (
+        <circle cx={5} cy={-7} r={1.2} fill={stageBadge} stroke={PAL.ink} strokeWidth={0.3} />
+      )}
+    </g>
+  );
+}
+
+function SurvivorArtCore({ founder, dead, female, elderTint, pregnant }: { founder: boolean; dead: boolean; female: boolean; elderTint?: boolean; pregnant?: boolean }) {
   const skin = "#d9b48a";
   const shirt = female
     ? (founder ? "#9a4a6a" : "#6a4a8a")
     : (founder ? "#7a3a2a" : "#3a5a6a");
   const pants = "#3d2810";
-  const hairColor = founder ? "#4a2818" : "#3a2410";
+  const hairColor = elderTint ? "#c8c0b0" : (founder ? "#4a2818" : "#3a2410");
+
 
   if (female) {
     // Distinctly feminine silhouette: narrower shoulders, wider hip flare,
@@ -613,6 +636,10 @@ function SurvivorArt({ founder, dead, female }: { founder: boolean; dead: boolea
         <path d="M-2,-1.4 Q-1,-0.6 0,-1 Q1,-0.6 2,-1.4" stroke={dressDark} strokeWidth={0.5} fill="none" opacity={0.7} />
         {/* waist sash / belt */}
         <rect x={-2.6} y={0.4} width={5.2} height={0.7} fill={dressDark} opacity={0.9} />
+        {/* pregnancy belly */}
+        {pregnant && (
+          <ellipse cx={0} cy={0.6} rx={3.2} ry={2.2} fill={shirt} stroke={PAL.ink} strokeWidth={0.4} />
+        )}
         {/* apron hint */}
         <polygon points="-1.5,-1.8 1.5,-1.8 2,5.3 -2,5.3" fill="#e8d8b8" opacity={0.3} />
         {/* neck */}
@@ -1309,7 +1336,7 @@ export function MapView() {
               {sel && (
                 <circle cx={0} cy={1} r={10} fill="none" stroke={PAL.gold} strokeWidth={1.3} strokeDasharray="2 2" />
               )}
-              <SurvivorArt founder={!!s.isFounder} dead={dead} female={s.gender === "f"} />
+              <SurvivorArt founder={!!s.isFounder} dead={dead} female={s.gender === "f"} stage={s.stage} pregnant={!!s.pregnant} />
               {dead && (
                 <line x1={-4} y1={-3} x2={4} y2={3} stroke={PAL.ink} strokeWidth={0.8} />
               )}
