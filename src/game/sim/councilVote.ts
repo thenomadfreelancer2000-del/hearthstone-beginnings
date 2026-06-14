@@ -8,13 +8,27 @@ import { computePolitics } from "./politics";
 
 export type CouncilAction =
   | "speech" | "bribe" | "office" | "crush" | "stepdown" | "abdicate-peace"
-  | "repeal-law" | "refuse-repeal";
+  | "repeal-law" | "refuse-repeal"
+  | "enact-law" | "refuse-enact";
 
 export interface CouncilVote {
   familyId: ID;
   houseName: string;
   forLeader: boolean;
   reason: string;
+}
+
+export interface CouncilLawDemand {
+  kind: "repeal" | "enact";
+  lawId: string;
+  lawTitle: string;
+  lawBlurb: string;
+  factionId: string;
+  factionName: string;
+  /** Other factions that will resent conceding to this demand (by name). */
+  opposedBy: string[];
+  intensity: number;
+  pitch: string;
 }
 
 export interface CouncilVoteEvent {
@@ -36,7 +50,7 @@ export interface CouncilVoteEvent {
   againstCount: number;
   contested: boolean;
   flavor: string;
-  /** When a faction is pushing to repeal one of the founder's laws. */
+  /** Top repeal demand (back-compat). Mirrored inside lawDemands. */
   lawRepealRequest?: {
     lawId: string;
     lawTitle: string;
@@ -44,7 +58,20 @@ export interface CouncilVoteEvent {
     factionName: string;
     intensity: number;
   };
+  /** Top enact-new-law demand. */
+  lawEnactRequest?: {
+    lawId: string;
+    lawTitle: string;
+    factionId: string;
+    factionName: string;
+    intensity: number;
+  };
+  /** Full ranked list of demands raised this council. */
+  lawDemands?: CouncilLawDemand[];
+  /** Index into lawDemands the founder is currently addressing. */
+  activeDemandIndex?: number;
 }
+
 
 interface GenInput {
   survivors: Survivor[];
