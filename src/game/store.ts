@@ -1102,7 +1102,7 @@ export const useGame = create<GameState>((set, get) => ({
 
     // Annual Council Vote — first day of spring, year > founding, not during founding,
     // not while another modal is open, only if we just crossed into a new year.
-    let pendingCouncilVote = st.pendingCouncilVote;
+    let pendingCouncilVote: CouncilVoteEvent | null = st.pendingCouncilVote;
     const crossedYear = eng.time.year > st.time.year;
     if (
       !pendingCouncilVote && !pendingArrival && !st.foundingPhase &&
