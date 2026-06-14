@@ -165,6 +165,8 @@ export const useGame = create<GameState>((set, get) => ({
   chronicle: [],
   stats: emptyStats(1, ""),
   proposals: [],
+  animals: [],
+  livestockRequests: [],
   selection: { kind: "none" },
   buildPlacement: null,
   pendingArrival: null,
