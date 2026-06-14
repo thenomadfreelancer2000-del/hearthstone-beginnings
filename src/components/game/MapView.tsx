@@ -616,6 +616,74 @@ function SurvivorArt({ founder, dead, female }: { founder: boolean; dead: boolea
   );
 }
 
+const StaticTileLayers = React.memo(function StaticTileLayers({ tiles }: { tiles: Tile[] }) {
+  return (
+    <>
+      {/* Base tiles */}
+      {tiles.map((t) => {
+        const pal = TILE_PAL[t.kind];
+        const px = t.x * TILE;
+        const py = t.y * TILE;
+        if (t.kind === "water") {
+          return <rect key={`${t.x}-${t.y}`} x={px} y={py} width={TILE} height={TILE} fill="url(#water-pat)" />;
+        }
+        const baseFill = t.variant % 3 === 0 ? pal.alt : pal.base;
+        return <rect key={`${t.x}-${t.y}`} x={px} y={py} width={TILE} height={TILE} fill={baseFill} />;
+      })}
+
+      {/* Tile detail layer */}
+      {tiles.map((t) => {
+        if (t.kind === "water") return null;
+        const px = t.x * TILE;
+        const py = t.y * TILE;
+        const pal = TILE_PAL[t.kind];
+        const details: React.ReactElement[] = [];
+        if (t.kind === "grass" || t.kind === "tall-grass") {
+          const n = t.kind === "tall-grass" ? 5 : 3;
+          for (let i = 0; i < n; i++) {
+            const rx = px + rand(t.x, t.y, i) * (TILE - 4) + 2;
+            const ry = py + rand(t.x, t.y, i + 10) * (TILE - 4) + 2;
+            const len = t.kind === "tall-grass" ? 4 : 2.5;
+            details.push(
+              <g key={`g${i}`}>
+                <line x1={rx} y1={ry} x2={rx - 1} y2={ry - len} stroke={pal.detail} strokeWidth={0.7} strokeLinecap="round" />
+                <line x1={rx} y1={ry} x2={rx} y2={ry - len - 0.5} stroke={pal.detail} strokeWidth={0.7} strokeLinecap="round" />
+                <line x1={rx} y1={ry} x2={rx + 1} y2={ry - len} stroke={pal.detail} strokeWidth={0.7} strokeLinecap="round" />
+              </g>
+            );
+          }
+        } else if (t.kind === "dirt" || t.kind === "road") {
+          if (rand(t.x, t.y, 1) > 0.4) {
+            const rx = px + rand(t.x, t.y, 2) * (TILE - 6) + 3;
+            const ry = py + rand(t.x, t.y, 3) * (TILE - 6) + 3;
+            details.push(<circle key="p" cx={rx} cy={ry} r={0.8} fill={pal.detail} opacity={0.7} />);
+            const r2x = px + rand(t.x, t.y, 4) * (TILE - 6) + 3;
+            const r2y = py + rand(t.x, t.y, 5) * (TILE - 6) + 3;
+            details.push(<circle key="p2" cx={r2x} cy={r2y} r={0.6} fill={pal.detail} opacity={0.5} />);
+          }
+        } else if (t.kind === "stone") {
+          if (rand(t.x, t.y, 1) > 0.3) {
+            const rx = px + rand(t.x, t.y, 2) * (TILE - 6) + 3;
+            const ry = py + rand(t.x, t.y, 3) * (TILE - 6) + 3;
+            details.push(<circle key="s" cx={rx} cy={ry} r={1.1} fill={pal.detail} stroke={PAL.ink} strokeWidth={0.3} opacity={0.7} />);
+          }
+        } else if (t.kind === "forest") {
+          if (rand(t.x, t.y, 1) > 0.4) {
+            const rx = px + rand(t.x, t.y, 2) * (TILE - 4) + 2;
+            const ry = py + rand(t.x, t.y, 3) * (TILE - 4) + 2;
+            details.push(<circle key="f" cx={rx} cy={ry} r={1.3} fill={pal.detail} opacity={0.55} />);
+          }
+        } else if (t.kind === "ruin") {
+          details.push(
+            <path key="r" d={`M${px+4} ${py+TILE-4} l4 -3 l3 2`} stroke={pal.detail} strokeWidth={0.7} fill="none" opacity={0.7} />
+          );
+        }
+        return details.length ? <g key={`d-${t.x}-${t.y}`}>{details}</g> : null;
+      })}
+    </>
+  );
+});
+
 
 export function MapView() {
   const tiles = useGame((s) => s.tiles);
@@ -660,12 +728,13 @@ export function MapView() {
     if (centerRequestId === 0) return;
     const el = scrollRef.current;
     if (!el) return;
+    const state = useGame.getState();
     // Prefer the claimed territory center; fall back to the homestead.
     let cx = mapW / 2;
     let cy = mapH / 2;
-    if (territory) { cx = territory.cx; cy = territory.cy; }
+    if (state.territory) { cx = state.territory.cx; cy = state.territory.cy; }
     else {
-      const h = buildings.find(b => b.kind === "homestead");
+      const h = state.buildings.find(b => b.kind === "homestead");
       if (h) { cx = h.x + h.w / 2; cy = h.y + h.h / 2; }
     }
     // Scroll after the zoom=1 layout has been applied.
@@ -680,7 +749,7 @@ export function MapView() {
         behavior: "smooth",
       });
     });
-  }, [centerRequestId, territory, buildings, mapW, mapH]);
+  }, [centerRequestId, mapW, mapH]);
 
 
 
@@ -840,67 +909,7 @@ export function MapView() {
           </radialGradient>
         </defs>
 
-        {/* Base tiles */}
-        {tiles.map((t) => {
-          const pal = TILE_PAL[t.kind];
-          const px = t.x * TILE;
-          const py = t.y * TILE;
-          if (t.kind === "water") {
-            return <rect key={`${t.x}-${t.y}`} x={px} y={py} width={TILE} height={TILE} fill="url(#water-pat)" />;
-          }
-          const baseFill = t.variant % 3 === 0 ? pal.alt : pal.base;
-          return <rect key={`${t.x}-${t.y}`} x={px} y={py} width={TILE} height={TILE} fill={baseFill} />;
-        })}
-
-        {/* Tile detail layer */}
-        {tiles.map((t) => {
-          if (t.kind === "water") return null;
-          const px = t.x * TILE;
-          const py = t.y * TILE;
-          const pal = TILE_PAL[t.kind];
-          const details: React.ReactElement[] = [];
-          if (t.kind === "grass" || t.kind === "tall-grass") {
-            const n = t.kind === "tall-grass" ? 5 : 3;
-            for (let i = 0; i < n; i++) {
-              const rx = px + rand(t.x, t.y, i) * (TILE - 4) + 2;
-              const ry = py + rand(t.x, t.y, i + 10) * (TILE - 4) + 2;
-              const len = t.kind === "tall-grass" ? 4 : 2.5;
-              details.push(
-                <g key={`g${i}`}>
-                  <line x1={rx} y1={ry} x2={rx - 1} y2={ry - len} stroke={pal.detail} strokeWidth={0.7} strokeLinecap="round" />
-                  <line x1={rx} y1={ry} x2={rx} y2={ry - len - 0.5} stroke={pal.detail} strokeWidth={0.7} strokeLinecap="round" />
-                  <line x1={rx} y1={ry} x2={rx + 1} y2={ry - len} stroke={pal.detail} strokeWidth={0.7} strokeLinecap="round" />
-                </g>
-              );
-            }
-          } else if (t.kind === "dirt" || t.kind === "road") {
-            if (rand(t.x, t.y, 1) > 0.4) {
-              const rx = px + rand(t.x, t.y, 2) * (TILE - 6) + 3;
-              const ry = py + rand(t.x, t.y, 3) * (TILE - 6) + 3;
-              details.push(<circle key="p" cx={rx} cy={ry} r={0.8} fill={pal.detail} opacity={0.7} />);
-              const r2x = px + rand(t.x, t.y, 4) * (TILE - 6) + 3;
-              const r2y = py + rand(t.x, t.y, 5) * (TILE - 6) + 3;
-              details.push(<circle key="p2" cx={r2x} cy={r2y} r={0.6} fill={pal.detail} opacity={0.5} />);
-            }
-          } else if (t.kind === "stone") {
-            if (rand(t.x, t.y, 1) > 0.3) {
-              const rx = px + rand(t.x, t.y, 2) * (TILE - 6) + 3;
-              const ry = py + rand(t.x, t.y, 3) * (TILE - 6) + 3;
-              details.push(<circle key="s" cx={rx} cy={ry} r={1.1} fill={pal.detail} stroke={PAL.ink} strokeWidth={0.3} opacity={0.7} />);
-            }
-          } else if (t.kind === "forest") {
-            if (rand(t.x, t.y, 1) > 0.4) {
-              const rx = px + rand(t.x, t.y, 2) * (TILE - 4) + 2;
-              const ry = py + rand(t.x, t.y, 3) * (TILE - 4) + 2;
-              details.push(<circle key="f" cx={rx} cy={ry} r={1.3} fill={pal.detail} opacity={0.55} />);
-            }
-          } else if (t.kind === "ruin") {
-            details.push(
-              <path key="r" d={`M${px+4} ${py+TILE-4} l4 -3 l3 2`} stroke={pal.detail} strokeWidth={0.7} fill="none" opacity={0.7} />
-            );
-          }
-          return details.length ? <g key={`d-${t.x}-${t.y}`}>{details}</g> : null;
-        })}
+        <StaticTileLayers tiles={tiles} />
 
         {/* Territory bounds (rectangle) */}
         {territory && territory.radius > 0 && (

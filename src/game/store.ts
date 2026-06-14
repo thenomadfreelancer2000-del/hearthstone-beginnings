@@ -47,7 +47,7 @@ export type Overlay = "tree" | "family" | "chronicle" | null;
 // Module-level tick accumulator. Lives outside the store so it never
 // triggers React re-renders or save-game churn. tickReal accumulates
 // real-time ms here and only runs the (expensive) sim clone+advance
-// when enough time has passed for ≥1 simulation tick at the current speed.
+// at a fixed visual cadence; faster speeds batch more sim ticks per update.
 let _tickAccumMs = 0;
 let _tickAccumSpeed: number | null = null;
 
@@ -1204,17 +1204,21 @@ export const useGame = create<GameState>((set, get) => ({
     if (st.pendingArrival) return; // pause while the player decides
     if (st.pendingCouncilVote) return; // pause during a council vote
     if (st.pendingFoundingCharter) return; // pause during the Founding Charter
-    const tps = 8 * (st.speed === 1 ? 1 : st.speed === 2 ? 2 : 4);
+    const speedMultiplier = st.speed === 1 ? 1 : st.speed === 2 ? 2 : 4;
+    // Keep React/store updates capped at 8 per second; higher game speeds
+    // simulate multiple ticks per update instead of repainting 16–32 times/sec.
+    const visualUpdatesPerSecond = 8;
     // Reset accumulator when speed changes to avoid stale residuals.
-    if (_tickAccumSpeed !== tps) { _tickAccumMs = 0; _tickAccumSpeed = tps; }
-    const msPerTick = 1000 / tps;
+    if (_tickAccumSpeed !== speedMultiplier) { _tickAccumMs = 0; _tickAccumSpeed = speedMultiplier; }
+    const msPerUpdate = 1000 / visualUpdatesPerSecond;
     _tickAccumMs += deltaMs;
     // Cap to avoid runaway catch-up after a long pause / tab-switch.
-    const maxBatch = 8;
-    let n = Math.floor(_tickAccumMs / msPerTick);
-    if (n <= 0) return; // not enough real time has passed — skip the clone entirely
-    if (n > maxBatch) { _tickAccumMs = 0; n = maxBatch; }
-    else { _tickAccumMs -= n * msPerTick; }
+    const maxVisualBatches = 4;
+    let visualBatches = Math.floor(_tickAccumMs / msPerUpdate);
+    if (visualBatches <= 0) return; // not enough real time has passed — skip the clone entirely
+    if (visualBatches > maxVisualBatches) { _tickAccumMs = 0; visualBatches = maxVisualBatches; }
+    else { _tickAccumMs -= visualBatches * msPerUpdate; }
+    const n = visualBatches * speedMultiplier;
 
 
     const eng: Engine = {
