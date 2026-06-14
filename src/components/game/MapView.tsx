@@ -616,72 +616,121 @@ function SurvivorArt({ founder, dead, female }: { founder: boolean; dead: boolea
   );
 }
 
-const StaticTileLayers = React.memo(function StaticTileLayers({ tiles }: { tiles: Tile[] }) {
-  return (
-    <>
-      {/* Base tiles */}
-      {tiles.map((t) => {
-        const pal = TILE_PAL[t.kind];
-        const px = t.x * TILE;
-        const py = t.y * TILE;
-        if (t.kind === "water") {
-          return <rect key={`${t.x}-${t.y}`} x={px} y={py} width={TILE} height={TILE} fill="url(#water-pat)" />;
-        }
-        const baseFill = t.variant % 3 === 0 ? pal.alt : pal.base;
-        return <rect key={`${t.x}-${t.y}`} x={px} y={py} width={TILE} height={TILE} fill={baseFill} />;
-      })}
+const StaticTileLayers = React.memo(function StaticTileLayers({ tiles, width, height }: { tiles: Tile[]; width: number; height: number }) {
+  const [terrainUrl, setTerrainUrl] = useState<string | null>(null);
 
-      {/* Tile detail layer */}
-      {tiles.map((t) => {
-        if (t.kind === "water") return null;
-        const px = t.x * TILE;
-        const py = t.y * TILE;
-        const pal = TILE_PAL[t.kind];
-        const details: React.ReactElement[] = [];
-        if (t.kind === "grass" || t.kind === "tall-grass") {
-          const n = t.kind === "tall-grass" ? 5 : 3;
-          for (let i = 0; i < n; i++) {
-            const rx = px + rand(t.x, t.y, i) * (TILE - 4) + 2;
-            const ry = py + rand(t.x, t.y, i + 10) * (TILE - 4) + 2;
-            const len = t.kind === "tall-grass" ? 4 : 2.5;
-            details.push(
-              <g key={`g${i}`}>
-                <line x1={rx} y1={ry} x2={rx - 1} y2={ry - len} stroke={pal.detail} strokeWidth={0.7} strokeLinecap="round" />
-                <line x1={rx} y1={ry} x2={rx} y2={ry - len - 0.5} stroke={pal.detail} strokeWidth={0.7} strokeLinecap="round" />
-                <line x1={rx} y1={ry} x2={rx + 1} y2={ry - len} stroke={pal.detail} strokeWidth={0.7} strokeLinecap="round" />
-              </g>
-            );
-          }
-        } else if (t.kind === "dirt" || t.kind === "road") {
-          if (rand(t.x, t.y, 1) > 0.4) {
-            const rx = px + rand(t.x, t.y, 2) * (TILE - 6) + 3;
-            const ry = py + rand(t.x, t.y, 3) * (TILE - 6) + 3;
-            details.push(<circle key="p" cx={rx} cy={ry} r={0.8} fill={pal.detail} opacity={0.7} />);
-            const r2x = px + rand(t.x, t.y, 4) * (TILE - 6) + 3;
-            const r2y = py + rand(t.x, t.y, 5) * (TILE - 6) + 3;
-            details.push(<circle key="p2" cx={r2x} cy={r2y} r={0.6} fill={pal.detail} opacity={0.5} />);
-          }
-        } else if (t.kind === "stone") {
-          if (rand(t.x, t.y, 1) > 0.3) {
-            const rx = px + rand(t.x, t.y, 2) * (TILE - 6) + 3;
-            const ry = py + rand(t.x, t.y, 3) * (TILE - 6) + 3;
-            details.push(<circle key="s" cx={rx} cy={ry} r={1.1} fill={pal.detail} stroke={PAL.ink} strokeWidth={0.3} opacity={0.7} />);
-          }
-        } else if (t.kind === "forest") {
-          if (rand(t.x, t.y, 1) > 0.4) {
-            const rx = px + rand(t.x, t.y, 2) * (TILE - 4) + 2;
-            const ry = py + rand(t.x, t.y, 3) * (TILE - 4) + 2;
-            details.push(<circle key="f" cx={rx} cy={ry} r={1.3} fill={pal.detail} opacity={0.55} />);
-          }
-        } else if (t.kind === "ruin") {
-          details.push(
-            <path key="r" d={`M${px+4} ${py+TILE-4} l4 -3 l3 2`} stroke={pal.detail} strokeWidth={0.7} fill="none" opacity={0.7} />
-          );
+  useEffect(() => {
+    let cancelled = false;
+    let url: string | null = null;
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    for (const t of tiles) {
+      const pal = TILE_PAL[t.kind];
+      const px = t.x * TILE;
+      const py = t.y * TILE;
+      ctx.fillStyle = t.kind === "water" ? pal.base : (t.variant % 3 === 0 ? pal.alt : pal.base);
+      ctx.fillRect(px, py, TILE, TILE);
+      if (t.kind === "water") {
+        ctx.strokeStyle = TILE_PAL.water.detail;
+        ctx.globalAlpha = 0.55;
+        ctx.lineWidth = 0.6;
+        for (const oy of [4, 8]) {
+          ctx.beginPath();
+          ctx.moveTo(px, py + oy);
+          ctx.quadraticCurveTo(px + 2.5, py + oy - 2, px + 5, py + oy);
+          ctx.quadraticCurveTo(px + 7.5, py + oy + 2, px + 10, py + oy);
+          ctx.stroke();
         }
-        return details.length ? <g key={`d-${t.x}-${t.y}`}>{details}</g> : null;
-      })}
-    </>
-  );
+        ctx.globalAlpha = 1;
+      }
+    }
+
+    ctx.lineCap = "round";
+    for (const t of tiles) {
+      if (t.kind === "water") continue;
+      const px = t.x * TILE;
+      const py = t.y * TILE;
+      const pal = TILE_PAL[t.kind];
+      ctx.strokeStyle = pal.detail;
+      ctx.fillStyle = pal.detail;
+      if (t.kind === "grass" || t.kind === "tall-grass") {
+        const n = t.kind === "tall-grass" ? 5 : 3;
+        const len = t.kind === "tall-grass" ? 4 : 2.5;
+        ctx.globalAlpha = 1;
+        ctx.lineWidth = 0.7;
+        for (let i = 0; i < n; i++) {
+          const rx = px + rand(t.x, t.y, i) * (TILE - 4) + 2;
+          const ry = py + rand(t.x, t.y, i + 10) * (TILE - 4) + 2;
+          ctx.beginPath();
+          ctx.moveTo(rx, ry); ctx.lineTo(rx - 1, ry - len);
+          ctx.moveTo(rx, ry); ctx.lineTo(rx, ry - len - 0.5);
+          ctx.moveTo(rx, ry); ctx.lineTo(rx + 1, ry - len);
+          ctx.stroke();
+        }
+      } else if (t.kind === "dirt" || t.kind === "road") {
+        if (rand(t.x, t.y, 1) > 0.4) {
+          ctx.globalAlpha = 0.7;
+          ctx.beginPath();
+          ctx.arc(px + rand(t.x, t.y, 2) * (TILE - 6) + 3, py + rand(t.x, t.y, 3) * (TILE - 6) + 3, 0.8, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.globalAlpha = 0.5;
+          ctx.beginPath();
+          ctx.arc(px + rand(t.x, t.y, 4) * (TILE - 6) + 3, py + rand(t.x, t.y, 5) * (TILE - 6) + 3, 0.6, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      } else if (t.kind === "stone") {
+        if (rand(t.x, t.y, 1) > 0.3) {
+          ctx.globalAlpha = 0.7;
+          ctx.beginPath();
+          ctx.arc(px + rand(t.x, t.y, 2) * (TILE - 6) + 3, py + rand(t.x, t.y, 3) * (TILE - 6) + 3, 1.1, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = PAL.ink;
+          ctx.globalAlpha = 1;
+          ctx.lineWidth = 0.3;
+          ctx.stroke();
+        }
+      } else if (t.kind === "forest") {
+        if (rand(t.x, t.y, 1) > 0.4) {
+          ctx.globalAlpha = 0.55;
+          ctx.beginPath();
+          ctx.arc(px + rand(t.x, t.y, 2) * (TILE - 4) + 2, py + rand(t.x, t.y, 3) * (TILE - 4) + 2, 1.3, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      } else if (t.kind === "ruin") {
+        ctx.globalAlpha = 0.7;
+        ctx.lineWidth = 0.7;
+        ctx.beginPath();
+        ctx.moveTo(px + 4, py + TILE - 4);
+        ctx.lineTo(px + 8, py + TILE - 7);
+        ctx.lineTo(px + 11, py + TILE - 5);
+        ctx.stroke();
+      }
+    }
+    ctx.globalAlpha = 1;
+
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const nextUrl = URL.createObjectURL(blob);
+      if (cancelled) {
+        URL.revokeObjectURL(nextUrl);
+        return;
+      }
+      url = nextUrl;
+      setTerrainUrl(nextUrl);
+    }, "image/png");
+
+    return () => {
+      cancelled = true;
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [tiles, width, height]);
+
+  if (!terrainUrl) return <rect x={0} y={0} width={width} height={height} fill={TILE_PAL.grass.base} />;
+  return <image href={terrainUrl} x={0} y={0} width={width} height={height} preserveAspectRatio="none" />;
 });
 
 
