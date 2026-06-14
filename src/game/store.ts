@@ -66,6 +66,11 @@ interface GameState {
   proposals: MarriageProposal[];
   animals: Animal[];
   livestockRequests: LivestockRequest[];
+  ministers: Minister[];
+  ministerRequests: MinisterRequest[];
+  ministerReports: MinisterReport[];
+
+
 
 
   selection: Selection;
