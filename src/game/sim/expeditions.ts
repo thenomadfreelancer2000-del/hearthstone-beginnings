@@ -166,7 +166,6 @@ export function resolveExpedition(input: ResolveInput): ResolveOutput {
   const rng = makeRng((expedition.startTick ^ expedition.returnTick ^ 0xEAD9) >>> 0);
 
   const ts = teamStrength(members);
-  void ts;
   const successRoll = rng() * 100;
   // Effective success: 0..100
   const eff = Math.min(100, Math.max(0,
