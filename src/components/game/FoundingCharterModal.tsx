@@ -10,15 +10,16 @@ export function FoundingCharterModal() {
   const open = useGame((s) => s.pendingFoundingCharter);
   const enact = useGame((s) => s.enactFoundingCharter);
   const survivors = useGame((s) => s.survivors);
-  const families = useGame((s) => s.families);
   const [picked, setPicked] = useState<Partial<Record<LawDomain, string | null>>>({});
 
-  if (!open) return null;
-
+  // Hooks MUST run unconditionally — keep useMemo above any early return.
   const adults = useMemo(
     () => survivors.filter((s) => s.health > 0 && (s.stage === "adult" || s.stage === "elder" || s.stage === "youth")),
     [survivors],
   );
+
+  if (!open) return null;
+
 
   const previewReaction = (law: LawDef) => {
     let love = 0, hate = 0, neutral = 0;
