@@ -932,6 +932,8 @@ export const useGame = create<GameState>((set, get) => ({
       chronicle: eng.chronicle,
       stats: eng.stats,
       proposals: eng.proposals,
+      animals: eng.animals,
+      livestockRequests: eng.livestockRequests,
       pendingArrival,
       lastChronicleId: lastId,
     });
@@ -1169,6 +1171,8 @@ export const useGame = create<GameState>((set, get) => ({
       preferredHeirId: st.preferredHeirId,
       chronicle: st.chronicle, stats: st.stats, seed: st.seed,
       proposals: st.proposals.map(p => ({ ...p })),
+      animals: st.animals.map(a => ({ ...a })),
+      livestockRequests: st.livestockRequests.map(r => ({ ...r })),
       foundingPhase: st.foundingPhase,
     };
     const prop = createArrangedProposal(eng, initiatorId, targetId);
