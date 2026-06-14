@@ -1,81 +1,124 @@
-# Dynastic Marriage & House Prestige
+# Livestock, Ranching & Family Livestock Update
 
-This is an additive update layered on top of the existing Families, Housing, Memories, Opinions, Prestige and Authority systems. **Nothing in those systems is rebuilt or replaced.** The existing `Family` already maps 1:1 to a "House" — we surface it as such in the UI and add a proposal/approval flow on top of the current `attraction`/`affection`-driven marriage in `engine.ts`.
+Additive layer on top of the existing game. Nothing rebuilt; saves migrate v3 → v4 with empty livestock arrays so old saves keep working. Existing construction, family, marriage, prestige, housing, authority and opinion systems are untouched except for additive hooks (new memory kinds, prestige bumps, request events).
 
-## What changes (functional)
+## 1. Data model (src/game/types.ts)
 
-1. **Houses = Families, surfaced explicitly.**
-   - No new data model. `Family` becomes "House of {name}" in UI strings.
-   - "House Head" already exists via `headOfFamily()` in `families.ts` — we expose it on the family panel header and use it for approval decisions.
+New types, all optional on `SaveGame`:
 
-2. **Relationship stages — remove "Dating".**
-   - Currently `RelationshipTag` has no "dating" stage, but Inspector / labels may mention it. New display ladder derived from existing numeric stats (no schema change):
-     - Stranger → Acquaintance → Friend → Close Friend → Romantic Interest → Engaged → Married
-   - Mapped from `interactions`, `affection`, `attraction`, plus new `engagedTick` flag.
+```ts
+type AnimalSpecies = "chicken" | "goat" | "sheep" | "cattle";
+type AnimalSex = "m" | "f";
 
-3. **New: engagement step before marriage.**
-   - Add optional fields on `Survivor`: `fianceId?`, `engagedTick?`, `engagedYear?`.
-   - Add optional fields on `Relationship`: `engagedTick?`.
-   - In `processMarriages` (engine.ts): when a pair passes the existing attraction/affection threshold, **don't auto-marry**. Instead create a `MarriageProposal`.
+interface Animal {
+  id: ID;
+  species: AnimalSpecies;
+  name?: string | null;          // optional, cattle/goats often named
+  sex: AnimalSex;
+  ageDays: number;
+  bornTick: number;
+  health: number;                // 0..100
+  hunger: number;                // 0..100 (higher = hungrier)
+  ownerFamilyId: ID;             // every animal belongs to a House
+  buildingId: ID | null;         // pen/coop/pasture it lives in (null = wild/unhoused)
+  pregnant: boolean;
+  pregnancyTick?: number | null;
+  lastProducedTick?: number | null;
+  dead?: boolean;
+  deathTick?: number | null;
+  deathCause?: "starvation" | "illness" | "old-age" | "slaughter" | null;
+}
 
-4. **New: MarriageProposal queue (transient, persisted in save).**
-   ```ts
-   interface MarriageProposal {
-     id; aId; bId;
-     aFamilyId; bFamilyId;
-     createdTick; createdYear;
-     attraction; compatibility; familyApproval;
-     prestigeA; prestigeB;
-     expectedPrestigeDelta; expectedRelationDelta;
-     status: "pending" | "approved" | "rejected" | "postponed";
-     // Founder dynasty proposals require player decision; others auto-resolve via House Heads.
-     requiresPlayer: boolean;
-   }
-   ```
-   - Added to `SaveGame` (version bumped to 3; old saves migrate with empty `proposals: []`).
+interface LivestockRequest {
+  id: ID;
+  familyId: ID;
+  requesterId: ID;               // survivor who wants it
+  kind: "start-raising" | "build-pen" | "expand";
+  species: AnimalSpecies;
+  buildingKind?: BuildingKind;   // e.g. "goat-pen"
+  createdTick: number; createdYear: number;
+  status: "pending" | "approved" | "rejected" | "postponed";
+}
+```
 
-5. **Resolution logic.**
-   - **Non-founder houses:** auto-resolved by simulated House Head decision using prestige delta, family relation, compatibility. Same tick (no UI required).
-   - **Founder's House involvement:** `requiresPlayer = true`, sim pauses marriage of that pair until player acts (Approve / Reject / Postpone). Other proposals continue normally.
+`SaveGame` gains `animals?: Animal[]`, `livestockRequests?: LivestockRequest[]`, version bumps to 4. Persistence migrates v3 → v4 by defaulting both to `[]`.
 
-6. **Prestige-based effects on marriage outcome** (executed in `marry()`):
-   - Equal-prestige union (both ≥ 60): +bonus prestige to both, +30 relation, chronicle "prestigious union".
-   - Big gap (>40): smaller bonus for high house, family-dissatisfaction memories for high-house kin, mild loyalty hit, chronicle "married beneath their status".
-   - Already-implemented basics in `marry()` are kept; we just extend the deltas.
+New `Occupation` value: `"rancher"`. New `Skills` field: `ranch: number` (0..30 clamp at use site to honor the doc's range; storage stays the existing 0..100 to avoid touching every skill helper).
 
-7. **Arranged marriages (Founder only).**
-   - New action on Founder-house single adult inspector: "Arrange marriage…" → modal lists eligible candidates (opposite gender, of age, not kin, not married) with: name/age/House/House Prestige/Attraction/Compatibility/Family Approval/expected prestige delta/expected relation delta.
-   - Choosing one creates a player-initiated proposal that is auto-approved on the Founder side; the other House Head still decides (simulated).
+## 2. Buildings (src/game/data/content.ts + types.ts)
 
-8. **Family reactions / memories.**
-   - On marriage resolution add categorical memories ("married-beneath", "prestigious-union", "founder-arranged") to relatives of both houses, fueling existing mood/loyalty/contagion in `families.ts`.
+New `BuildingKind`s + defs (all non-residential, social=false, with `livestock?: { species; capacity }` meta on the def):
 
-9. **UI surfaces.**
-   - `FamilyPanel.tsx`: header reads "House of {name}", show House Head row + House Prestige (already shown) + member count.
-   - New `MarriageProposalsPanel` shown in the top dock when at least one player-required proposal exists. Cards show all comparison stats; Approve / Reject / Postpone buttons.
-   - New `ArrangeMarriageModal` opened from Inspector on Founder-house single adults.
-   - `Inspector.tsx` relationship row: show new stage labels and "Engaged" / "Fiancé" badge.
+- `chicken-coop`  cap 8   produces eggs
+- `goat-pen`      cap 6   produces milk
+- `sheep-pen`     cap 6   produces wool + fiber
+- `cattle-pasture` cap 4  produces milk (large footprint)
 
-## Technical details
+Buildings get an optional `livestockOwnerFamilyId` on the `Building` instance (assigned at placement / arranged on first delivery). `assignedWorkerId` already exists and is reused for the assigned Rancher. New resources: `eggs`, `milk`, `wool`. (Wool can later feed cloth; for now it just accumulates.)
 
-- Files added:
-  - `src/game/sim/marriage.ts` — proposal generation, compatibility calc, House Head approval AI, resolution.
-  - `src/components/game/MarriageProposalsPanel.tsx`
-  - `src/components/game/ArrangeMarriageModal.tsx`
-  - `src/game/sim/relationshipStages.ts` — pure helper mapping `(Relationship, survivors)` → stage label, reused by Inspector and panels.
-- Files edited:
-  - `src/game/types.ts` — add `MarriageProposal`, optional `fianceId/engagedTick/engagedYear` on `Survivor`, `engagedTick` on `Relationship`, `proposals: MarriageProposal[]` on `SaveGame` (version → 3).
-  - `src/game/store.ts` — actions: `decideProposal(id, "approve"|"reject"|"postpone")`, `arrangeMarriage(initiatorId, targetId)`; selectors for player-required proposals.
-  - `src/game/persistence.ts` — migrate v2 → v3 (add empty `proposals`).
-  - `src/game/sim/engine.ts` — replace direct `marry()` in `processMarriages` with `enqueueProposal()`; tick `resolveAutoProposals()` each day.
-  - `src/components/game/Inspector.tsx` — new stage labels, "Arrange marriage" action for Founder house.
-  - `src/components/game/FamilyPanel.tsx` — "House of" wording, House Head row stays as already implemented.
-  - `src/components/game/TopBar.tsx` or `BottomDock.tsx` — mount `MarriageProposalsPanel` indicator/badge when pending player proposals exist.
+Construction flow, costs, builder assignment, stockpile delivery — all reuse the existing `construction.ts` pipeline. We just register new defs.
 
-- Children/dynasty: **no changes needed.** Existing `processBirths` already inherits `familyId`, surname (via `marry()` lead-house rule), and generation. Documented as preserved.
+UI: Build menu groups by category; we add a new `"Livestock"` group in `BottomDock`/build palette filtered on `def.category === "livestock"` (new optional field on `BuildingDef`).
 
-- Save migration: bump `SaveGame.version` from `2` to `3`, default `proposals: []` and treat missing `fianceId` etc. as absent. Old saves load.
+## 3. Simulation (src/game/sim/livestock.ts — new)
 
-## Out of scope (preserve as-is)
+Pure daily/seasonal ticks called from `engine.ts`:
 
-Housing logic, family/relations contagion, memory decay, opinion/authority, prestige drift, heirs/succession, family trees, children inheritance. All untouched except for additive memory emits and additive prestige bumps inside the existing `marry()` function.
+- `tickAnimals(state)` — per animal: increment `ageDays`, raise `hunger`, decay `health` when starving / no shelter, consume `food` from the pen's `stored` or settlement `resources` (rancher present multiplies efficiency, capped by skill 0..30).
+- `tickProduction(state)` — adult healthy animals produce eggs/milk/wool into the pen's `stored`; ranchers collect on visit.
+- `tickBreeding(state)` — per pen, if ≥1 adult male + ≥1 adult female, food ok, space available, roll pregnancy. Gestation per species. Offspring inherits `ownerFamilyId`, base stats from parents with small variance. Births recorded in chronicle + ranch stats.
+- `tickHealth(state)` — illness chance increases when hunger high, overcrowded, or no rancher. Deaths recorded.
+
+All called once per in-game day in `engine.ts` right after existing daily blocks. No realtime per-tick movement to keep perf simple; visual movement is decorative (see §6).
+
+## 4. Rancher AI (src/game/sim/ai.ts)
+
+Add a job branch parallel to `farmer`: ranchers walk to assigned pen, perform `feed` (consumes food from stockpile/pen), `collect` (moves produced resources from pen `stored` → main `resources` if pen is owned by founder house; otherwise keeps it in pen as family asset), and `health-check` (raises pen health bonus). Reuses existing pathing + commitment system.
+
+## 5. Family ownership, requests & social consequences
+
+- Every animal has `ownerFamilyId`. `families.ts` exposes `familyLivestockSummary(state, familyId)` → `{ chickens, goats, sheep, cattle }` used by `FamilyPanel` ("House Carter: 12 chickens, 4 goats").
+- Specialization: derived selector — the species a family owns most of over time; surfaces as a "Known for cattle" tag on `FamilyPanel`. Pure read; no extra state.
+- Prestige: in `livestock.ts` daily tick, herds above thresholds add small prestige to the owning family (existing `family.prestige`). Rare events ("twin calves", "champion ram") emit chronicle + bigger bumps.
+- Requests: a low daily probability per non-founder house with an adult, scaled by happiness/loyalty, queues a `LivestockRequest`. Founder house never auto-requests. Bottom dock badge surfaces pending requests.
+- Decision: `decideLivestockRequest(id, "approve"|"reject"|"postpone")` on the store. Approve grants the request (gifts a starter pair for "start-raising", or unlocks/queues a building plan for "build-pen") and applies founder-opinion bonuses + small prestige; reject emits "request-rejected" memory to the requester + relatives (reuses memory/contagion in `families.ts`). Repeated rejections damage relations naturally through existing systems.
+
+## 6. UI
+
+- **New `LivestockPanel.tsx`** (top-dock / sidebar tab): totals by species, pregnancies this season, births/deaths this year, production/day, ranchers assigned, per-family ownership table.
+- **New `LivestockRequestsPanel.tsx`** mirroring the marriage proposals panel style; Approve/Reject/Postpone buttons.
+- **`FamilyPanel`**: new "Livestock" row + specialization tag.
+- **`Inspector` on a livestock building**: capacity, current animals (list), food consumption, production/day, assigned rancher, "Assign rancher…" action.
+- **`MapView`**: render small animated dots/sprites near each livestock building (count proportional to occupants), purely visual — randomized within building footprint, no per-tick movement.
+- **Build palette**: new "Livestock" category section.
+
+## 7. Arrivals & acquisition
+
+`world.ts` arrival generation occasionally bundles `Animal[]` with an `ArrivalEvent` (e.g. "A family arrives with 2 goats and 6 chickens."). On accept, animals are added to `state.animals` with `ownerFamilyId = arrivalFamily.id`; if no pen exists yet, animals are flagged `buildingId: null` (health drains faster, prompting the family to request a pen — feeding back into §5).
+
+## 8. Save migration
+
+`persistence.ts`: version 3 → 4 sets `animals: []`, `livestockRequests: []`. Loader accepts versions 2, 3, 4. Old saves load and play unchanged until first arrival/request triggers livestock content.
+
+## 9. Files
+
+**New**
+- `src/game/sim/livestock.ts`
+- `src/components/game/LivestockPanel.tsx`
+- `src/components/game/LivestockRequestsPanel.tsx`
+
+**Edited**
+- `src/game/types.ts` (Animal, LivestockRequest, SaveGame v4, Occupation "rancher", Skills.ranch, BuildingKind additions, Resource additions, BuildingDef.category & .livestock)
+- `src/game/data/content.ts` (new building defs, category metadata)
+- `src/game/persistence.ts` (v3 → v4)
+- `src/game/sim/engine.ts` (call livestock ticks + request generator)
+- `src/game/sim/ai.ts` (rancher branch)
+- `src/game/sim/world.ts` (arrivals can include animals)
+- `src/game/sim/families.ts` (livestock summary, specialization, request memories)
+- `src/game/store.ts` (`decideLivestockRequest`, `assignRancher`, selectors)
+- `src/components/game/MapView.tsx` (render animals)
+- `src/components/game/FamilyPanel.tsx`, `Inspector.tsx`, `BottomDock.tsx`, `GameShell.tsx`
+
+## 10. Out of scope (foundations only)
+
+Meat, leather, processing chains, cloth from wool, livestock trade, inheritance transfer of animals on death (animals stay with `ownerFamilyId`; future update will handle hand-off). Hooks (`ownerFamilyId`, family prestige bumps, specialization selector) are in place so those updates plug in without refactors.

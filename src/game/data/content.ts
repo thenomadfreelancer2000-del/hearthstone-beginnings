@@ -148,6 +148,34 @@ export const BUILDINGS: Record<BuildingKind, BuildingDef> = {
     cost: { wood: 14, stone: 4 }, buildEffort: 55, housingCapacity: 0, storageCapacity: 0, social: false,
     produces: null,
   },
+  "chicken-coop": {
+    kind: "chicken-coop", name: "Chicken Coop", blurb: "Nesting boxes and a wire run. Eggs at dawn.",
+    size: { w: 2, h: 2 },
+    cost: { wood: 12, fiber: 4 }, buildEffort: 45, housingCapacity: 0, storageCapacity: 30, social: false,
+    produces: { resource: "eggs", perDay: 4 },
+    livestock: { species: "chicken", capacity: 8 },
+  },
+  "goat-pen": {
+    kind: "goat-pen", name: "Goat Pen", blurb: "Fenced yard and a small shed. Milk and stubborn company.",
+    size: { w: 3, h: 2 },
+    cost: { wood: 20, stone: 4, fiber: 4 }, buildEffort: 80, housingCapacity: 0, storageCapacity: 40, social: false,
+    produces: { resource: "milk", perDay: 3 },
+    livestock: { species: "goat", capacity: 6 },
+  },
+  "sheep-pen": {
+    kind: "sheep-pen", name: "Sheep Pen", blurb: "Shaded paddock for the flock. Wool to weave.",
+    size: { w: 3, h: 3 },
+    cost: { wood: 22, fiber: 6 }, buildEffort: 90, housingCapacity: 0, storageCapacity: 40, social: false,
+    produces: { resource: "wool", perDay: 2 },
+    livestock: { species: "sheep", capacity: 6 },
+  },
+  "cattle-pasture": {
+    kind: "cattle-pasture", name: "Cattle Pasture", blurb: "Open grazing fenced off for the herd.",
+    size: { w: 4, h: 3 },
+    cost: { wood: 32, stone: 6 }, buildEffort: 140, housingCapacity: 0, storageCapacity: 60, social: false,
+    produces: { resource: "milk", perDay: 5 },
+    livestock: { species: "cattle", capacity: 4 },
+  },
 };
 
 export const BUILDABLE_KINDS: BuildingKind[] = [
@@ -155,6 +183,7 @@ export const BUILDABLE_KINDS: BuildingKind[] = [
   "campfire", "stockpile", "workbench",
   "farm-plot", "foraging-camp", "well", "water-collector",
   "fence", "palisade", "stone-wall", "gate", "watchtower", "guard-post",
+  "chicken-coop", "goat-pen", "sheep-pen", "cattle-pasture",
 ];
 
 export const CHRONICLE_OPENERS = [

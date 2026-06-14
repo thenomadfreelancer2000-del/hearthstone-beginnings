@@ -2,7 +2,8 @@ import { create } from "zustand";
 import { nanoid } from "nanoid";
 import { toast } from "sonner";
 import type {
-  ArrivalEvent, Building, BuildingKind, ChronicleEntry, Family, GameSpeed, GameTime, ID,
+  Animal, AnimalSpecies, ArrivalEvent, Building, BuildingKind, ChronicleEntry, Family,
+  GameSpeed, GameTime, ID, LivestockRequest,
   MarriageProposal, Relationship, ResourceKind, ResourceNode, SaveGame, SettlementStats,
   Survivor, Territory, Tile,
 } from "./types";
@@ -15,6 +16,7 @@ import {
 import { advance, type Engine } from "./sim/engine";
 import { createArrangedProposal } from "./sim/marriage";
 import { BUILDINGS } from "./data/content";
+import { makeAnimal, SPECIES_BUILDING, SPECIES_LABEL } from "./sim/livestock";
 import { saveToLocal, loadFromLocal } from "./persistence";
 import { makeRng } from "./sim/rng";
 import { normalizeConstructionBuilding } from "./sim/construction";
@@ -59,6 +61,8 @@ interface GameState {
   chronicle: ChronicleEntry[];
   stats: SettlementStats;
   proposals: MarriageProposal[];
+  animals: Animal[];
+  livestockRequests: LivestockRequest[];
 
 
   selection: Selection;
@@ -124,10 +128,15 @@ interface GameState {
   // Marriage
   decideProposal: (id: ID, decision: "approve" | "reject" | "postpone") => void;
   arrangeMarriage: (initiatorId: ID, targetId: ID) => boolean;
+  // Livestock
+  decideLivestockRequest: (id: ID, decision: "approve" | "reject" | "postpone") => void;
+  assignRancher: (buildingId: ID, survivorId: ID | null) => void;
+  setPenOwner: (buildingId: ID, familyId: ID | null) => void;
 }
 
 const emptyResources = (): Record<ResourceKind, number> => ({
   wood: 18, stone: 8, food: 70, water: 60, fiber: 8, tools: 1,
+  eggs: 0, milk: 0, wool: 0,
 });
 
 const emptyStats = (year: number, dynasty: string): SettlementStats => ({
@@ -156,6 +165,8 @@ export const useGame = create<GameState>((set, get) => ({
   chronicle: [],
   stats: emptyStats(1, ""),
   proposals: [],
+  animals: [],
+  livestockRequests: [],
   selection: { kind: "none" },
   buildPlacement: null,
   pendingArrival: null,
@@ -718,6 +729,8 @@ export const useGame = create<GameState>((set, get) => ({
       },
       borderMode: false,
       proposals: [],
+      animals: [],
+      livestockRequests: [],
     });
   },
 
@@ -743,7 +756,12 @@ export const useGame = create<GameState>((set, get) => ({
         normalizeConstructionBuilding(b);
         return b;
       }),
-      resources: save.resources,
+      resources: {
+        ...save.resources,
+        eggs: save.resources.eggs ?? 0,
+        milk: save.resources.milk ?? 0,
+        wool: save.resources.wool ?? 0,
+      },
       survivors: save.survivors.map(s => ({
         ...s,
         skills: { ...{ social: 1 }, ...s.skills, social: s.skills?.social ?? 1 },
@@ -764,6 +782,8 @@ export const useGame = create<GameState>((set, get) => ({
       foundingPhase: save.foundingPhase ?? false,
       territory: save.territory ?? null,
       proposals: save.proposals ?? [],
+      animals: save.animals ?? [],
+      livestockRequests: save.livestockRequests ?? [],
       borderMode: false,
     });
     return true;
@@ -772,7 +792,7 @@ export const useGame = create<GameState>((set, get) => ({
   save: () => {
     const st = get();
     const data: SaveGame = {
-      version: 3,
+      version: 4,
       ranchName: st.ranchName,
       seed: st.seed,
       time: st.time,
@@ -794,6 +814,8 @@ export const useGame = create<GameState>((set, get) => ({
       foundingPhase: st.foundingPhase,
       territory: st.territory,
       proposals: st.proposals,
+      animals: st.animals,
+      livestockRequests: st.livestockRequests,
       factions: [], laws: [], externalSettlements: [],
     };
     return saveToLocal(data);
@@ -841,6 +863,8 @@ export const useGame = create<GameState>((set, get) => ({
       stats: { ...st.stats },
       seed: st.seed,
       proposals: st.proposals.map(p => ({ ...p })),
+      animals: st.animals.map(a => ({ ...a })),
+      livestockRequests: st.livestockRequests.map(r => ({ ...r })),
       foundingPhase: st.foundingPhase,
     };
 
@@ -919,6 +943,8 @@ export const useGame = create<GameState>((set, get) => ({
       chronicle: eng.chronicle,
       stats: eng.stats,
       proposals: eng.proposals,
+      animals: eng.animals,
+      livestockRequests: eng.livestockRequests,
       pendingArrival,
       lastChronicleId: lastId,
     });
@@ -1156,6 +1182,8 @@ export const useGame = create<GameState>((set, get) => ({
       preferredHeirId: st.preferredHeirId,
       chronicle: st.chronicle, stats: st.stats, seed: st.seed,
       proposals: st.proposals.map(p => ({ ...p })),
+      animals: st.animals.map(a => ({ ...a })),
+      livestockRequests: st.livestockRequests.map(r => ({ ...r })),
       foundingPhase: st.foundingPhase,
     };
     const prop = createArrangedProposal(eng, initiatorId, targetId);
@@ -1165,6 +1193,120 @@ export const useGame = create<GameState>((set, get) => ({
     const b = st.survivors.find(s => s.id === targetId);
     if (a && b) toast.success(`Arranged: ${a.name} & ${b.name}`, { description: "The other House will respond." });
     return true;
+  },
+
+  decideLivestockRequest: (id, decision) => {
+    const st = get();
+    const POSTPONE = 30 * 24;
+    const req = st.livestockRequests.find(r => r.id === id);
+    if (!req) return;
+    const fam = st.families.find(f => f.id === req.familyId);
+    const requester = st.survivors.find(s => s.id === req.requesterId);
+    if (decision === "postpone") {
+      set({
+        livestockRequests: st.livestockRequests.map(r =>
+          r.id === id ? { ...r, status: "postponed", resolveAfterTick: st.time.tick + POSTPONE } : r,
+        ),
+      });
+      toast(`Postponed ${SPECIES_LABEL[req.species]} request from House ${fam?.name ?? "—"}`);
+      return;
+    }
+    if (decision === "reject") {
+      // remove + memory + small loyalty hit on requester
+      const survivors = st.survivors.map(s => {
+        if (s.id !== requester?.id) return s;
+        return {
+          ...s,
+          loyaltyToFounder: Math.max(-100, s.loyaltyToFounder - 6),
+          mood: Math.max(-100, s.mood - 5),
+          memories: [
+            {
+              id: nanoid(6), tick: st.time.tick, year: st.time.year, season: st.time.season, day: st.time.day,
+              text: `The Founder refused my request to raise ${SPECIES_LABEL[req.species].toLowerCase()}.`,
+              emotion: "anger" as const, weight: 40, aboutSurvivorId: st.currentLeaderId,
+              kind: "livestock-rejected", floor: 10, decayRate: 0.5,
+            },
+            ...s.memories,
+          ].slice(0, 64),
+        };
+      });
+      set({
+        livestockRequests: st.livestockRequests.filter(r => r.id !== id),
+        survivors,
+      });
+      toast.warning(`Refused House ${fam?.name ?? "—"}'s request`);
+      return;
+    }
+    // approve
+    let buildings = st.buildings;
+    let animals = st.animals;
+    if (req.kind === "start-raising") {
+      // Gift a starter pair into any existing pen of theirs, or unhoused.
+      const pen = buildings.find(b =>
+        b.builtProgress >= 1 && b.kind === SPECIES_BUILDING[req.species] &&
+        (b.livestockOwnerFamilyId === fam?.id || b.livestockOwnerFamilyId == null),
+      );
+      const penId = pen?.id ?? null;
+      const newAnimals: Animal[] = [
+        makeAnimal(req.species, "f", req.familyId, penId, st.time.tick, 40),
+        makeAnimal(req.species, "m", req.familyId, penId, st.time.tick, 40),
+      ];
+      animals = [...animals, ...newAnimals];
+      if (pen && !pen.livestockOwnerFamilyId) {
+        buildings = buildings.map(b => b.id === pen.id ? { ...b, livestockOwnerFamilyId: req.familyId } : b);
+      }
+    }
+    // Founder opinion + prestige bump for the family
+    const survivors = st.survivors.map(s => {
+      const inFam = s.familyId === req.familyId && s.health > 0;
+      if (!inFam) return s;
+      return {
+        ...s,
+        loyaltyToFounder: Math.min(100, s.loyaltyToFounder + (s.id === requester?.id ? 10 : 4)),
+        mood: Math.min(100, s.mood + 4),
+        memories: s.id === requester?.id ? [
+          {
+            id: nanoid(6), tick: st.time.tick, year: st.time.year, season: st.time.season, day: st.time.day,
+            text: `The Founder granted my wish to raise ${SPECIES_LABEL[req.species].toLowerCase()}.`,
+            emotion: "trust" as const, weight: 60, aboutSurvivorId: st.currentLeaderId,
+            kind: "livestock-approved", floor: 20, decayRate: 0.3,
+          },
+          ...s.memories,
+        ].slice(0, 64) : s.memories,
+      };
+    });
+    const families = st.families.map(f =>
+      f.id === req.familyId ? { ...f, prestige: Math.min(200, f.prestige + 3) } : f,
+    );
+    set({
+      livestockRequests: st.livestockRequests.filter(r => r.id !== id),
+      buildings,
+      animals,
+      survivors,
+      families,
+    });
+    toast.success(`Granted House ${fam?.name ?? "—"}'s ${SPECIES_LABEL[req.species]} request`);
+  },
+
+  assignRancher: (buildingId, survivorId) => {
+    const st = get();
+    set({
+      buildings: st.buildings.map(b =>
+        b.id === buildingId ? { ...b, assignedWorkerId: survivorId } : b,
+      ),
+      survivors: survivorId
+        ? st.survivors.map(s => s.id === survivorId ? { ...s, occupation: "rancher" as const } : s)
+        : st.survivors,
+    });
+  },
+
+  setPenOwner: (buildingId, familyId) => {
+    const st = get();
+    set({
+      buildings: st.buildings.map(b =>
+        b.id === buildingId ? { ...b, livestockOwnerFamilyId: familyId } : b,
+      ),
+    });
   },
 }));
 
