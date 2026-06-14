@@ -340,13 +340,14 @@ export const useGame = create<GameState>((set, get) => ({
       st.territory.radius > 0 &&
       !st.buildings.some((b) => b.kind === "fence")
     ) {
-      const { cx, cy, radius } = st.territory;
+      const { cx, cy } = st.territory;
+      const { halfW, halfH } = territoryDims(st.territory);
       const used = new Set<string>();
-      // Rectangular perimeter: walk the four sides of the square bbox.
-      const x0 = Math.round(cx - radius);
-      const y0 = Math.round(cy - radius);
-      const x1 = Math.round(cx + radius);
-      const y1 = Math.round(cy + radius);
+      // Rectangular perimeter: walk the four sides of the bbox.
+      const x0 = Math.round(cx - halfW);
+      const y0 = Math.round(cy - halfH);
+      const x1 = Math.round(cx + halfW);
+      const y1 = Math.round(cy + halfH);
       const tiles: { x: number; y: number }[] = [];
       const pushTile = (x: number, y: number) => {
         if (x < 0 || y < 0 || x >= st.mapW || y >= st.mapH) return;
@@ -411,7 +412,8 @@ export const useGame = create<GameState>((set, get) => ({
     if (st.territory && st.territory.radius > 0) {
       const tx = x + def.size.w / 2;
       const ty = y + def.size.h / 2;
-      if (Math.max(Math.abs(tx - st.territory.cx), Math.abs(ty - st.territory.cy)) > st.territory.radius) {
+      const { halfW, halfH } = territoryDims(st.territory);
+      if (Math.abs(tx - st.territory.cx) > halfW || Math.abs(ty - st.territory.cy) > halfH) {
         toast.error("Outside ranch territory");
         return false;
       }
@@ -1090,6 +1092,15 @@ export const useGame = create<GameState>((set, get) => ({
         ];
       }
     }
+    // Territory expansion (rectangular growth) for the new council action.
+    let newTerritory = st.territory;
+    if (action === "expand-territory" && st.territory && st.territory.radius > 0) {
+      newTerritory = expandTerritoryRectangle(st.territory, st.mapW, st.mapH);
+      const { halfW, halfH } = territoryDims(newTerritory);
+      toast.success("The ranch grows", {
+        description: `Perimeter pushed to ${Math.round(halfW * 2)}×${Math.round(halfH * 2)} tiles.`,
+      });
+    }
     set({
       pendingCouncilVote: null,
       resources: newResources,
@@ -1098,6 +1109,7 @@ export const useGame = create<GameState>((set, get) => ({
       survivors: newSurvivors,
       reputationProfile: newRep,
       laws: newLaws,
+      territory: newTerritory,
       chronicle: [newChronicle, ...st.chronicle].slice(0, 600),
       councilReactionLog: [logEntry, ...st.councilReactionLog].slice(0, 60),
     });
@@ -2176,6 +2188,34 @@ function territoryAcres(radius: number): number {
   // Square bbox: side = 2*radius. 1 tile ≈ 0.1 acre (arbitrary but readable).
   const side = 2 * radius;
   return Math.max(1, Math.round(side * side * 0.1));
+}
+
+export function territoryDims(t: Territory): { halfW: number; halfH: number } {
+  const halfW = t.halfW ?? t.radius;
+  const halfH = t.halfH ?? t.radius;
+  return { halfW, halfH };
+}
+
+/** Expand the rectangle by ~10% area along the shorter axis. */
+function expandTerritoryRectangle(t: Territory, mapW: number, mapH: number): Territory {
+  const { halfW, halfH } = territoryDims(t);
+  const factor = 1.1;
+  let nW = halfW;
+  let nH = halfH;
+  if (halfW <= halfH) nW = halfW * factor;
+  else nH = halfH * factor;
+  // Clamp so the rectangle stays inside the map with a 1-tile margin.
+  const maxW = Math.max(1, Math.min(t.cx, mapW - 1 - t.cx));
+  const maxH = Math.max(1, Math.min(t.cy, mapH - 1 - t.cy));
+  nW = Math.min(nW, maxW);
+  nH = Math.min(nH, maxH);
+  return {
+    cx: t.cx,
+    cy: t.cy,
+    halfW: nW,
+    halfH: nH,
+    radius: Math.max(nW, nH),
+  };
 }
 
 

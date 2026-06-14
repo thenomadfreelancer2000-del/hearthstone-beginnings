@@ -1175,19 +1175,23 @@ export function MapView() {
         <StaticTileLayers tiles={tiles} width={W} height={H} />
 
         {/* Territory bounds (rectangle) */}
-        {territory && territory.radius > 0 && (
-          <rect
-            x={(territory.cx - territory.radius) * TILE}
-            y={(territory.cy - territory.radius) * TILE}
-            width={territory.radius * 2 * TILE}
-            height={territory.radius * 2 * TILE}
-            fill="rgba(201,161,74,0.04)"
-            stroke={PAL.gold}
-            strokeWidth={1.5}
-            strokeDasharray="6 4"
-            pointerEvents="none"
-          />
-        )}
+        {territory && territory.radius > 0 && (() => {
+          const halfW = territory.halfW ?? territory.radius;
+          const halfH = territory.halfH ?? territory.radius;
+          return (
+            <rect
+              x={(territory.cx - halfW) * TILE}
+              y={(territory.cy - halfH) * TILE}
+              width={halfW * 2 * TILE}
+              height={halfH * 2 * TILE}
+              fill="rgba(201,161,74,0.04)"
+              stroke={PAL.gold}
+              strokeWidth={1.5}
+              strokeDasharray="6 4"
+              pointerEvents="none"
+            />
+          );
+        })()}
         {borderMode && territory && hover && (() => {
           const r = Math.max(3, Math.min(40, Math.round(
             Math.max(Math.abs(hover.x + 0.5 - territory.cx), Math.abs(hover.y + 0.5 - territory.cy))

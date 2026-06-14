@@ -176,21 +176,21 @@ export function FounderCreation() {
               className="pt-2 sm:pt-6 min-w-0"
             >
               <p
-                className="ranch-label mb-2 text-[9px] sm:text-[10px]"
+                className="ranch-label mb-1 sm:mb-2 text-[8px] sm:text-[10px]"
                 style={{ letterSpacing: "0.2em" }}
               >
                 {t.eyebrow}
               </p>
               <h1
-                className="ranch-display leading-[1.05] mb-2 sm:mb-4 break-words"
-                style={{ fontSize: "clamp(18px, 5vw, 60px)" }}
+                className="ranch-display leading-[1.05] mb-1 sm:mb-4 break-words"
+                style={{ fontSize: "clamp(15px, 4.4vw, 60px)" }}
               >
                 {t.title}
               </h1>
-              <p className="ranch-display italic text-dust-light text-xs sm:text-lg max-w-2xl leading-snug">
+              <p className="ranch-display italic text-dust-light text-[11px] sm:text-lg max-w-2xl leading-snug">
                 {t.sub}
               </p>
-              <div className="divider-amber my-4 sm:my-8" />
+              <div className="divider-amber my-2 sm:my-8" />
 
 
 
@@ -304,29 +304,29 @@ function StepIdentity(props: {
   const availablePortraits = PORTRAITS.filter((p) => p.gender === gender);
 
   return (
-    <section className="grid md:grid-cols-2 gap-4 md:gap-5 items-stretch [&>div]:h-full">
+    <section className="grid md:grid-cols-2 gap-2 sm:gap-5 items-stretch [&>div]:h-full">
 
       {/* Panel A — Face */}
       <div className="parchment-panel corner-brackets p-2 sm:p-7 min-w-0">
-        <div className="flex items-baseline justify-between mb-4">
-          <p className="ranch-label text-[10px]">A — Choose a Face</p>
-          <span className="ranch-data text-[10px] text-dust-light">{availablePortraits.length} options</span>
+        <div className="flex items-baseline justify-between mb-2 sm:mb-4">
+          <p className="ranch-label text-[9px] sm:text-[10px]">A — Choose a Face</p>
+          <span className="ranch-data text-[9px] sm:text-[10px] text-dust-light">{availablePortraits.length} options</span>
         </div>
 
-        <div className="flex gap-2 mb-4">
+        <div className="flex gap-1.5 sm:gap-2 mb-2 sm:mb-4">
           {(["m", "f"] as const).map((g) => (
             <button
               key={g}
               type="button"
               onClick={() => setGender(g)}
-              className={`btn-ranch flex-1 ${gender === g ? "btn-ranch-primary" : ""}`}
+              className={`btn-ranch flex-1 !py-1.5 sm:!py-2 text-xs sm:text-sm ${gender === g ? "btn-ranch-primary" : ""}`}
             >
               {g === "m" ? "He" : "She"}
             </button>
           ))}
         </div>
 
-        <div className="grid grid-cols-4 gap-2 sm:gap-3">
+        <div className="grid grid-cols-4 gap-1.5 sm:gap-3">
           {availablePortraits.map((p) => {
             const active = p.id === portraitId;
             return (
@@ -355,9 +355,9 @@ function StepIdentity(props: {
 
       {/* Panel B — Name */}
       <div className="parchment-panel corner-brackets p-2 sm:p-7 min-w-0">
-        <p className="ranch-label text-[10px] mb-4">B — Name & Homestead</p>
+        <p className="ranch-label text-[9px] sm:text-[10px] mb-2 sm:mb-4">B — Name & Homestead</p>
 
-        <div className="grid sm:grid-cols-2 gap-4 sm:gap-5">
+        <div className="grid sm:grid-cols-2 gap-2 sm:gap-5">
           <Field label="First Name">
             <select
               value={firstName}
@@ -388,8 +388,8 @@ function StepIdentity(props: {
           </div>
         </div>
 
-        <p className="ranch-handwritten text-sm mt-5 text-dust-light">
-          “{firstName} {surname}” will be the first name in your Chronicle.
+        <p className="ranch-handwritten text-xs sm:text-sm mt-3 sm:mt-5 text-dust-light">
+          "{firstName} {surname}" will be the first name in your Chronicle.
         </p>
       </div>
 
@@ -398,12 +398,15 @@ function StepIdentity(props: {
           width: 100%;
           background: rgba(5,4,2,0.6);
           border: 1px solid rgba(201,161,74,0.28);
-          padding: 10px 12px;
+          padding: 6px 10px;
           font-family: var(--font-body);
           color: var(--parchment);
-          font-size: 14px;
+          font-size: 13px;
           outline: none;
           transition: border-color 200ms;
+        }
+        @media (min-width: 640px) {
+          .ranch-input { padding: 10px 12px; font-size: 14px; }
         }
         .ranch-input:focus { border-color: var(--amber); }
       `}</style>
@@ -495,12 +498,12 @@ function StepValues({
 }) {
   const bg = BACKGROUNDS.find((b) => b.id === founder.background);
   return (
-    <section className="space-y-5">
+    <section className="space-y-3 sm:space-y-5">
       <div className="flex items-baseline justify-between">
-        <p className="ranch-label">Selected</p>
-        <span className="ranch-data">{values.length} / 2</span>
+        <p className="ranch-label text-[10px] sm:text-xs">Selected</p>
+        <span className="ranch-data text-xs">{values.length} / 2</span>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 sm:gap-2">
         {VALUES.map((v) => {
           const active = values.includes(v);
           const disabled = !active && values.length >= 2;
@@ -509,7 +512,7 @@ function StepValues({
               key={v}
               disabled={disabled}
               onClick={() => toggle(v)}
-              className={`btn-ranch ${active ? "btn-ranch-primary" : ""}`}
+              className={`btn-ranch !py-1.5 sm:!py-2 text-xs sm:text-sm ${active ? "btn-ranch-primary" : ""}`}
             >
               {v}
             </button>
@@ -517,24 +520,24 @@ function StepValues({
         })}
       </div>
 
-      <div className="parchment-panel-warm corner-brackets p-3 sm:p-6 mt-4">
-        <p className="ranch-label mb-3">The Founder</p>
-        <p className="ranch-display text-2xl sm:text-3xl mb-1">
+      <div className="parchment-panel-warm corner-brackets p-2.5 sm:p-6 mt-2 sm:mt-4">
+        <p className="ranch-label text-[9px] sm:text-xs mb-1.5 sm:mb-3">The Founder</p>
+        <p className="ranch-display text-lg sm:text-3xl mb-0.5 sm:mb-1 leading-tight">
           {founder.firstName} {founder.surname}
         </p>
-        <p className="ranch-display italic text-dust-light mb-4">of {founder.ranchName}</p>
+        <p className="ranch-display italic text-dust-light text-xs sm:text-base mb-2 sm:mb-4">of {founder.ranchName}</p>
 
-        <dl className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+        <dl className="grid grid-cols-1 sm:grid-cols-3 gap-1.5 sm:gap-3 text-xs sm:text-sm">
           <div>
-            <dt className="ranch-label text-[9px] mb-1">Before</dt>
+            <dt className="ranch-label text-[8px] sm:text-[9px] mb-0.5 sm:mb-1">Before</dt>
             <dd className="text-parchment">{bg?.name}</dd>
           </div>
           <div>
-            <dt className="ranch-label text-[9px] mb-1">Traits</dt>
+            <dt className="ranch-label text-[8px] sm:text-[9px] mb-0.5 sm:mb-1">Traits</dt>
             <dd className="text-parchment">{founder.traits.join(", ")}</dd>
           </div>
           <div>
-            <dt className="ranch-label text-[9px] mb-1">Vows</dt>
+            <dt className="ranch-label text-[8px] sm:text-[9px] mb-0.5 sm:mb-1">Vows</dt>
             <dd className="text-parchment">{values.length ? values.join(", ") : "—"}</dd>
           </div>
         </dl>

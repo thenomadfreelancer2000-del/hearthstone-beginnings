@@ -264,7 +264,11 @@ export type BuildingKind =
 export interface Territory {
   cx: number;     // center tile x (usually homestead center)
   cy: number;     // center tile y
-  radius: number; // tiles; 0 = not yet defined
+  radius: number; // tiles; 0 = not yet defined. Effective max(halfW, halfH).
+  /** Optional rectangular half-width (tiles). Falls back to radius. */
+  halfW?: number;
+  /** Optional rectangular half-height (tiles). Falls back to radius. */
+  halfH?: number;
 }
 
 // ── Farm plots ───────────────────────────────────────────────────

@@ -229,6 +229,7 @@ export function CouncilVoteModal() {
               <ActionCard action={concedeAction} />
               <ActionCard action={refuseAction} danger />
               <ActionCard action="bribe" />
+              <ActionCard action="expand-territory" />
               {!ev.contested && <ActionCard action="abdicate-peace" />}
             </>
           ) : (
@@ -236,6 +237,7 @@ export function CouncilVoteModal() {
               <ActionCard action="speech" />
               <ActionCard action="bribe" />
               <ActionCard action="office" />
+              <ActionCard action="expand-territory" />
               <ActionCard action="crush" danger />
               <ActionCard action="stepdown" danger />
               {!ev.contested && <ActionCard action="abdicate-peace" />}

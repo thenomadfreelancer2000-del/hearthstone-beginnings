@@ -9,7 +9,8 @@ import { computePolitics } from "./politics";
 export type CouncilAction =
   | "speech" | "bribe" | "office" | "crush" | "stepdown" | "abdicate-peace"
   | "repeal-law" | "refuse-repeal"
-  | "enact-law" | "refuse-enact";
+  | "enact-law" | "refuse-enact"
+  | "expand-territory";
 
 export interface CouncilVote {
   familyId: ID;
@@ -318,6 +319,19 @@ export const COUNCIL_ACTION_INFO: Record<CouncilAction, ActionInfo> = {
       "−15 relations with the sponsoring house",
     ],
   },
+  "expand-territory": {
+    label: "Petition for new pasture",
+    hint: "Push the perimeter outward — claim a strip of land for the ranch.",
+    cost: {},
+    effects: [
+      "Ranch perimeter expands by ~10% (rectangular growth)",
+      "+4 prestige to your house (vision and ambition)",
+      "+3 'ambitious' standing among the houses",
+    ],
+    risks: [
+      "Neighboring houses may resent the new fenceline (−4 loyalty long-tail)",
+    ],
+  },
 };
 
 
@@ -434,6 +448,12 @@ export function forecastActionRisk(
       backlash.push(`Sponsoring faction loses loyalty and remembers it`);
       backlash.push(`Will return louder next council`);
       repShifts.push({ axis: "ruthless", delta: 3, reason: "denies the petition" });
+      break;
+    }
+    case "expand-territory": {
+      score = 12;
+      backlash.push(`Some kin grumble at the new fenceline`);
+      repShifts.push({ axis: "compassionate", delta: 1, reason: "provides for the future" });
       break;
     }
   }
@@ -745,6 +765,18 @@ export function resolveCouncilVote(
       out.memoryEmotion = "fear";
       out.memoryWeight = 25;
       out.tone = "bad";
+      return out;
+    }
+    case "expand-territory": {
+      out.title = `The ranch grows`;
+      out.body = `The council approves a new strip of pasture. The fenceline is pushed outward.`;
+      D(out.prestigeDeltas, ev.leaderHouseId, 4);
+      out.loyaltyDeltas.all = 2;
+      out.moodDeltas.all = 2;
+      out.memoryText = `The porch claimed more land. We watched the fence move outward.`;
+      out.memoryEmotion = "pride";
+      out.memoryWeight = 25;
+      out.tone = "good";
       return out;
     }
   }
