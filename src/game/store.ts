@@ -1281,8 +1281,8 @@ export const useGame = create<GameState>((set, get) => ({
     // (b) After the charter, an annual council convenes each spring; rivals
     //     may also demand a hated law be repealed.
     let pendingCouncilVote: CouncilVoteEvent | null = st.pendingCouncilVote;
-    let pendingFoundingCharter = st.pendingFoundingCharter;
-    let hasHeldFirstCouncil = st.hasHeldFirstCouncil;
+    let pendingFoundingCharter: boolean = st.pendingFoundingCharter;
+    let hasHeldFirstCouncil: boolean = st.hasHeldFirstCouncil;
     const livingFamilies = eng.families.filter(
       (f) => f.memberIds.some((id) => eng.survivors.find((s) => s.id === id && s.health > 0))
     );
