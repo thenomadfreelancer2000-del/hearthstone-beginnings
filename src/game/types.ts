@@ -146,6 +146,10 @@ export interface Survivor {
   spouseId?: ID | null;
   marriedTick?: number | null;
   marriedYear?: number | null;
+  // ── Engagement (Dynastic Marriage update) ───────────────────
+  fianceId?: ID | null;
+  engagedTick?: number | null;
+  engagedYear?: number | null;
   generation: number;           // 0 = founder, 1 = first child, etc.
 
   // achievements & legacy
