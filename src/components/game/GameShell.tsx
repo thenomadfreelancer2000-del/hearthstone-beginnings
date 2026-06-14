@@ -23,8 +23,12 @@ export function GameShell() {
   const overlay = useGame((s) => s.overlay);
   const selection = useGame((s) => s.selection);
   const clearSelection = useGame((s) => s.clearSelection);
+  const setOverlay = useGame((s) => s.setOverlay);
   const isMobile = useIsMobile();
   const [dockOpen, setDockOpen] = useState(false);
+  const [inspectorOpen, setInspectorOpen] = useState(false);
+  const [livestockOpen, setLivestockOpen] = useState(false);
+  const [adminOpen, setAdminOpen] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [livestockOpen, setLivestockOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
