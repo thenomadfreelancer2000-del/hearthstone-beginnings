@@ -98,6 +98,8 @@ interface GameState {
   hasHeldFirstCouncil: boolean;
   // First-council "Founding Charter": founder picks laws when 10+ houses exist.
   pendingFoundingCharter: boolean;
+  // Expeditions sent beyond the fence.
+  expeditions: Expedition[];
   // Building awaiting builder assignment (transient)
   pendingBuildAssignment: ID | null;
   // Farm plot awaiting crop+farmer selection (transient)
@@ -171,6 +173,8 @@ interface GameState {
   // Laws
   enactFoundingCharter: (lawIds: string[]) => void;
   repealLaw: (lawId: string) => void;
+  // Expeditions
+  createExpedition: (input: ExpeditionPlanInput) => string | null;
 }
 
 const emptyResources = (): Record<ResourceKind, number> => ({
@@ -277,6 +281,7 @@ export const useGame = create<GameState>((set, get) => ({
   laws: [],
   hasHeldFirstCouncil: false,
   pendingFoundingCharter: false,
+  expeditions: [],
   pendingBuildAssignment: null,
   pendingFarmSetup: null,
   unlockedCrops: [...STARTER_CROP_IDS],
