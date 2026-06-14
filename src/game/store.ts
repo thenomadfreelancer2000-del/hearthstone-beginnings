@@ -717,6 +717,7 @@ export const useGame = create<GameState>((set, get) => ({
         radius: 14,
       },
       borderMode: false,
+      proposals: [],
     });
   },
 
