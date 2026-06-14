@@ -121,6 +121,9 @@ interface GameState {
   exitBorderMode: () => void;
   setBorderFromClick: (x: number, y: number) => void;
   completeFounding: () => void;
+  // Marriage
+  decideProposal: (id: ID, decision: "approve" | "reject" | "postpone") => void;
+  arrangeMarriage: (initiatorId: ID, targetId: ID) => boolean;
 }
 
 const emptyResources = (): Record<ResourceKind, number> => ({
