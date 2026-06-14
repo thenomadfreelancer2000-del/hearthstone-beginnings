@@ -751,8 +751,9 @@ export function MapView() {
 
   return (
     <div
+      ref={scrollRef}
       className="flex-1 relative overflow-auto scroll-amber grain"
-      style={{ backgroundColor: TILE_PAL.grass.base }}
+      style={{ backgroundColor: TILE_PAL.grass.base, touchAction: "pan-x pan-y" }}
     >
       <div style={{ width: VW, height: VH, position: "relative" }}>
       <svg
