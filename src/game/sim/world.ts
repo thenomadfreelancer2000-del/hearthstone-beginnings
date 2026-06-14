@@ -93,36 +93,40 @@ export function generateWorld(seed: number): GenOut {
 
   for (const t of tiles) {
     if (t.kind === "forest" && chance(rng, 0.7)) {
+      // Each tree yields a fixed lump of 30 wood, then disappears.
       const n: ResourceNode = {
         id: nanoid(8), kind: "trees", x: t.x, y: t.y,
-        yields: "wood", amount: rangeInt(rng, 30, 60), max: 60, regrowsPerDay: 0.4,
+        yields: "wood", amount: 30, max: 30, regrowsPerDay: 0,
       };
       nodes.push(n);
       t.resourceNodeId = n.id;
     } else if (t.kind === "stone" && chance(rng, 0.55)) {
+      // Each rock yields a fixed lump of 30 stone, then disappears.
       const n: ResourceNode = {
         id: nanoid(8), kind: "rocks", x: t.x, y: t.y,
-        yields: "stone", amount: rangeInt(rng, 30, 70), max: 70, regrowsPerDay: 0,
+        yields: "stone", amount: 30, max: 30, regrowsPerDay: 0,
       };
       nodes.push(n);
       t.resourceNodeId = n.id;
     } else if (t.kind === "tall-grass" && chance(rng, 0.18)) {
+      // Each berry patch yields a fixed lump of 20 food, then disappears.
       const n: ResourceNode = {
         id: nanoid(8), kind: "berries", x: t.x, y: t.y,
-        yields: "food", amount: rangeInt(rng, 20, 40), max: 40, regrowsPerDay: 1.5,
+        yields: "food", amount: 20, max: 20, regrowsPerDay: 0,
       };
       nodes.push(n);
       t.resourceNodeId = n.id;
     } else if (t.kind === "tall-grass" && chance(rng, 0.22)) {
-      // Wild fiber plants — flax / hemp / nettles, gathered by foragers.
+      // Each fiber plant yields a fixed lump of 15 fiber, then disappears.
       const n: ResourceNode = {
         id: nanoid(8), kind: "fiber-grass", x: t.x, y: t.y,
-        yields: "fiber", amount: rangeInt(rng, 14, 28), max: 28, regrowsPerDay: 1.0,
+        yields: "fiber", amount: 15, max: 15, regrowsPerDay: 0,
       };
       nodes.push(n);
       t.resourceNodeId = n.id;
     }
   }
+
 
   return { tiles, nodes, homesteadTile: { x: cx, y: cy } };
 }
