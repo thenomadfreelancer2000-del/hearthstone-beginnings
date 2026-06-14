@@ -6,7 +6,9 @@ import type { Animal, Building, Family, ID, Minister, ResourceKind, Survivor } f
 import type { ReputationProfile } from "./reputation";
 import { computePolitics } from "./politics";
 
-export type CouncilAction = "speech" | "bribe" | "office" | "crush" | "stepdown" | "abdicate-peace";
+export type CouncilAction =
+  | "speech" | "bribe" | "office" | "crush" | "stepdown" | "abdicate-peace"
+  | "repeal-law" | "refuse-repeal";
 
 export interface CouncilVote {
   familyId: ID;
