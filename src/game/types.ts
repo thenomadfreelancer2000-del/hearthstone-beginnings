@@ -200,7 +200,38 @@ export interface Relationship {
   tag: RelationshipTag;
   interactions: number;
   marriedTick?: number | null;
+  engagedTick?: number | null;
 }
+
+// ── Marriage proposals (Dynastic Marriage update) ───────────────
+export type ProposalStatus = "pending" | "approved" | "rejected" | "postponed";
+
+export interface MarriageProposal {
+  id: ID;
+  aId: ID;
+  bId: ID;
+  aFamilyId: ID;
+  bFamilyId: ID;
+  createdTick: number;
+  createdYear: number;
+  attraction: number;        // 0..100
+  compatibility: number;     // 0..100
+  familyApproval: number;    // -100..100, blended from both house heads
+  prestigeA: number;
+  prestigeB: number;
+  /** Prestige delta the higher-prestige house can expect from the union. */
+  expectedPrestigeDelta: number;
+  /** Inter-family relation delta both houses will see. */
+  expectedRelationDelta: number;
+  status: ProposalStatus;
+  /** Founder House is involved — player must decide. */
+  requiresPlayer: boolean;
+  /** True when arranged by the player (founder side already approves). */
+  arranged?: boolean;
+  /** Re-checked next tick after this. */
+  resolveAfterTick?: number;
+}
+
 
 // ── Families ─────────────────────────────────────────────────────
 export interface Family {
