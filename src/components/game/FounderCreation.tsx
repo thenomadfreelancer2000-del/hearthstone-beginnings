@@ -97,7 +97,7 @@ export function FounderCreation() {
     setIsBeginning(true);
     window.setTimeout(() => {
       newGame(ranchName, { firstName, surname, gender, background, traits, values, companions, portraitId });
-    }, 80);
+    }, 700);
   }
 
   function handleSetGender(g: "m" | "f") {
