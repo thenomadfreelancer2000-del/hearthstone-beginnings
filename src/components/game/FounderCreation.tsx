@@ -111,7 +111,7 @@ export function FounderCreation() {
       <div className="pointer-events-none fixed inset-4 md:inset-8 border border-amber/15 hidden sm:block" />
 
       {/* Top chrome — step indicator */}
-      <header className="px-4 sm:px-8 pt-2 sm:pt-6 pb-2 sm:pb-4 flex items-center justify-between gap-3 shrink-0">
+      <header className="px-3 sm:px-8 pt-2 sm:pt-6 pb-2 sm:pb-4 flex items-center justify-between gap-2 shrink-0 min-w-0">
         <button
           onClick={back}
           className="ranch-label text-[9px] sm:text-[10px] hover:text-amber transition shrink-0"
@@ -119,21 +119,21 @@ export function FounderCreation() {
           ← {step === 1 ? "Menu" : "Back"}
         </button>
 
-        <div className="flex items-center gap-1.5 sm:gap-3 overflow-hidden">
+        <div className="flex items-center gap-1 sm:gap-3 overflow-x-auto no-scrollbar min-w-0">
           {STEPS.map((s, i) => {
             const active = s.id === step;
             const done = s.id < step;
             return (
-              <div key={s.id} className="flex items-center gap-1.5 sm:gap-3">
+              <div key={s.id} className="flex items-center gap-1 sm:gap-3 shrink-0">
                 <button
                   onClick={() => done && setStep(s.id)}
                   disabled={!done && !active}
-                  className={`flex items-center gap-1.5 sm:gap-2 ${
+                  className={`flex items-center gap-1 sm:gap-2 ${
                     active ? "text-amber" : done ? "text-parchment-dark hover:text-amber" : "text-dust/60"
                   }`}
                 >
                   <span
-                    className={`w-5 h-5 sm:w-6 sm:h-6 grid place-items-center border text-[10px] sm:text-[11px] font-data ${
+                    className={`w-4 h-4 sm:w-6 sm:h-6 grid place-items-center border text-[9px] sm:text-[11px] font-data shrink-0 ${
                       active
                         ? "border-amber bg-amber text-ink"
                         : done
@@ -146,7 +146,7 @@ export function FounderCreation() {
                   <span className="ranch-label text-[8px] sm:text-[10px] hidden sm:inline">{s.label}</span>
                 </button>
                 {i < STEPS.length - 1 && (
-                  <span className={`w-4 sm:w-8 h-px ${done ? "bg-amber/50" : "bg-dust/20"}`} />
+                  <span className={`w-2 sm:w-8 h-px shrink-0 ${done ? "bg-amber/50" : "bg-dust/20"}`} />
                 )}
               </div>
             );
@@ -157,6 +157,7 @@ export function FounderCreation() {
           {step}<span className="opacity-50">/5</span>
         </div>
       </header>
+
 
       {/* Scrollable body */}
       <main className="flex-1 overflow-y-auto scroll-amber px-4 sm:px-8 pb-32">
