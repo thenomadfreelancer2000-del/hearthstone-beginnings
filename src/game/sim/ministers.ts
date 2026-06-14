@@ -15,18 +15,19 @@ import type {
 export const TICKS_PER_DAY = 24;
 
 export const ROLE_LABEL: Record<MinisterRole, string> = {
-  "head-farmer": "Head Farmer",
-  "head-builder": "Head Builder",
-  "head-rancher": "Head Rancher",
-  "quartermaster": "Quartermaster",
+  "head-farmer": "Farm Manager",
+  "head-builder": "Build Manager",
+  "head-rancher": "Ranch Manager",
+  "quartermaster": "Stores Manager",
 };
 
 export const ROLE_BLURB: Record<MinisterRole, string> = {
-  "head-farmer": "Oversees fields, crops, and harvests.",
-  "head-builder": "Directs construction and repairs.",
-  "head-rancher": "Tends livestock and pens.",
-  "quartermaster": "Runs storage, hauling, and supply.",
+  "head-farmer": "Oversees fields, crops, and harvests. Assigns farmers.",
+  "head-builder": "Directs construction and repairs. Assigns builders.",
+  "head-rancher": "Tends livestock and pens. Assigns ranchers.",
+  "quartermaster": "Runs storage, hauling, and supply. Assigns haulers.",
 };
+
 
 export const ROLE_OCCUPATION: Record<MinisterRole, Survivor["occupation"]> = {
   "head-farmer": "farmer",
