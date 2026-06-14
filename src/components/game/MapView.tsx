@@ -245,14 +245,26 @@ function BuildingArt({ kind, w, h, farmStage, farmGrowth }: { kind: string; w: n
       );
     }
     case "fence": {
-      // Post and rail
+      // Post-and-rail: 4 tall posts, 2 horizontal rails with wood grain, ground shadow.
+      const baseY = h - 1.2;
+      const topY = h * 0.18;
+      const rail1 = h * 0.42;
+      const rail2 = h * 0.7;
+      const posts = [0.12, 0.38, 0.62, 0.88];
       return (
         <g>
-          <ellipse cx={cx} cy={h - 1.5} rx={w * 0.45} ry={1.6} fill={PAL.shadow} />
-          <rect x={1.5} y={h * 0.35} width={w - 3} height={1.3} fill="#7a5028" stroke={PAL.ink} strokeWidth={0.5} />
-          <rect x={1.5} y={h * 0.62} width={w - 3} height={1.3} fill="#7a5028" stroke={PAL.ink} strokeWidth={0.5} />
-          {[0.18, 0.5, 0.82].map((p, i) => (
-            <rect key={i} x={w * p - 0.7} y={h * 0.2} width={1.5} height={h * 0.7} fill="#5a3820" stroke={PAL.ink} strokeWidth={0.5} />
+          <ellipse cx={cx} cy={h - 0.6} rx={w * 0.46} ry={1.4} fill={PAL.shadow} opacity={0.7} />
+          {/* Rails */}
+          <rect x={1} y={rail1} width={w - 2} height={1.6} fill="#8a5a30" stroke={PAL.ink} strokeWidth={0.4} />
+          <line x1={1} y1={rail1 + 0.8} x2={w - 1} y2={rail1 + 0.8} stroke={PAL.inkSoft} strokeWidth={0.3} opacity={0.6} />
+          <rect x={1} y={rail2} width={w - 2} height={1.6} fill="#8a5a30" stroke={PAL.ink} strokeWidth={0.4} />
+          <line x1={1} y1={rail2 + 0.8} x2={w - 1} y2={rail2 + 0.8} stroke={PAL.inkSoft} strokeWidth={0.3} opacity={0.6} />
+          {/* Posts */}
+          {posts.map((p, i) => (
+            <g key={i}>
+              <rect x={w * p - 0.9} y={topY} width={1.8} height={baseY - topY} fill="#5a3820" stroke={PAL.ink} strokeWidth={0.4} />
+              <rect x={w * p - 0.9} y={topY} width={1.8} height={0.6} fill="#3d2810" />
+            </g>
           ))}
         </g>
       );
