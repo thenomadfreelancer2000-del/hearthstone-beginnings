@@ -28,6 +28,10 @@ import { findBestHome as findBestHomeFor, homeCapacity } from "./sim/housing";
 import { getPortrait } from "./data/portraits";
 import { TRAIT_INFO, traitRefugeeBias } from "./data/traits";
 import { computeFounderEpithet, founderDeathTitle, founderDeathBody } from "./sim/legacy";
+import {
+  generateCouncilVote, resolveCouncilVote as resolveCouncilVoteLogic,
+  type CouncilVoteEvent, type CouncilAction,
+} from "./sim/councilVote";
 
 export type Screen = "menu" | "founder" | "game";
 export type Overlay = "tree" | "family" | "chronicle" | null;
@@ -78,6 +82,8 @@ interface GameState {
 
   // Arrival event (transient — pauses the simulation while open)
   pendingArrival: ArrivalEvent | null;
+  // Annual Council vote (transient — pauses the simulation while open)
+  pendingCouncilVote: CouncilVoteEvent | null;
   // Building awaiting builder assignment (transient)
   pendingBuildAssignment: ID | null;
   // Farm plot awaiting crop+farmer selection (transient)
@@ -146,6 +152,8 @@ interface GameState {
   dismissMinister: (ministerId: ID) => void;
   decideMinisterRequest: (id: ID, decision: "approve" | "partial" | "reject" | "postpone", transferIds?: ID[]) => void;
   reassignWorker: (survivorId: ID, occupation: Survivor["occupation"]) => void;
+  // Council
+  resolveCouncilVote: (action: CouncilAction) => void;
 }
 
 const emptyResources = (): Record<ResourceKind, number> => ({
@@ -247,6 +255,7 @@ export const useGame = create<GameState>((set, get) => ({
   selection: { kind: "none" },
   buildPlacement: null,
   pendingArrival: null,
+  pendingCouncilVote: null,
   pendingBuildAssignment: null,
   pendingFarmSetup: null,
   unlockedCrops: [...STARTER_CROP_IDS],
@@ -916,10 +925,73 @@ export const useGame = create<GameState>((set, get) => ({
     return saveToLocal(data);
   },
 
+  resolveCouncilVote: (action) => {
+    const st = get();
+    const ev = st.pendingCouncilVote;
+    if (!ev) return;
+    const leader = st.survivors.find(s => s.id === st.currentLeaderId);
+    const leadSkill = leader?.skills.lead ?? 0;
+    const outcome = resolveCouncilVoteLogic(ev, action, {
+      resources: st.resources,
+      leaderLeadSkill: leadSkill,
+    });
+    if (!outcome.ok) {
+      toast.error(outcome.title, { description: outcome.body });
+      return;
+    }
+    // Apply effects.
+    const newResources = { ...st.resources };
+    for (const [r, amt] of Object.entries(outcome.resourceCost)) {
+      (newResources as any)[r] = Math.max(0, ((newResources as any)[r] ?? 0) - (amt ?? 0));
+    }
+    const newFamilies = st.families.map(f => {
+      const dp = outcome.prestigeDeltas[f.id] ?? 0;
+      const dw = outcome.wealthDeltas[f.id] ?? 0;
+      if (!dp && !dw) return f;
+      return {
+        ...f,
+        prestige: Math.max(0, Math.min(200, f.prestige + dp)),
+        wealth: Math.max(0, (f.wealth ?? 0) + dw),
+      };
+    });
+    let newLeaderId = st.currentLeaderId;
+    let newSurvivors = st.survivors;
+    if (outcome.newLeaderId) {
+      newLeaderId = outcome.newLeaderId;
+      newSurvivors = st.survivors.map(s => {
+        if (s.id === st.currentLeaderId && s.occupation === "leader") return { ...s, occupation: "idle" };
+        if (s.id === outcome.newLeaderId) return { ...s, occupation: "leader" };
+        return s;
+      });
+    }
+    const newChronicle: ChronicleEntry = {
+      id: nanoid(8),
+      tick: st.time.tick,
+      year: st.time.year, season: st.time.season, day: st.time.day,
+      category: "succession",
+      title: outcome.title,
+      body: outcome.body,
+      involvedIds: [ev.leaderId, ...(ev.challengerHeadId ? [ev.challengerHeadId] : [])],
+      involvedFamilyIds: [ev.leaderHouseId, ...(ev.challengerHouseId ? [ev.challengerHouseId] : [])],
+    };
+    if (outcome.tone === "good") toast.success(outcome.title, { description: outcome.body });
+    else if (outcome.tone === "bad") toast.error(outcome.title, { description: outcome.body });
+    else toast(outcome.title, { description: outcome.body });
+    set({
+      pendingCouncilVote: null,
+      resources: newResources,
+      families: newFamilies,
+      currentLeaderId: newLeaderId,
+      survivors: newSurvivors,
+      chronicle: [newChronicle, ...st.chronicle].slice(0, 600),
+    });
+  },
+
   tickReal: (deltaMs) => {
     const st = get();
     if (st.speed === 0 || st.screen !== "game") return;
     if (st.pendingArrival) return; // pause while the player decides
+    if (st.pendingCouncilVote) return; // pause during a council vote
     const tps = 8 * (st.speed === 1 ? 1 : st.speed === 2 ? 2 : 4);
     const n = Math.max(1, Math.floor((deltaMs / 1000) * tps));
 
@@ -1028,6 +1100,35 @@ export const useGame = create<GameState>((set, get) => ({
       }
     }
 
+    // Annual Council Vote — first day of spring, year > founding, not during founding,
+    // not while another modal is open, only if we just crossed into a new year.
+    let pendingCouncilVote: CouncilVoteEvent | null = st.pendingCouncilVote;
+    const crossedYear = eng.time.year > st.time.year;
+    if (
+      !pendingCouncilVote && !pendingArrival && !st.foundingPhase &&
+      crossedYear && eng.time.year > st.stats.foundedYear
+    ) {
+      const ev = generateCouncilVote({
+        survivors: eng.survivors,
+        families: eng.families,
+        buildings: eng.buildings,
+        animals: eng.animals,
+        ministers: eng.ministers,
+        resources: eng.resources,
+        currentLeaderId: eng.currentLeaderId,
+        founderId: eng.founderId,
+        currentYear: eng.time.year,
+      });
+      if (ev) {
+        pendingCouncilVote = ev;
+        toast(ev.contested ? "Council in uproar" : "The Council convenes", {
+          description: ev.contested
+            ? `House ${ev.challengerHouseName ?? "—"} challenges the porch.`
+            : `Year ${ev.year}. The houses gather.`,
+        });
+      }
+    }
+
     set({
       time: eng.time,
       nodes: eng.nodes,
@@ -1047,6 +1148,7 @@ export const useGame = create<GameState>((set, get) => ({
       ministerRequests: eng.ministerRequests,
       ministerReports: eng.ministerReports,
       pendingArrival,
+      pendingCouncilVote,
       lastChronicleId: lastId,
     });
 

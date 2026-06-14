@@ -17,6 +17,7 @@ import { LivestockPanel } from "./LivestockPanel";
 import { MinisterRequestsPanel } from "./MinisterRequestsPanel";
 import { AdministrationPanel } from "./AdministrationPanel";
 import { PoliticsPanel } from "./PoliticsPanel";
+import { CouncilVoteModal } from "./CouncilVoteModal";
 import { useGame } from "@/game/store";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -137,6 +138,7 @@ export function GameShell() {
 
       {overlay === "tree" && <DynastyOverlay />}
       <ArrivalEvent />
+      <CouncilVoteModal />
       <AssignBuilderModal />
       <FarmSetupModal />
       <Toaster
