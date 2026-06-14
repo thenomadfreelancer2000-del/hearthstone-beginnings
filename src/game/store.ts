@@ -306,7 +306,7 @@ export const useGame = create<GameState>((set, get) => ({
 
   setScreen: (s) => set({ screen: s }),
   setOverlay: (o) => set({ overlay: o }),
-  setSpeed: (s) => set({ speed: s }),
+  setSpeed: (s) => { _tickAccumMs = 0; _tickAccumSpeed = null; set({ speed: s }); },
   selectSurvivor: (id) => set({ selection: { kind: "survivor", id } }),
   selectBuilding: (id) => set({ selection: { kind: "building", id } }),
   selectTile: (x, y) => set({ selection: { kind: "tile", x, y } }),
