@@ -3,7 +3,7 @@ import { nanoid } from "nanoid";
 import { toast } from "sonner";
 import type {
   Animal, AnimalSpecies, ArrivalEvent, Building, BuildingKind, ChronicleEntry, Family,
-  GameSpeed, GameTime, ID, LivestockRequest,
+  GameSpeed, GameTime, ID, LivestockRequest, Minister, MinisterRequest, MinisterReport, MinisterRole,
   MarriageProposal, Relationship, ResourceKind, ResourceNode, SaveGame, SettlementStats,
   Survivor, Territory, Tile,
 } from "./types";
