@@ -987,6 +987,7 @@ export const useGame = create<GameState>((set, get) => ({
     });
   },
 
+  tickReal: (deltaMs) => {
     const st = get();
     if (st.speed === 0 || st.screen !== "game") return;
     if (st.pendingArrival) return; // pause while the player decides
