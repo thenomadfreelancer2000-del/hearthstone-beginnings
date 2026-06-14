@@ -18,7 +18,8 @@ export type LawDomain =
   | "trade"
   | "military"
   | "taxation"
-  | "emergency";
+  | "emergency"
+  | "exploration";
 
 export type FactionId =
   | "traditionalists"
@@ -557,6 +558,63 @@ export const LAW_CATALOG: LawDef[] = [
     traitLoyalty: { Principled: 4, Honest: 4, Paranoid: -4 },
     flavor: "The law does not bend for the wind.",
   },
+
+  // ── Exploration ────────────────────────────────────────────
+  {
+    id: "law-exploration-founder",
+    domain: "exploration",
+    title: "Founder Monopoly On Exploration",
+    blurb: "Only the founder may send a party beyond the fence.",
+    factionLikes: ["hawks", "traditionalists"],
+    factionHates: ["reformists", "merchants", "commons"],
+    traitMood:    { Loyal: 10, Paranoid: 6, Traditional: 4, Idealistic: -10, Independent: -8, Ambitious: -6 },
+    traitLoyalty: { Loyal: 8, Independent: -6, Ambitious: -4 },
+    flavor: "The road begins at the porch.",
+  },
+  {
+    id: "law-exploration-ministers",
+    domain: "exploration",
+    title: "Minister Recommendation",
+    blurb: "Ministers may propose expeditions; the founder still decides.",
+    factionLikes: ["traditionalists", "merchants"],
+    factionHates: [],
+    traitMood:    { Honest: 6, Principled: 5, Ambitious: 4, Aggressive: -3 },
+    traitLoyalty: { Honest: 4, Ambitious: 2 },
+    flavor: "Counsel walks before the wagon.",
+  },
+  {
+    id: "law-exploration-council",
+    domain: "exploration",
+    title: "Council Approved Exploration",
+    blurb: "No expedition leaves without the long room's blessing.",
+    factionLikes: ["reformists", "commons"],
+    factionHates: ["hawks"],
+    traitMood:    { Idealistic: 10, Honest: 6, Friendly: 4, Loyal: -6, Paranoid: -4 },
+    traitLoyalty: { Idealistic: 5, Honest: 4, Loyal: -5 },
+    flavor: "The long room sets the road.",
+  },
+  {
+    id: "law-exploration-family-sponsored",
+    domain: "exploration",
+    title: "Family Sponsored Expeditions",
+    blurb: "Powerful houses may bankroll their own parties to the wilds.",
+    factionLikes: ["merchants", "traditionalists"],
+    factionHates: ["commons"],
+    traitMood:    { Ambitious: 10, Greedy: 8, Independent: 5, Idealistic: -6, Generous: -4 },
+    traitLoyalty: { Ambitious: 5, Independent: 3 },
+    flavor: "Great houses ride for their own.",
+  },
+  {
+    id: "law-exploration-open",
+    domain: "exploration",
+    title: "Open Exploration Rights",
+    blurb: "Any qualified kin may organize a party. The fence is not a leash.",
+    factionLikes: ["reformists", "commons", "merchants"],
+    factionHates: ["hawks", "traditionalists"],
+    traitMood:    { Idealistic: 12, Independent: 10, Curious: 6, Brave: 5, Loyal: -8, Paranoid: -6, Traditional: -8 },
+    traitLoyalty: { Independent: 5, Idealistic: 4, Loyal: -6 },
+    flavor: "The road belongs to whoever walks it.",
+  },
 ];
 
 export const LAW_BY_ID: Record<string, LawDef> =
@@ -588,6 +646,7 @@ export const DOMAIN_LABEL: Record<LawDomain, string> = {
   military:        "Military & The Watch",
   taxation:        "Taxation & Contribution",
   emergency:       "Emergency Powers",
+  exploration:     "Exploration & Expeditions",
 };
 
 export const DOMAIN_ORDER: LawDomain[] = [
@@ -603,4 +662,5 @@ export const DOMAIN_ORDER: LawDomain[] = [
   "military",
   "taxation",
   "emergency",
+  "exploration",
 ];
