@@ -789,8 +789,9 @@ export const useGame = create<GameState>((set, get) => ({
   },
 
   resumeFromSave: () => {
-    const save = loadFromLocal();
-    if (!save) return false;
+    const rawSave = loadFromLocal();
+    if (!rawSave) return false;
+    const save = expandSavedWorld(rawSave);
     set({
       screen: "game",
       overlay: null,
