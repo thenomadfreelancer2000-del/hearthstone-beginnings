@@ -1,19 +1,17 @@
 import { useMemo, useState } from "react";
 import { useGame } from "@/game/store";
-import { LAW_CATALOG, DOMAIN_LABEL, type LawDef, type LawDomain } from "@/game/sim/laws";
+import { LAW_CATALOG, DOMAIN_LABEL, DOMAIN_ORDER, type LawDef, type LawDomain } from "@/game/sim/laws";
 import { FACTION_DEFS } from "@/game/sim/factions";
 
-const DOMAINS: LawDomain[] = ["property", "justice", "marriage", "hospitality", "labor", "faith"];
+const DOMAINS: LawDomain[] = DOMAIN_ORDER;
+const MIN_PICKS = 6;
 
 export function FoundingCharterModal() {
   const open = useGame((s) => s.pendingFoundingCharter);
   const enact = useGame((s) => s.enactFoundingCharter);
   const survivors = useGame((s) => s.survivors);
   const families = useGame((s) => s.families);
-  const [picked, setPicked] = useState<Record<LawDomain, string | null>>({
-    property: null, justice: null, marriage: null,
-    hospitality: null, labor: null, faith: null,
-  });
+  const [picked, setPicked] = useState<Partial<Record<LawDomain, string | null>>>({});
 
   if (!open) return null;
 
@@ -35,7 +33,8 @@ export function FoundingCharterModal() {
   };
 
   const pickedCount = Object.values(picked).filter(Boolean).length;
-  const canSign = pickedCount >= 3; // require at least 3 domains chosen
+  const canSign = pickedCount >= MIN_PICKS;
+
 
   const sign = () => {
     const ids = Object.values(picked).filter((x): x is string => !!x);
@@ -52,7 +51,7 @@ export function FoundingCharterModal() {
         <div className="ranch-handwritten text-xs text-dust-light italic mt-1">
           Ten houses sit in the long room. They will not depose the founder today —
           but the laws written now will shape every council that follows.
-          Pick one law in at least three domains.
+          Pick one law in at least {MIN_PICKS} domains.
         </div>
 
         <div className="grid sm:grid-cols-2 gap-3 mt-4">
@@ -113,8 +112,8 @@ export function FoundingCharterModal() {
 
         <div className="flex items-center justify-between mt-4 pt-3 border-t border-amber/20">
           <div className="ranch-handwritten text-xs text-dust-light italic">
-            {pickedCount} of 6 domains chosen
-            {canSign ? "." : " — pick at least three to sign."}
+            {pickedCount} of {DOMAINS.length} domains chosen
+            {canSign ? "." : ` — pick at least ${MIN_PICKS} to sign.`}
           </div>
           <button
             disabled={!canSign}
