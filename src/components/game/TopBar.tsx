@@ -88,12 +88,4 @@ export function TopBar({ onToggleDock, dockOpen }: Props) {
   );
 }
 
-function Res({ label, v }: { label: string; v: number }) {
-  return (
-    <span title={label} className="inline-flex items-baseline gap-0.5 whitespace-nowrap">
-      <span className="ranch-label text-[9px]">{label.slice(0, 3)}</span>
-      <span className="text-parchment">{Math.floor(v)}</span>
-    </span>
-  );
-}
 
