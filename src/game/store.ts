@@ -140,6 +140,11 @@ interface GameState {
   decideLivestockRequest: (id: ID, decision: "approve" | "reject" | "postpone") => void;
   assignRancher: (buildingId: ID, survivorId: ID | null) => void;
   setPenOwner: (buildingId: ID, familyId: ID | null) => void;
+  // Ministers
+  appointMinister: (role: MinisterRole, survivorId: ID) => void;
+  dismissMinister: (ministerId: ID) => void;
+  decideMinisterRequest: (id: ID, decision: "approve" | "partial" | "reject" | "postpone", transferIds?: ID[]) => void;
+  reassignWorker: (survivorId: ID, occupation: Survivor["occupation"]) => void;
 }
 
 const emptyResources = (): Record<ResourceKind, number> => ({
