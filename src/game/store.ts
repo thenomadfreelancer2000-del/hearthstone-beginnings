@@ -1342,6 +1342,148 @@ export const useGame = create<GameState>((set, get) => ({
       ),
     });
   },
+
+  appointMinister: (role, survivorId) => {
+    const st = get();
+    if (survivorId === st.founderId) {
+      toast.error("The Founder cannot also be a Minister.");
+      return;
+    }
+    const survivor = st.survivors.find(s => s.id === survivorId);
+    if (!survivor || survivor.health <= 0) return;
+    // Remove any existing minister in this role or holding this survivor.
+    const filtered = st.ministers.filter(m => m.role !== role && m.survivorId !== survivorId);
+    const minister = makeMinister(role, survivorId, st.time.tick);
+    set({
+      ministers: [...filtered, minister],
+      survivors: st.survivors.map(s =>
+        s.id === survivorId
+          ? {
+              ...s,
+              loyaltyToFounder: Math.min(100, s.loyaltyToFounder + 10),
+              mood: Math.min(100, s.mood + 6),
+              memories: [{
+                id: nanoid(6), tick: st.time.tick, year: st.time.year,
+                season: st.time.season, day: st.time.day,
+                text: `The Founder appointed me to lead.`,
+                emotion: "pride" as const, weight: 60,
+                aboutSurvivorId: st.currentLeaderId,
+                kind: "minister-appointed", floor: 25, decayRate: 0.2,
+              }, ...s.memories].slice(0, 64),
+            }
+          : s,
+      ),
+    });
+    toast.success(`${survivor.name} ${survivor.surname} appointed.`);
+  },
+
+  dismissMinister: (ministerId) => {
+    const st = get();
+    const m = st.ministers.find(x => x.id === ministerId);
+    if (!m) return;
+    const survivor = st.survivors.find(s => s.id === m.survivorId);
+    set({
+      ministers: st.ministers.filter(x => x.id !== ministerId),
+      ministerRequests: st.ministerRequests.filter(r => r.ministerId !== ministerId),
+      survivors: survivor
+        ? st.survivors.map(s =>
+            s.id === m.survivorId
+              ? {
+                  ...s,
+                  loyaltyToFounder: Math.max(-100, s.loyaltyToFounder - 15),
+                  mood: Math.max(-100, s.mood - 10),
+                  memories: [{
+                    id: nanoid(6), tick: st.time.tick, year: st.time.year,
+                    season: st.time.season, day: st.time.day,
+                    text: `The Founder dismissed me from my post.`,
+                    emotion: "anger" as const, weight: 70,
+                    aboutSurvivorId: st.currentLeaderId,
+                    kind: "minister-dismissed", floor: 35, decayRate: 0.25,
+                  }, ...s.memories].slice(0, 64),
+                }
+              : s,
+          )
+        : st.survivors,
+    });
+    if (survivor) toast(`${survivor.name} dismissed from post.`);
+  },
+
+  decideMinisterRequest: (id, decision, transferIds) => {
+    const st = get();
+    const POSTPONE = 14 * 24;
+    const req = st.ministerRequests.find(r => r.id === id);
+    if (!req) return;
+    const minister = st.ministers.find(m => m.id === req.ministerId);
+    if (!minister) {
+      set({ ministerRequests: st.ministerRequests.filter(r => r.id !== id) });
+      return;
+    }
+    if (decision === "postpone") {
+      set({
+        ministerRequests: st.ministerRequests.map(r =>
+          r.id === id ? { ...r, status: "postponed", resolveAfterTick: st.time.tick + POSTPONE } : r,
+        ),
+        ministers: st.ministers.map(m =>
+          m.id === minister.id ? { ...m, satisfaction: Math.max(0, m.satisfaction - 4) } : m,
+        ),
+      });
+      toast(`Postponed ${minister.role.replace("-", " ")} request`);
+      return;
+    }
+    // Work on copies that we mutate, then commit via set().
+    const survivors = st.survivors.map(s => ({ ...s, memories: [...s.memories] }));
+    const ministersCopy = st.ministers.map(m => ({ ...m }));
+    const reqCopy = { ...req };
+    const minCopy = ministersCopy.find(m => m.id === minister.id)!;
+
+    if (decision === "reject") {
+      applyRejection({
+        request: reqCopy, minister: minCopy, survivors,
+        founderId: st.founderId,
+        time: { tick: st.time.tick, year: st.time.year, season: st.time.season, day: st.time.day },
+      });
+      set({
+        ministers: ministersCopy,
+        ministerRequests: st.ministerRequests.filter(r => r.id !== id),
+        survivors,
+      });
+      toast.warning(`Refused ${minister.role.replace("-", " ")} request`);
+      return;
+    }
+    // approve / partial
+    const ids = (transferIds ?? []).slice(0, req.requestedWorkers);
+    const targetOcc = ROLE_OCCUPATION[req.role];
+    for (const sid of ids) {
+      const s = survivors.find(x => x.id === sid);
+      if (s) s.occupation = targetOcc;
+    }
+    applyApproval({
+      request: reqCopy, minister: minCopy, survivors,
+      founderId: st.founderId,
+      time: { tick: st.time.tick, year: st.time.year, season: st.time.season, day: st.time.day },
+      approvedCount: ids.length,
+      transferredIds: ids,
+    });
+    set({
+      ministers: ministersCopy,
+      ministerRequests: st.ministerRequests.filter(r => r.id !== id),
+      survivors,
+    });
+    if (ids.length >= req.requestedWorkers) {
+      toast.success(`Approved — ${ids.length} reassigned`);
+    } else {
+      toast.success(`Partially approved — ${ids.length} reassigned`);
+    }
+  },
+
+  reassignWorker: (survivorId, occupation) => {
+    const st = get();
+    set({
+      survivors: st.survivors.map(s =>
+        s.id === survivorId ? { ...s, occupation } : s,
+      ),
+    });
+  },
 }));
 
 function territoryAcres(radius: number): number {
