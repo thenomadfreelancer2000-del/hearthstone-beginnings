@@ -42,7 +42,10 @@ export function Inspector({ onHide }: { onHide?: () => void } = {}) {
   if (sel.kind === "none") {
     return (
       <aside className="parchment-panel w-full sm:w-[340px] p-4 ranch-handwritten text-sm text-dust border-l border-amber/20">
-        <p className="ranch-label mb-2">The Ranch</p>
+        <div className="flex justify-between items-center mb-2">
+          <p className="ranch-label">The Ranch</p>
+          {onHide && <button onClick={onHide} className="ranch-label text-[10px] hover:text-amber">Hide panel →</button>}
+        </div>
         <p>Click any soul, structure, or tile to read its story.</p>
         <div className="divider-amber my-4" />
         <button onClick={() => setOverlay("tree")} className="btn-ranch btn-ranch-ghost w-full">
