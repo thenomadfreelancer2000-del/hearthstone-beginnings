@@ -11,8 +11,8 @@ import {
 import { pickTraits } from "../data/traits";
 import { getPortrait, defaultPortraitFor } from "../data/portraits";
 
-export const MAP_W = 80;
-export const MAP_H = 64;
+export const MAP_W = 180;
+export const MAP_H = 140;
 
 interface GenOut {
   tiles: Tile[];
