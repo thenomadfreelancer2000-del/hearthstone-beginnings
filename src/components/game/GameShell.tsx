@@ -89,6 +89,14 @@ export function GameShell() {
             ⚜
           </button>
           <button
+            onClick={() => setFactionsOpen(true)}
+            className="btn-ranch btn-ranch-ghost text-base backdrop-blur-sm bg-coal/70 w-9 h-9 flex items-center justify-center p-0"
+            title="Political Factions"
+            aria-label="Political Factions"
+          >
+            ☰
+          </button>
+          <button
             onClick={() => setOverlay("tree")}
             className="btn-ranch btn-ranch-ghost text-base backdrop-blur-sm bg-coal/70 w-9 h-9 flex items-center justify-center p-0"
             title="Dynasty Tree"
@@ -100,6 +108,8 @@ export function GameShell() {
         {livestockOpen && <LivestockPanel onClose={() => setLivestockOpen(false)} />}
         {adminOpen && <AdministrationPanel onClose={() => setAdminOpen(false)} />}
         {politicsOpen && <PoliticsPanel onClose={() => setPoliticsOpen(false)} />}
+        {factionsOpen && <FactionsPanel onClose={() => setFactionsOpen(false)} />}
+        <FoundingCharterModal />
 
 
         {!isMobile && (
