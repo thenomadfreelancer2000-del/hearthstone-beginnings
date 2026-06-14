@@ -34,6 +34,7 @@ export function GameShell() {
   const [livestockOpen, setLivestockOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const [politicsOpen, setPoliticsOpen] = useState(false);
+  const [factionsOpen, setFactionsOpen] = useState(false);
   const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
 
   // Auto-open inspector when something is selected on mobile.
