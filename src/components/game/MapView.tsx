@@ -956,6 +956,7 @@ export function MapView() {
 
         <rect x={0} y={0} width={W} height={H} fill="url(#vignette)" pointerEvents="none" />
       </svg>
+      </div>
     </div>
   );
 }
