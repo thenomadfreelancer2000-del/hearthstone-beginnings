@@ -35,6 +35,11 @@ import {
 } from "./sim/councilVote";
 import { LAW_BY_ID, type EnactedLaw } from "./sim/laws";
 import { computeFactions, pressingLawDemands } from "./sim/factions";
+import {
+  forecastExpedition, resolveExpedition, applyFateToSurvivor,
+  TICKS_PER_DAY,
+  type Expedition, type ExpeditionPlanInput,
+} from "./sim/expeditions";
 
 export type Screen = "menu" | "founder" | "game";
 export type Overlay = "tree" | "family" | "chronicle" | null;
@@ -93,6 +98,8 @@ interface GameState {
   hasHeldFirstCouncil: boolean;
   // First-council "Founding Charter": founder picks laws when 10+ houses exist.
   pendingFoundingCharter: boolean;
+  // Expeditions sent beyond the fence.
+  expeditions: Expedition[];
   // Building awaiting builder assignment (transient)
   pendingBuildAssignment: ID | null;
   // Farm plot awaiting crop+farmer selection (transient)
@@ -166,6 +173,8 @@ interface GameState {
   // Laws
   enactFoundingCharter: (lawIds: string[]) => void;
   repealLaw: (lawId: string) => void;
+  // Expeditions
+  createExpedition: (input: ExpeditionPlanInput) => string | null;
 }
 
 const emptyResources = (): Record<ResourceKind, number> => ({
@@ -272,6 +281,7 @@ export const useGame = create<GameState>((set, get) => ({
   laws: [],
   hasHeldFirstCouncil: false,
   pendingFoundingCharter: false,
+  expeditions: [],
   pendingBuildAssignment: null,
   pendingFarmSetup: null,
   unlockedCrops: [...STARTER_CROP_IDS],
@@ -1427,6 +1437,12 @@ export const useGame = create<GameState>((set, get) => ({
       lastChronicleId: lastId,
     });
 
+    // Resolve any expeditions that returned during this advance.
+    const expeditionPatch = resolveDueExpeditions(
+      get(), eng.time.tick, eng.time.year, eng.time.season, eng.time.day,
+    );
+    if (expeditionPatch) set(expeditionPatch);
+
     // Toast newly-required player proposals.
     const prevPending = new Set(st.proposals.filter(p => p.requiresPlayer && p.status === "pending").map(p => p.id));
     for (const p of eng.proposals) {
@@ -1931,7 +1947,206 @@ export const useGame = create<GameState>((set, get) => ({
       ),
     });
   },
+
+  createExpedition: (input) => {
+    const st = get();
+    const leader = st.survivors.find(s => s.id === input.leaderId);
+    if (!leader || leader.health <= 0) { toast.error("Leader unavailable"); return null; }
+    const members = input.memberIds
+      .map(id => st.survivors.find(s => s.id === id))
+      .filter((s): s is Survivor => !!s && s.health > 0);
+    if (members.length === 0) { toast.error("No expedition members"); return null; }
+    // Verify no member is already on an expedition.
+    const busy = new Set<string>();
+    for (const ex of st.expeditions) {
+      if (ex.status === "active") for (const id of ex.memberIds) busy.add(id);
+    }
+    for (const m of members) {
+      if (busy.has(m.id)) { toast.error(`${m.name} is already on an expedition`); return null; }
+    }
+    const supplies = Math.max(0, Math.min(st.resources.food, input.supplies));
+    const durationDays = Math.max(2, Math.min(30, input.durationDays));
+    const forecast = forecastExpedition(members, leader, supplies, durationDays);
+    const returnTick = st.time.tick + durationDays * TICKS_PER_DAY;
+    const expedition: Expedition = {
+      id: nanoid(10),
+      leaderId: leader.id,
+      leaderName: `${leader.name} ${leader.surname}`,
+      leaderFamilyId: leader.familyId,
+      memberIds: members.map(m => m.id),
+      memberNames: members.map(m => `${m.name} ${m.surname}`),
+      supplies,
+      durationDays,
+      startTick: st.time.tick,
+      returnTick,
+      startedYear: st.time.year,
+      startedDay: st.time.day,
+      startedSeason: st.time.season,
+      forecast,
+      status: "active",
+    };
+    // Withdraw supplies from the stores; mark members as away (idle + offscreen).
+    set({
+      resources: { ...st.resources, food: st.resources.food - supplies },
+      expeditions: [...st.expeditions, expedition],
+      survivors: st.survivors.map(s =>
+        expedition.memberIds.includes(s.id)
+          ? { ...s, occupation: "idle" as const, state: "idle" as const, action: "Away on expedition.", x: -100, y: -100, targetX: null, targetY: null }
+          : s,
+      ),
+      chronicle: [{
+        id: nanoid(8),
+        tick: st.time.tick, year: st.time.year, season: st.time.season, day: st.time.day,
+        category: "event" as const,
+        title: `${expedition.leaderName} led an expedition out`,
+        body: `${members.length} set out for ${durationDays} days with ${supplies} food.`,
+        involvedIds: expedition.memberIds,
+      }, ...st.chronicle],
+    });
+    toast(`Expedition departed — ${members.length} bound for the wilds`, {
+      description: `Return in ~${durationDays} days.`,
+    });
+    return expedition.id;
+  },
 }));
+
+function resolveDueExpeditions(
+  st: GameState,
+  newTick: number,
+  newYear: number,
+  newSeason: string,
+  newDay: number,
+): Partial<GameState> | null {
+  const due = st.expeditions.filter(e => e.status === "active" && newTick >= e.returnTick);
+  if (due.length === 0) return null;
+  let survivors = st.survivors.map(s => ({ ...s }));
+  let families = st.families.map(f => ({ ...f, memberIds: [...f.memberIds], relations: { ...f.relations } }));
+  let animals = st.animals.map(a => ({ ...a }));
+  let buildings = st.buildings.map(b => ({ ...b, occupantIds: [...b.occupantIds] }));
+  let resources = { ...st.resources };
+  let unlockedCrops = [...st.unlockedCrops];
+  let chronicle = st.chronicle;
+  let reputationProfile = { ...st.reputationProfile };
+
+  const updatedExpeditions = st.expeditions.map(e => ({ ...e }));
+
+  for (const ex of due) {
+    const aliveMembers = ex.memberIds
+      .map(id => survivors.find(s => s.id === id))
+      .filter((s): s is Survivor => !!s && s.health > 0);
+    const out = resolveExpedition({
+      expedition: ex,
+      members: aliveMembers,
+      founderId: st.founderId,
+      currentYear: newYear,
+      currentTick: newTick,
+      currentSeason: newSeason,
+      currentDay: newDay,
+      unlockedCrops,
+    });
+    // Apply fates back to survivors.
+    survivors = survivors.map(s => {
+      const fate = out.fates.find(f => f.survivorId === s.id);
+      if (!fate) return s;
+      const next = applyFateToSurvivor(s, fate, newTick, newYear);
+      if (fate.fate !== "dead" && fate.fate !== "ok") {
+        next.action = "Resting after returning from expedition.";
+      } else if (fate.fate === "ok") {
+        // Return them roughly to the homestead.
+        const home = buildings.find(b => b.kind === "homestead");
+        if (home) { next.x = home.x + home.w / 2; next.y = home.y + home.h / 2; }
+        next.action = "Back at the ranch.";
+      }
+      return next;
+    });
+    // Prestige to leader's house for survivors and the family record.
+    if (out.reward.prestigeForLeaderHouse > 0) {
+      families = families.map(f =>
+        f.id === ex.leaderFamilyId
+          ? { ...f, prestige: Math.min(300, f.prestige + out.reward.prestigeForLeaderHouse) }
+          : f,
+      );
+    }
+    // Memories on other-house survivors for repeated risk patterns.
+    const deaths = out.fates.filter(f => f.fate === "dead");
+    if (deaths.length > 0) {
+      const lostFamilyIds = new Set(
+        deaths.map(d => st.survivors.find(s => s.id === d.survivorId)?.familyId).filter(Boolean) as string[],
+      );
+      survivors = survivors.map(s => {
+        if (!lostFamilyIds.has(s.familyId) || s.health <= 0) return s;
+        const memText = `The Founder keeps risking our family on the road.`;
+        return {
+          ...s,
+          loyaltyToFounder: Math.max(-100, s.loyaltyToFounder - 5),
+          mood: Math.max(-100, s.mood - 6),
+          memories: [{
+            id: nanoid(6), tick: newTick, year: newYear,
+            season: newSeason as any, day: newDay,
+            text: memText, emotion: "grief" as const, weight: 60,
+            aboutSurvivorId: st.currentLeaderId,
+            kind: "expedition-loss", floor: 20, decayRate: 0.4,
+          }, ...s.memories].slice(0, 64),
+        };
+      });
+    }
+    // Resources.
+    for (const [k, v] of Object.entries(out.reward.resources)) {
+      (resources as any)[k] = ((resources as any)[k] ?? 0) + (v ?? 0);
+    }
+    // Animals — spawn them under leader's family, unhoused.
+    for (const a of out.reward.animals) {
+      for (let i = 0; i < a.count; i++) {
+        animals = [...animals, makeAnimal(a.species, i % 2 === 0 ? "f" : "m", ex.leaderFamilyId, null, newTick, 60)];
+      }
+    }
+    // Crops.
+    for (const c of out.reward.newCrops) {
+      if (!unlockedCrops.includes(c)) unlockedCrops.push(c);
+    }
+    // Recruits — add as new family at homestead.
+    if (out.newSurvivors.length > 0) {
+      const home = buildings.find(b => b.kind === "homestead");
+      const spawn = home ? { x: home.x + home.w / 2, y: home.y + home.h / 2 } : { x: 90, y: 70 };
+      for (const ns of out.newSurvivors) {
+        ns.x = spawn.x; ns.y = spawn.y;
+      }
+      survivors = [...survivors, ...out.newSurvivors];
+      families = [...families, ...out.newFamilies];
+    }
+    // Reputation effect.
+    if (out.story.tone === "triumph") {
+      reputationProfile = { ...reputationProfile,
+        builder: Math.min(100, reputationProfile.builder + 4),
+        provider: Math.min(100, reputationProfile.provider + 4) };
+    } else if (out.story.tone === "loss") {
+      reputationProfile = { ...reputationProfile,
+        ruthless: Math.min(100, reputationProfile.ruthless + 3) };
+    }
+    // Chronicle.
+    chronicle = [out.chronicleEntry, ...chronicle];
+    toast(out.story.title, { description: out.story.highlights.slice(0, 3).join(" · ") || undefined });
+
+    // Mark expedition complete.
+    const idx = updatedExpeditions.findIndex(e => e.id === ex.id);
+    if (idx >= 0) {
+      updatedExpeditions[idx] = {
+        ...updatedExpeditions[idx],
+        status: "complete",
+        story: out.story,
+        fates: out.fates,
+        reward: out.reward,
+        resolvedYear: newYear,
+      };
+    }
+  }
+
+  return {
+    survivors, families, animals, buildings, resources,
+    unlockedCrops, chronicle, reputationProfile,
+    expeditions: updatedExpeditions,
+  };
+}
 
 function territoryAcres(radius: number): number {
   // Square bbox: side = 2*radius. 1 tile ≈ 0.1 acre (arbitrary but readable).
