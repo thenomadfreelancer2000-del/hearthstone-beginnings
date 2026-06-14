@@ -326,7 +326,7 @@ function StepIdentity(props: {
       </div>
 
       {/* Panel B — Name */}
-      <div className="parchment-panel corner-brackets p-3 sm:p-7">
+      <div className="parchment-panel corner-brackets p-2 sm:p-7 min-w-0">
         <p className="ranch-label text-[10px] mb-4">B — Name & Homestead</p>
 
         <div className="grid sm:grid-cols-2 gap-4 sm:gap-5">
