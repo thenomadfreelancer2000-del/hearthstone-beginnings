@@ -160,7 +160,7 @@ export function FounderCreation() {
 
 
       {/* Scrollable body */}
-      <main className="flex-1 overflow-y-auto scroll-amber px-3 sm:px-8 pb-36 sm:pb-32 min-w-0">
+      <main className="flex-1 overflow-y-auto overflow-x-hidden scroll-amber px-2 sm:px-8 pb-36 sm:pb-32 min-w-0">
         <div className="max-w-3xl mx-auto w-full min-w-0">
           <AnimatePresence mode="wait">
             <motion.div
