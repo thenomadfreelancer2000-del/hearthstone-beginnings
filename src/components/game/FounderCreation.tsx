@@ -160,8 +160,8 @@ export function FounderCreation() {
 
 
       {/* Scrollable body */}
-      <main className="flex-1 overflow-y-auto scroll-amber px-4 sm:px-8 pb-32">
-        <div className="max-w-3xl mx-auto w-full">
+      <main className="flex-1 overflow-y-auto scroll-amber px-3 sm:px-8 pb-36 sm:pb-32 min-w-0">
+        <div className="max-w-3xl mx-auto w-full min-w-0">
           <AnimatePresence mode="wait">
             <motion.div
               key={step}
@@ -169,24 +169,25 @@ export function FounderCreation() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-              className="pt-2 sm:pt-6"
+              className="pt-2 sm:pt-6 min-w-0"
             >
               <p
-                className="ranch-label mb-3 text-[9px] sm:text-[10px]"
+                className="ranch-label mb-2 text-[9px] sm:text-[10px]"
                 style={{ letterSpacing: "0.2em" }}
               >
                 {t.eyebrow}
               </p>
               <h1
-                className="ranch-display leading-[1.05] mb-2 sm:mb-4"
-                style={{ fontSize: "clamp(22px, 5.5vw, 60px)" }}
+                className="ranch-display leading-[1.05] mb-2 sm:mb-4 break-words"
+                style={{ fontSize: "clamp(18px, 5vw, 60px)" }}
               >
                 {t.title}
               </h1>
-              <p className="ranch-display italic text-dust-light text-sm sm:text-lg max-w-2xl leading-snug">
+              <p className="ranch-display italic text-dust-light text-xs sm:text-lg max-w-2xl leading-snug">
                 {t.sub}
               </p>
-              <div className="divider-amber my-5 sm:my-8" />
+              <div className="divider-amber my-4 sm:my-8" />
+
 
 
               {step === 1 && (
