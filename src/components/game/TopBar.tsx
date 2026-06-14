@@ -16,16 +16,11 @@ export function TopBar({ onToggleDock, dockOpen }: Props) {
   const time = useGame((s) => s.time);
   const speed = useGame((s) => s.speed);
   const setSpeed = useGame((s) => s.setSpeed);
-  const resources = useGame((s) => s.resources);
   const stats = useGame((s) => s.stats);
   const save = useGame((s) => s.save);
   const setScreen = useGame((s) => s.setScreen);
-  
-  const survivors = useGame((s) => s.survivors);
-  const currentLeaderId = useGame((s) => s.currentLeaderId);
   const isMobile = useIsMobile();
 
-  const leader = survivors.find(s => s.id === currentLeaderId);
 
   if (isMobile) {
     return (
