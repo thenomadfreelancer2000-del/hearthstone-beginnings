@@ -958,7 +958,7 @@ export function MapView() {
           </radialGradient>
         </defs>
 
-        <StaticTileLayers tiles={tiles} />
+        <StaticTileLayers tiles={tiles} width={W} height={H} />
 
         {/* Territory bounds (rectangle) */}
         {territory && territory.radius > 0 && (
