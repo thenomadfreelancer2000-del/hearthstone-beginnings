@@ -146,6 +146,10 @@ export interface Survivor {
   spouseId?: ID | null;
   marriedTick?: number | null;
   marriedYear?: number | null;
+  // ── Engagement (Dynastic Marriage update) ───────────────────
+  fianceId?: ID | null;
+  engagedTick?: number | null;
+  engagedYear?: number | null;
   generation: number;           // 0 = founder, 1 = first child, etc.
 
   // achievements & legacy
@@ -196,7 +200,38 @@ export interface Relationship {
   tag: RelationshipTag;
   interactions: number;
   marriedTick?: number | null;
+  engagedTick?: number | null;
 }
+
+// ── Marriage proposals (Dynastic Marriage update) ───────────────
+export type ProposalStatus = "pending" | "approved" | "rejected" | "postponed";
+
+export interface MarriageProposal {
+  id: ID;
+  aId: ID;
+  bId: ID;
+  aFamilyId: ID;
+  bFamilyId: ID;
+  createdTick: number;
+  createdYear: number;
+  attraction: number;        // 0..100
+  compatibility: number;     // 0..100
+  familyApproval: number;    // -100..100, blended from both house heads
+  prestigeA: number;
+  prestigeB: number;
+  /** Prestige delta the higher-prestige house can expect from the union. */
+  expectedPrestigeDelta: number;
+  /** Inter-family relation delta both houses will see. */
+  expectedRelationDelta: number;
+  status: ProposalStatus;
+  /** Founder House is involved — player must decide. */
+  requiresPlayer: boolean;
+  /** True when arranged by the player (founder side already approves). */
+  arranged?: boolean;
+  /** Re-checked next tick after this. */
+  resolveAfterTick?: number;
+}
+
 
 // ── Families ─────────────────────────────────────────────────────
 export interface Family {
@@ -334,7 +369,7 @@ export interface SettlementStats {
 
 // ── Save Game ────────────────────────────────────────────────────
 export interface SaveGame {
-  version: 2;
+  version: 2 | 3;
   ranchName: string;
   seed: number;
   time: GameTime;
@@ -356,6 +391,8 @@ export interface SaveGame {
   unlockedCrops?: string[];
   foundingPhase?: boolean;
   territory?: { cx: number; cy: number; radius: number } | null;
+  // Marriage proposals (v3+)
+  proposals?: MarriageProposal[];
   // Phase 3+ reservations (always present, empty for now):
   factions: unknown[];
   laws: unknown[];

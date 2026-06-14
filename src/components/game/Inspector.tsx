@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { useGame } from "@/game/store";
+import { ArrangeMarriageModal } from "./ArrangeMarriageModal";
 import { BUILDINGS } from "@/game/data/content";
 import { opinionLabel, opinionScore, opinionCategory } from "@/game/sim/ai";
 import {
@@ -25,6 +27,7 @@ function cap(s: string) { return s[0].toUpperCase() + s.slice(1); }
 export function Inspector() {
   const sel = useGame((s) => s.selection);
   const survivors = useGame((s) => s.survivors);
+  const [arrangeFor, setArrangeFor] = useState<string | null>(null);
   const buildings = useGame((s) => s.buildings);
   const relationships = useGame((s) => s.relationships);
   const families = useGame((s) => s.families);
@@ -109,6 +112,13 @@ export function Inspector() {
             </div>
           </>
         )}
+
+        {!isDead && !s.spouseId && !s.fianceId && s.familyId === survivors.find(x => x.id === founderId)?.familyId && (s.stage === "adult" || s.stage === "youth" || s.stage === "elder") && s.age >= 18 && (
+          <button onClick={() => setArrangeFor(s.id)} className="btn-ranch btn-ranch-ghost w-full text-[10px] mt-3">
+            Arrange a marriage…
+          </button>
+        )}
+        {arrangeFor && <ArrangeMarriageModal initiatorId={arrangeFor} onClose={() => setArrangeFor(null)} />}
 
         {/* Housing */}
         {!isDead && <SurvivorHousingPanel s={s} />}
