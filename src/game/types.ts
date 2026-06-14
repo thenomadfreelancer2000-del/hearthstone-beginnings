@@ -460,8 +460,10 @@ export interface SettlementStats {
 }
 
 // ── Save Game ────────────────────────────────────────────────────
+import type { Expedition } from "./sim/expeditions";
+
 export interface SaveGame {
-  version: 2 | 3 | 4 | 5;
+  version: 2 | 3 | 4 | 5 | 6;
   ranchName: string;
   seed: number;
   time: GameTime;
@@ -492,6 +494,9 @@ export interface SaveGame {
   ministers?: Minister[];
   ministerRequests?: MinisterRequest[];
   ministerReports?: MinisterReport[];
+  // Expeditions (v6+) — full persistence including active trips,
+  // per-member fates, rewards, and stories.
+  expeditions?: Expedition[];
   // Phase 3+ reservations (always present, empty for now):
   factions: unknown[];
   laws: unknown[];
