@@ -20,6 +20,7 @@ import { applyAgingEffects, applyLeadershipTransition, lifeStageLabel } from "./
 import { BUILDINGS } from "../data/content";
 import { enqueueProposalsForSeason, resolveProposalsDaily } from "./marriage";
 import { dailyLivestockTick } from "./livestock";
+import { dailyMinistersTick } from "./ministers";
 
 export interface Engine {
   time: GameTime;
