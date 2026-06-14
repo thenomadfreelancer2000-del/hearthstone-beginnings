@@ -597,6 +597,7 @@ export function MapView() {
   const nodes = useGame((s) => s.nodes);
   const buildings = useGame((s) => s.buildings);
   const survivors = useGame((s) => s.survivors);
+  const animals = useGame((s) => s.animals);
   const selection = useGame((s) => s.selection);
   const selectSurvivor = useGame((s) => s.selectSurvivor);
   const selectBuilding = useGame((s) => s.selectBuilding);
