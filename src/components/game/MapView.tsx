@@ -636,6 +636,10 @@ function SurvivorArtCore({ founder, dead, female, elderTint, pregnant }: { found
         <path d="M-2,-1.4 Q-1,-0.6 0,-1 Q1,-0.6 2,-1.4" stroke={dressDark} strokeWidth={0.5} fill="none" opacity={0.7} />
         {/* waist sash / belt */}
         <rect x={-2.6} y={0.4} width={5.2} height={0.7} fill={dressDark} opacity={0.9} />
+        {/* pregnancy belly */}
+        {pregnant && (
+          <ellipse cx={0} cy={0.6} rx={3.2} ry={2.2} fill={shirt} stroke={PAL.ink} strokeWidth={0.4} />
+        )}
         {/* apron hint */}
         <polygon points="-1.5,-1.8 1.5,-1.8 2,5.3 -2,5.3" fill="#e8d8b8" opacity={0.3} />
         {/* neck */}
