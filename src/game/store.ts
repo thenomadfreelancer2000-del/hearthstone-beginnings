@@ -2178,6 +2178,34 @@ function territoryAcres(radius: number): number {
   return Math.max(1, Math.round(side * side * 0.1));
 }
 
+export function territoryDims(t: Territory): { halfW: number; halfH: number } {
+  const halfW = t.halfW ?? t.radius;
+  const halfH = t.halfH ?? t.radius;
+  return { halfW, halfH };
+}
+
+/** Expand the rectangle by ~10% area along the shorter axis. */
+function expandTerritoryRectangle(t: Territory, mapW: number, mapH: number): Territory {
+  const { halfW, halfH } = territoryDims(t);
+  const factor = 1.1;
+  let nW = halfW;
+  let nH = halfH;
+  if (halfW <= halfH) nW = halfW * factor;
+  else nH = halfH * factor;
+  // Clamp so the rectangle stays inside the map with a 1-tile margin.
+  const maxW = Math.max(1, Math.min(t.cx, mapW - 1 - t.cx));
+  const maxH = Math.max(1, Math.min(t.cy, mapH - 1 - t.cy));
+  nW = Math.min(nW, maxW);
+  nH = Math.min(nH, maxH);
+  return {
+    cx: t.cx,
+    cy: t.cy,
+    halfW: nW,
+    halfH: nH,
+    radius: Math.max(nW, nH),
+  };
+}
+
 
 function maybeCompleteFounding(
   get: () => GameState,
