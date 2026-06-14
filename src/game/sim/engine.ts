@@ -269,6 +269,17 @@ function dailyTick(eng: Engine, opts?: { onArrival?: (s: Survivor) => Survivor |
     founderId: eng.founderId,
   }, rng);
 
+  // Managers fill their own ranks from the idle/general workforce, no Founder
+  // approval required.
+  autoAssignWorkers({
+    ministers: eng.ministers,
+    survivors: eng.survivors,
+    buildings: eng.buildings,
+    animals: eng.animals,
+    founderId: eng.founderId,
+  });
+
+
   // Memories decay daily — major events have a floor that keeps them alive.
   for (const s of eng.survivors) {
     if (s.health <= 0) continue;
