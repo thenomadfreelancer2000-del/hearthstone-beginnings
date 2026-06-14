@@ -793,7 +793,7 @@ export function MapView() {
         style={{
           transform: `scale(${zoom})`,
           transformOrigin: "0 0",
-          transition: "transform 180ms ease-out",
+          transition: smoothZoom ? "transform 180ms ease-out" : "none",
           backgroundColor: TILE_PAL.grass.base,
           cursor: (buildPlacement || borderMode) ? "crosshair" : "default",
         }}
