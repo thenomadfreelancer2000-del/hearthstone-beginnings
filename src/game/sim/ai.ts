@@ -215,6 +215,9 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
   // Clear empty carrying refs so the haul block can't fire on a zero-amount lump.
   if (s.carrying && s.carrying.amount <= 0) s.carrying = null;
 
+  // Children just follow parents / wander, no labor
+
+
   if (s.stage === "child" || s.stage === "teen") {
     if (s.state === "moving") { moveToward(s, dt); return; }
     if (s.needs.water < 28) {
