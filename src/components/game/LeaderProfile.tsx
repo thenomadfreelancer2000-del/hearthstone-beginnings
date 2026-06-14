@@ -60,7 +60,7 @@ export function LeaderProfile({ dockOpen = false }: LeaderProfileProps) {
         <button
           type="button"
           onClick={resetZoom}
-          className="h-7 px-1.5 grid place-items-center border border-amber/50 bg-coal/80 backdrop-blur-sm text-amber ranch-data text-[10px] hover:bg-amber/20 min-w-[36px]"
+          className="h-5 px-1 grid place-items-center border border-amber/50 bg-coal/80 backdrop-blur-sm text-amber ranch-data text-[9px] leading-none hover:bg-amber/20 min-w-[28px]"
           title="Reset zoom"
         >
           {Math.round(zoom * 100)}%
