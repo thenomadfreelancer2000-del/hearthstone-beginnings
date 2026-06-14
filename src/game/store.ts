@@ -303,11 +303,12 @@ export const useGame = create<GameState>((set, get) => ({
     if (st.territory && st.territory.radius > 0) {
       const tx = x + def.size.w / 2;
       const ty = y + def.size.h / 2;
-      if (Math.hypot(tx - st.territory.cx, ty - st.territory.cy) > st.territory.radius) {
+      if (Math.max(Math.abs(tx - st.territory.cx), Math.abs(ty - st.territory.cy)) > st.territory.radius) {
         toast.error("Outside ranch territory");
         return false;
       }
     }
+
     for (const [r, amt] of Object.entries(def.cost)) {
       if ((st.resources as any)[r] < (amt ?? 0)) return false;
     }
