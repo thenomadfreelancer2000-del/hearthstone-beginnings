@@ -491,85 +491,9 @@ function succeed(eng: Engine) {
   );
 }
 
-function processMarriages(eng: Engine, rng: () => number) {
-  // Scan for eligible pairs
-  const eligible = eng.survivors.filter(s =>
-    s.health > 0 && !s.spouseId && (s.stage === "adult" || s.stage === "youth") && s.age >= 18
-  );
-  // Build candidate list of pairs with strong attraction
-  const seen = new Set<string>();
-  for (const a of eligible) {
-    for (const b of eligible) {
-      if (a.id >= b.id) continue;
-      if (a.gender === b.gender) continue;
-      // skip kin
-      const sharedParent = a.parentIds.some(p => b.parentIds.includes(p));
-      if (a.parentIds.includes(b.id) || b.parentIds.includes(a.id) || sharedParent) continue;
-      const r = findRelationship(eng.relationships, a.id, b.id);
-      if (!r) continue;
-      if (r.attraction < 55 || r.affection < 35) continue;
-      const key = a.id + "::" + b.id;
-      if (seen.has(key)) continue;
-      seen.add(key);
-      if (chance(rng, 0.55)) {
-        marry(eng, a, b);
-      }
-    }
-  }
-}
+// processMarriages now lives in ./marriage and is queued, not auto-executed.
+// Daily resolution + seasonal enqueue are imported here.
 
-function marry(eng: Engine, a: Survivor, b: Survivor) {
-  a.spouseId = b.id;
-  b.spouseId = a.id;
-  a.marriedTick = eng.time.tick;
-  b.marriedTick = eng.time.tick;
-  a.marriedYear = eng.time.year;
-  b.marriedYear = eng.time.year;
-
-  // Higher-prestige family is the leading line; the other spouse adopts that surname/family.
-  const fa = familyOf(eng, a.id)!;
-  const fb = familyOf(eng, b.id)!;
-  let lead: Family, follow: Family, leadSpouse: Survivor, followSpouse: Survivor;
-  if (fa.prestige >= fb.prestige) {
-    lead = fa; follow = fb; leadSpouse = a; followSpouse = b;
-  } else {
-    lead = fb; follow = fa; leadSpouse = b; followSpouse = a;
-  }
-  // Move follower into lead family
-  followSpouse.surname = lead.name;
-  follow.memberIds = follow.memberIds.filter(id => id !== followSpouse.id);
-  addToFamily(lead, followSpouse);
-  if (follow.memberIds.length === 0) {
-    follow.extinctYear = eng.time.year;
-  }
-  lead.prestige = Math.min(200, lead.prestige + 5 + Math.floor(follow.prestige * 0.1));
-  // Inter-family bond
-  lead.relations[follow.id] = Math.min(100, (lead.relations[follow.id] ?? 0) + 25);
-  follow.relations[lead.id] = Math.min(100, (follow.relations[lead.id] ?? 0) + 25);
-
-  markAsSpouses(eng.relationships, a.id, b.id, eng.time.tick);
-
-  // Couples prefer to share a home. If one already has a home with room, the
-  // other moves in; otherwise auto-assign the best available together.
-  assignSpousesToShared(eng, a, b);
-
-
-  a.mood = Math.min(100, a.mood + 30);
-  b.mood = Math.min(100, b.mood + 30);
-  a.needs.belonging = 100;
-  b.needs.belonging = 100;
-  emitMem(eng, a, `Married ${b.name} ${b.surname}.`, "love", 95, b.id,
-    { kind: "married", floor: 40, decayRate: 0.5 });
-  emitMem(eng, b, `Married ${a.name} ${a.surname}.`, "love", 95, a.id,
-    { kind: "married", floor: 40, decayRate: 0.5 });
-
-  addChronicle(
-    eng, "marriage",
-    `${leadSpouse.name} of ${lead.name} weds ${followSpouse.name}`,
-    `Under the year of ${eng.time.year}, ${a.name} and ${b.name} swore to share roof, ration, and grave. The ${lead.name} line gains a new hand.`,
-    [a.id, b.id], [lead.id, follow.id],
-  );
-}
 
 function processBirths(eng: Engine, rng: () => number) {
   // Iterate copy to allow push during loop
