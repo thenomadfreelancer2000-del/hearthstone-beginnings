@@ -713,7 +713,13 @@ export function MapView() {
           if (borderMode) { exitBorderMode(); return; }
           if (buildPlacement) cancelBuild();
         }}
-        style={{ cursor: (buildPlacement || borderMode) ? "crosshair" : "default" }}
+        style={{
+          transform: `scale(${zoom})`,
+          transformOrigin: "0 0",
+          transition: "transform 180ms ease-out",
+          backgroundColor: TILE_PAL.grass.base,
+          cursor: (buildPlacement || borderMode) ? "crosshair" : "default",
+        }}
       >
         <defs>
           <pattern id="water-pat" x="0" y="0" width="10" height="10" patternUnits="userSpaceOnUse">
