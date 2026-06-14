@@ -11,6 +11,7 @@ import { AssignBuilderModal } from "./AssignBuilderModal";
 import { FarmSetupModal } from "./FarmSetupModal";
 import { FoundingPanel } from "./FoundingPanel";
 import { LeaderProfile } from "./LeaderProfile";
+import { MarriageProposalsPanel } from "./MarriageProposalsPanel";
 import { useGame } from "@/game/store";
 import { useIsMobile } from "@/hooks/use-mobile";
 
