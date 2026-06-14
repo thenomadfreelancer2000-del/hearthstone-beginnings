@@ -1183,6 +1183,120 @@ export const useGame = create<GameState>((set, get) => ({
     if (a && b) toast.success(`Arranged: ${a.name} & ${b.name}`, { description: "The other House will respond." });
     return true;
   },
+
+  decideLivestockRequest: (id, decision) => {
+    const st = get();
+    const POSTPONE = 30 * 24;
+    const req = st.livestockRequests.find(r => r.id === id);
+    if (!req) return;
+    const fam = st.families.find(f => f.id === req.familyId);
+    const requester = st.survivors.find(s => s.id === req.requesterId);
+    if (decision === "postpone") {
+      set({
+        livestockRequests: st.livestockRequests.map(r =>
+          r.id === id ? { ...r, status: "postponed", resolveAfterTick: st.time.tick + POSTPONE } : r,
+        ),
+      });
+      toast(`Postponed ${SPECIES_LABEL[req.species]} request from House ${fam?.name ?? "—"}`);
+      return;
+    }
+    if (decision === "reject") {
+      // remove + memory + small loyalty hit on requester
+      const survivors = st.survivors.map(s => {
+        if (s.id !== requester?.id) return s;
+        return {
+          ...s,
+          loyaltyToFounder: Math.max(-100, s.loyaltyToFounder - 6),
+          mood: Math.max(-100, s.mood - 5),
+          memories: [
+            {
+              id: nanoid(6), tick: st.time.tick, year: st.time.year, season: st.time.season, day: st.time.day,
+              text: `The Founder refused my request to raise ${SPECIES_LABEL[req.species].toLowerCase()}.`,
+              emotion: "anger" as const, weight: 40, aboutSurvivorId: st.currentLeaderId,
+              kind: "livestock-rejected", floor: 10, decayRate: 0.5,
+            },
+            ...s.memories,
+          ].slice(0, 64),
+        };
+      });
+      set({
+        livestockRequests: st.livestockRequests.filter(r => r.id !== id),
+        survivors,
+      });
+      toast.warning(`Refused House ${fam?.name ?? "—"}'s request`);
+      return;
+    }
+    // approve
+    let buildings = st.buildings;
+    let animals = st.animals;
+    if (req.kind === "start-raising") {
+      // Gift a starter pair into any existing pen of theirs, or unhoused.
+      const pen = buildings.find(b =>
+        b.builtProgress >= 1 && b.kind === SPECIES_BUILDING[req.species] &&
+        (b.livestockOwnerFamilyId === fam?.id || b.livestockOwnerFamilyId == null),
+      );
+      const penId = pen?.id ?? null;
+      const newAnimals: Animal[] = [
+        makeAnimal(req.species, "f", req.familyId, penId, st.time.tick, 40),
+        makeAnimal(req.species, "m", req.familyId, penId, st.time.tick, 40),
+      ];
+      animals = [...animals, ...newAnimals];
+      if (pen && !pen.livestockOwnerFamilyId) {
+        buildings = buildings.map(b => b.id === pen.id ? { ...b, livestockOwnerFamilyId: req.familyId } : b);
+      }
+    }
+    // Founder opinion + prestige bump for the family
+    const survivors = st.survivors.map(s => {
+      const inFam = s.familyId === req.familyId && s.health > 0;
+      if (!inFam) return s;
+      return {
+        ...s,
+        loyaltyToFounder: Math.min(100, s.loyaltyToFounder + (s.id === requester?.id ? 10 : 4)),
+        mood: Math.min(100, s.mood + 4),
+        memories: s.id === requester?.id ? [
+          {
+            id: nanoid(6), tick: st.time.tick, year: st.time.year, season: st.time.season, day: st.time.day,
+            text: `The Founder granted my wish to raise ${SPECIES_LABEL[req.species].toLowerCase()}.`,
+            emotion: "trust" as const, weight: 60, aboutSurvivorId: st.currentLeaderId,
+            kind: "livestock-approved", floor: 20, decayRate: 0.3,
+          },
+          ...s.memories,
+        ].slice(0, 64) : s.memories,
+      };
+    });
+    const families = st.families.map(f =>
+      f.id === req.familyId ? { ...f, prestige: Math.min(200, f.prestige + 3) } : f,
+    );
+    set({
+      livestockRequests: st.livestockRequests.filter(r => r.id !== id),
+      buildings,
+      animals,
+      survivors,
+      families,
+    });
+    toast.success(`Granted House ${fam?.name ?? "—"}'s ${SPECIES_LABEL[req.species]} request`);
+  },
+
+  assignRancher: (buildingId, survivorId) => {
+    const st = get();
+    set({
+      buildings: st.buildings.map(b =>
+        b.id === buildingId ? { ...b, assignedWorkerId: survivorId } : b,
+      ),
+      survivors: survivorId
+        ? st.survivors.map(s => s.id === survivorId ? { ...s, occupation: "rancher" as const } : s)
+        : st.survivors,
+    });
+  },
+
+  setPenOwner: (buildingId, familyId) => {
+    const st = get();
+    set({
+      buildings: st.buildings.map(b =>
+        b.id === buildingId ? { ...b, livestockOwnerFamilyId: familyId } : b,
+      ),
+    });
+  },
 }));
 
 function territoryAcres(radius: number): number {
