@@ -155,6 +155,7 @@ export const useGame = create<GameState>((set, get) => ({
   preferredHeirId: null,
   chronicle: [],
   stats: emptyStats(1, ""),
+  proposals: [],
   selection: { kind: "none" },
   buildPlacement: null,
   pendingArrival: null,
