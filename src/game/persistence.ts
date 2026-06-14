@@ -17,7 +17,7 @@ export function loadFromLocal(): SaveGame | null {
     const raw = localStorage.getItem(KEY);
     if (!raw) return null;
     const data = JSON.parse(raw) as SaveGame;
-    if (data.version !== 2 && data.version !== 3 && data.version !== 4) return null;
+    if (data.version !== 2 && data.version !== 3 && data.version !== 4 && data.version !== 5) return null;
     if (data.version === 2) {
       (data as SaveGame).proposals = [];
       (data as SaveGame).version = 3;
@@ -31,6 +31,13 @@ export function loadFromLocal(): SaveGame | null {
       if (r.milk == null) r.milk = 0;
       if (r.wool == null) r.wool = 0;
       (data as SaveGame).version = 4;
+    }
+    if (data.version === 4) {
+      // Migrate v4 → v5: add empty ministers/admin arrays.
+      (data as SaveGame).ministers = [];
+      (data as SaveGame).ministerRequests = [];
+      (data as SaveGame).ministerReports = [];
+      (data as SaveGame).version = 5;
     }
     return data;
   } catch {
