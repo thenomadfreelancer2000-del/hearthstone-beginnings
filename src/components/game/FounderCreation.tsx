@@ -279,7 +279,7 @@ function StepIdentity(props: {
     <section className="grid md:grid-cols-2 gap-4 md:gap-5 items-start">
 
       {/* Panel A — Face */}
-      <div className="parchment-panel corner-brackets p-5 sm:p-7">
+      <div className="parchment-panel corner-brackets p-3 sm:p-7">
         <div className="flex items-baseline justify-between mb-4">
           <p className="ranch-label text-[10px]">A — Choose a Face</p>
           <span className="ranch-data text-[10px] text-dust-light">{availablePortraits.length} options</span>
@@ -326,7 +326,7 @@ function StepIdentity(props: {
       </div>
 
       {/* Panel B — Name */}
-      <div className="parchment-panel corner-brackets p-5 sm:p-7">
+      <div className="parchment-panel corner-brackets p-3 sm:p-7">
         <p className="ranch-label text-[10px] mb-4">B — Name & Homestead</p>
 
         <div className="grid sm:grid-cols-2 gap-4 sm:gap-5">
