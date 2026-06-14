@@ -532,6 +532,32 @@ export function resolveCouncilVote(
         out.memoryEmotion = "anger";
         out.memoryWeight = 55;
         out.tone = "bad";
+      }
+      return out;
+    }
+    case "stepdown": {
+      if (!ev.challengerHeadId || !chId) { out.ok = false; out.title = "No clear successor"; out.body = ""; return out; }
+      out.title = `${ev.leaderName} steps down`;
+      out.body = `The porch is given to ${ev.challengerName} of House ${ev.challengerHouseName}. The settlement watches in silence.`;
+      out.newLeaderId = ev.challengerHeadId;
+      D(out.prestigeDeltas, chId, 18);
+      D(out.prestigeDeltas, ev.leaderHouseId, 6);
+      out.relationsDelta = { a: ev.leaderHouseId, b: chId, delta: 15 };
+      out.loyaltyDeltas.challengerHouse = 30;
+      out.loyaltyDeltas.leaderHouse = -10;
+      out.moodDeltas.all = -3;
+      out.reputationDeltas.honest = 5;
+      out.memoryText = `The founder's line stepped aside. The porch belongs to ${ev.challengerHouseName} now.`;
+      out.memoryEmotion = "grief";
+      out.memoryWeight = 70;
+      out.tone = "neutral";
+      return out;
+    }
+    case "abdicate-peace": {
+      out.title = "The council disperses";
+      out.body = "No grand promises. The year turns and the houses wait.";
+      return out;
+    }
   }
   return out;
 }
