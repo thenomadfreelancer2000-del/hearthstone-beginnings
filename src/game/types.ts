@@ -461,7 +461,7 @@ export interface SettlementStats {
 
 // ── Save Game ────────────────────────────────────────────────────
 export interface SaveGame {
-  version: 2 | 3 | 4;
+  version: 2 | 3 | 4 | 5;
   ranchName: string;
   seed: number;
   time: GameTime;
@@ -488,6 +488,10 @@ export interface SaveGame {
   // Livestock (v4+)
   animals?: Animal[];
   livestockRequests?: LivestockRequest[];
+  // Ministers (v5+)
+  ministers?: Minister[];
+  ministerRequests?: MinisterRequest[];
+  ministerReports?: MinisterReport[];
   // Phase 3+ reservations (always present, empty for now):
   factions: unknown[];
   laws: unknown[];
