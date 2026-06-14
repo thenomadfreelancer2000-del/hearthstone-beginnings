@@ -160,7 +160,7 @@ export function FounderCreation() {
 
 
       {/* Scrollable body */}
-      <main className="flex-1 overflow-y-auto scroll-amber px-3 sm:px-8 pb-36 sm:pb-32 min-w-0">
+      <main className="flex-1 overflow-y-auto overflow-x-hidden scroll-amber px-2 sm:px-8 pb-36 sm:pb-32 min-w-0">
         <div className="max-w-3xl mx-auto w-full min-w-0">
           <AnimatePresence mode="wait">
             <motion.div
@@ -279,7 +279,7 @@ function StepIdentity(props: {
     <section className="grid md:grid-cols-2 gap-4 md:gap-5 items-start">
 
       {/* Panel A — Face */}
-      <div className="parchment-panel corner-brackets p-3 sm:p-7">
+      <div className="parchment-panel corner-brackets p-2 sm:p-7 min-w-0">
         <div className="flex items-baseline justify-between mb-4">
           <p className="ranch-label text-[10px]">A — Choose a Face</p>
           <span className="ranch-data text-[10px] text-dust-light">{availablePortraits.length} options</span>
@@ -326,7 +326,7 @@ function StepIdentity(props: {
       </div>
 
       {/* Panel B — Name */}
-      <div className="parchment-panel corner-brackets p-3 sm:p-7">
+      <div className="parchment-panel corner-brackets p-2 sm:p-7 min-w-0">
         <p className="ranch-label text-[10px] mb-4">B — Name & Homestead</p>
 
         <div className="grid sm:grid-cols-2 gap-4 sm:gap-5">
@@ -410,7 +410,7 @@ function StepBackground({ background, setBackground }: { background: Background;
         ))}
       </div>
       {current && (
-        <div className="parchment-panel corner-brackets p-5 sm:p-6">
+        <div className="parchment-panel corner-brackets p-3 sm:p-6">
           <p className="ranch-label mb-2">{current.name}</p>
           <p className="ranch-handwritten text-base text-parchment-dark leading-relaxed">{current.blurb}</p>
         </div>
@@ -444,7 +444,7 @@ function StepTraits({ traits, toggle }: { traits: Trait[]; toggle: (t: Trait) =>
         })}
       </div>
       {traits.length > 0 && (
-        <div className="parchment-panel corner-brackets p-5 sm:p-6 space-y-2">
+        <div className="parchment-panel corner-brackets p-3 sm:p-6 space-y-2">
           {traits.map((t) => (
             <p key={t} className="ranch-handwritten text-sm sm:text-base">
               <span className="text-amber">{t}.</span>{" "}
@@ -489,7 +489,7 @@ function StepValues({
         })}
       </div>
 
-      <div className="parchment-panel-warm corner-brackets p-5 sm:p-6 mt-4">
+      <div className="parchment-panel-warm corner-brackets p-3 sm:p-6 mt-4">
         <p className="ranch-label mb-3">The Founder</p>
         <p className="ranch-display text-2xl sm:text-3xl mb-1">
           {founder.firstName} {founder.surname}
@@ -567,7 +567,7 @@ function StepCompanions({
         ))}
       </div>
       {current && (
-        <div className="parchment-panel corner-brackets p-5 sm:p-6 space-y-2">
+        <div className="parchment-panel corner-brackets p-3 sm:p-6 space-y-2">
           <p className="ranch-label">{current.name}</p>
           <p className="ranch-handwritten text-base text-parchment-dark leading-relaxed">
             {current.blurb}
