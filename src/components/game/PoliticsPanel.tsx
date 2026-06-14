@@ -15,6 +15,7 @@ export function PoliticsPanel({ onClose }: { onClose: () => void }) {
   const currentLeaderId = useGame((s) => s.currentLeaderId);
   const founderId = useGame((s) => s.founderId);
   const time = useGame((s) => s.time);
+  const reactionLog = useGame((s) => s.councilReactionLog);
 
   const snap = useMemo(
     () =>
