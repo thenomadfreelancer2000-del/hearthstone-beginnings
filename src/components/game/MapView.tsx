@@ -540,31 +540,57 @@ function SurvivorArt({ founder, dead, female }: { founder: boolean; dead: boolea
   const hairColor = founder ? "#4a2818" : "#3a2410";
 
   if (female) {
-    // Dress silhouette + long hair, no hat (founder gets gold hairband)
+    // Distinctly feminine silhouette: narrower shoulders, wider hip flare,
+    // visible bust line, long flowing hair past the shoulders.
+    const dressDark = founder ? "#7a3550" : "#4d3670";
     return (
       <g opacity={dead ? 0.4 : 1}>
-        <ellipse cx={0} cy={9} rx={5} ry={1.6} fill={PAL.shadow} />
-        {/* legs (peek under dress) */}
-        <rect x={-2.2} y={5} width={1.8} height={3} fill={pants} stroke={PAL.ink} strokeWidth={0.4} />
-        <rect x={0.4} y={5} width={1.8} height={3} fill={pants} stroke={PAL.ink} strokeWidth={0.4} />
-        {/* dress — triangular flare */}
-        <polygon points={`-3,-3 3,-3 4.5,5.5 -4.5,5.5`} fill={shirt} stroke={PAL.ink} strokeWidth={0.5} />
-        {/* waist sash */}
-        <rect x={-3} y={0.5} width={6} height={1} fill={PAL.ink} opacity={0.5} />
+        <ellipse cx={0} cy={9} rx={5.2} ry={1.7} fill={PAL.shadow} />
+        {/* legs peeking under skirt */}
+        <rect x={-2} y={5} width={1.6} height={3.2} fill={pants} stroke={PAL.ink} strokeWidth={0.4} />
+        <rect x={0.4} y={5} width={1.6} height={3.2} fill={pants} stroke={PAL.ink} strokeWidth={0.4} />
+        {/* long hair flowing past shoulders (back layer) */}
+        <path
+          d="M-3.6,-5.5 Q-5.4,-1 -4.6,4 Q-2.8,5.5 0,5.2 Q2.8,5.5 4.6,4 Q5.4,-1 3.6,-5.5 Z"
+          fill={hairColor} stroke={PAL.ink} strokeWidth={0.4}
+        />
+        {/* skirt — A-line flare from cinched waist */}
+        <path
+          d="M-2.4,0.5 L2.4,0.5 L5,5.6 Q0,6.4 -5,5.6 Z"
+          fill={shirt} stroke={PAL.ink} strokeWidth={0.5}
+        />
+        {/* fitted bodice — narrower shoulders + bust curve */}
+        <path
+          d="M-2.6,-3.2 Q-3.2,-1.2 -2.6,0.6 L2.6,0.6 Q3.2,-1.2 2.6,-3.2 Q1.5,-3.6 0,-3.4 Q-1.5,-3.6 -2.6,-3.2 Z"
+          fill={shirt} stroke={PAL.ink} strokeWidth={0.5}
+        />
+        {/* bust line */}
+        <path d="M-2,-1.4 Q-1,-0.6 0,-1 Q1,-0.6 2,-1.4" stroke={dressDark} strokeWidth={0.5} fill="none" opacity={0.7} />
+        {/* waist sash / belt */}
+        <rect x={-2.6} y={0.4} width={5.2} height={0.7} fill={dressDark} opacity={0.9} />
         {/* apron hint */}
-        <polygon points={`-1.8,-2 1.8,-2 2.4,5 -2.4,5`} fill="#e8d8b8" opacity={0.35} />
-        {/* hair behind head */}
-        <path d={`M-3.2,-6 Q-4.2,-2 -3.2,1 L3.2,1 Q4.2,-2 3.2,-6 Z`} fill={hairColor} stroke={PAL.ink} strokeWidth={0.4} />
-        {/* head */}
-        <circle cx={0} cy={-5.5} r={2.6} fill={skin} stroke={PAL.ink} strokeWidth={0.5} />
-        {/* fringe */}
-        <path d={`M-2.6,-6.2 Q0,-8.2 2.6,-6.2 Q1.2,-5.5 0,-5.8 Q-1.2,-5.5 -2.6,-6.2 Z`} fill={hairColor} stroke={PAL.ink} strokeWidth={0.4} />
+        <polygon points="-1.5,-1.8 1.5,-1.8 2,5.3 -2,5.3" fill="#e8d8b8" opacity={0.3} />
+        {/* neck */}
+        <rect x={-0.6} y={-3.6} width={1.2} height={1} fill={skin} stroke={PAL.ink} strokeWidth={0.3} />
+        {/* head — slightly smaller and more oval */}
+        <ellipse cx={0} cy={-5.6} rx={2.3} ry={2.6} fill={skin} stroke={PAL.ink} strokeWidth={0.5} />
+        {/* fringe / side-parted hair on top */}
+        <path
+          d="M-2.4,-6.4 Q-1,-8.3 0.6,-7.8 Q2.4,-8 2.6,-6 Q1.2,-5.4 0,-5.7 Q-1.2,-5.4 -2.4,-6.4 Z"
+          fill={hairColor} stroke={PAL.ink} strokeWidth={0.4}
+        />
+        {/* small lash / eye hint */}
+        <circle cx={-0.8} cy={-5.4} r={0.25} fill={PAL.ink} />
+        <circle cx={0.8} cy={-5.4} r={0.25} fill={PAL.ink} />
+        {/* subtle lip */}
+        <path d="M-0.7,-4.4 Q0,-4 0.7,-4.4" stroke="#a8475a" strokeWidth={0.4} fill="none" />
         {founder && (
-          <ellipse cx={0} cy={-7.2} rx={2.8} ry={0.7} fill={PAL.gold} stroke={PAL.ink} strokeWidth={0.4} />
+          <ellipse cx={0} cy={-7.6} rx={2.6} ry={0.6} fill={PAL.gold} stroke={PAL.ink} strokeWidth={0.4} />
         )}
       </g>
     );
   }
+
 
   // Male
   const hat = founder ? "#c9a14a" : "#5a3820";
