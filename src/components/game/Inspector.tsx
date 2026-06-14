@@ -24,7 +24,7 @@ const OCCUPATIONS: Occupation[] = [
 
 function cap(s: string) { return s[0].toUpperCase() + s.slice(1); }
 
-export function Inspector() {
+export function Inspector({ onHide }: { onHide?: () => void } = {}) {
   const sel = useGame((s) => s.selection);
   const survivors = useGame((s) => s.survivors);
   const [arrangeFor, setArrangeFor] = useState<string | null>(null);
