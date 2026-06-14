@@ -76,6 +76,15 @@ export function LeaderProfile({ dockOpen = false }: LeaderProfileProps) {
         >
           +
         </button>
+        <button
+          type="button"
+          onClick={centerOnRanch}
+          className={btn}
+          title="Center on ranch (100%)"
+          aria-label="Center on ranch"
+        >
+          ⌖
+        </button>
       </div>
     </div>
   );
