@@ -86,6 +86,11 @@ interface GameState {
   // Annual Council vote (transient — pauses the simulation while open)
   pendingCouncilVote: CouncilVoteEvent | null;
   councilReactionLog: CouncilReactionLogEntry[];
+  // Laws of the ranch, enacted at the first Council Charter and amended thereafter.
+  laws: import("./sim/laws").EnactedLaw[];
+  hasHeldFirstCouncil: boolean;
+  // First-council "Founding Charter": founder picks laws when 10+ houses exist.
+  pendingFoundingCharter: boolean;
   // Building awaiting builder assignment (transient)
   pendingBuildAssignment: ID | null;
   // Farm plot awaiting crop+farmer selection (transient)
