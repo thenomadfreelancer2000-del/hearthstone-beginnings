@@ -158,6 +158,38 @@ const emptyStats = (year: number, dynasty: string): SettlementStats => ({
   totalBorn: 0, totalDied: 0,
 });
 
+function expandSavedWorld(save: SaveGame): SaveGame {
+  if (save.mapW >= MAP_W && save.mapH >= MAP_H) return save;
+  const base = generateWorld(save.seed);
+  const dx = Math.floor((MAP_W - save.mapW) / 2);
+  const dy = Math.floor((MAP_H - save.mapH) / 2);
+  const inOldFootprint = (x: number, y: number) => x >= dx && x < dx + save.mapW && y >= dy && y < dy + save.mapH;
+  const shiftedTiles = save.tiles.map((t) => ({ ...t, x: t.x + dx, y: t.y + dy }));
+  const tileByKey = new Map(shiftedTiles.map((t) => [`${t.x}-${t.y}`, t]));
+  const tiles = base.tiles.map((t) => tileByKey.get(`${t.x}-${t.y}`) ?? t);
+  const resourceNodes = [
+    ...base.nodes.filter((n) => !inOldFootprint(n.x, n.y)),
+    ...save.resourceNodes.map((n) => ({ ...n, x: n.x + dx, y: n.y + dy })),
+  ];
+
+  return {
+    ...save,
+    mapW: MAP_W,
+    mapH: MAP_H,
+    tiles,
+    resourceNodes,
+    buildings: save.buildings.map((b) => ({ ...b, x: b.x + dx, y: b.y + dy })),
+    survivors: save.survivors.map((s) => ({
+      ...s,
+      x: s.x + dx,
+      y: s.y + dy,
+      targetX: s.targetX == null ? s.targetX : s.targetX + dx,
+      targetY: s.targetY == null ? s.targetY : s.targetY + dy,
+    })),
+    territory: save.territory ? { ...save.territory, cx: save.territory.cx + dx, cy: save.territory.cy + dy } : null,
+  };
+}
+
 // arrivals roughly every ~6 game days at 1x speed
 const ARRIVAL_CHECK_TICKS = 240 * 3; // every 3 days
 
