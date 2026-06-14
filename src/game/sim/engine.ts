@@ -695,7 +695,7 @@ function assignHomeWithGratitude(eng: Engine, s: Survivor, b: Building) {
 }
 
 
-function assignSpousesToShared(eng: Engine, a: Survivor, b: Survivor) {
+export function assignSpousesToShared(eng: Engine, a: Survivor, b: Survivor) {
   // If one has room at home, the other moves in.
   const tryMoveInto = (target: Survivor, mover: Survivor) => {
     if (!target.homeId) return false;
