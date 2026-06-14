@@ -33,6 +33,8 @@ import {
   buildReactionLog,
   type CouncilVoteEvent, type CouncilAction, type CouncilReactionLogEntry,
 } from "./sim/councilVote";
+import { LAW_BY_ID, type EnactedLaw } from "./sim/laws";
+import { computeFactions, mostHatedLaw } from "./sim/factions";
 
 export type Screen = "menu" | "founder" | "game";
 export type Overlay = "tree" | "family" | "chronicle" | null;
@@ -86,6 +88,11 @@ interface GameState {
   // Annual Council vote (transient — pauses the simulation while open)
   pendingCouncilVote: CouncilVoteEvent | null;
   councilReactionLog: CouncilReactionLogEntry[];
+  // Laws of the ranch, enacted at the first Council Charter and amended thereafter.
+  laws: import("./sim/laws").EnactedLaw[];
+  hasHeldFirstCouncil: boolean;
+  // First-council "Founding Charter": founder picks laws when 10+ houses exist.
+  pendingFoundingCharter: boolean;
   // Building awaiting builder assignment (transient)
   pendingBuildAssignment: ID | null;
   // Farm plot awaiting crop+farmer selection (transient)
@@ -156,6 +163,9 @@ interface GameState {
   reassignWorker: (survivorId: ID, occupation: Survivor["occupation"]) => void;
   // Council
   resolveCouncilVote: (action: CouncilAction) => void;
+  // Laws
+  enactFoundingCharter: (lawIds: string[]) => void;
+  repealLaw: (lawId: string) => void;
 }
 
 const emptyResources = (): Record<ResourceKind, number> => ({
@@ -259,6 +269,9 @@ export const useGame = create<GameState>((set, get) => ({
   pendingArrival: null,
   pendingCouncilVote: null,
   councilReactionLog: [],
+  laws: [],
+  hasHeldFirstCouncil: false,
+  pendingFoundingCharter: false,
   pendingBuildAssignment: null,
   pendingFarmSetup: null,
   unlockedCrops: [...STARTER_CROP_IDS],
@@ -1040,6 +1053,10 @@ export const useGame = create<GameState>((set, get) => ({
     const logEntry = buildReactionLog(ev, action, outcome, {
       tick: st.time.tick, day: st.time.day, season: st.time.season,
     });
+    // If conceding a law-repeal demand, drop the law from the active set.
+    const newLaws = (action === "repeal-law" && ev.lawRepealRequest)
+      ? st.laws.filter((l) => l.lawId !== ev.lawRepealRequest!.lawId)
+      : st.laws;
     set({
       pendingCouncilVote: null,
       resources: newResources,
@@ -1047,8 +1064,105 @@ export const useGame = create<GameState>((set, get) => ({
       currentLeaderId: newLeaderId,
       survivors: newSurvivors,
       reputationProfile: newRep,
+      laws: newLaws,
       chronicle: [newChronicle, ...st.chronicle].slice(0, 600),
       councilReactionLog: [logEntry, ...st.councilReactionLog].slice(0, 60),
+    });
+  },
+
+  enactFoundingCharter: (lawIds) => {
+    const st = get();
+    if (!st.pendingFoundingCharter || st.hasHeldFirstCouncil) return;
+    
+    const valid = lawIds.filter((id) => LAW_BY_ID[id]);
+    if (valid.length === 0) return;
+
+    const enacted: import("./sim/laws").EnactedLaw[] = valid.map((lawId) => ({
+      id: nanoid(8),
+      lawId,
+      yearEnacted: st.time.year,
+    }));
+
+    // Apply trait-driven mood / loyalty drift across the population.
+    const newSurvivors = st.survivors.map((s) => {
+      if (s.health <= 0) return s;
+      let dMood = 0;
+      let dLoy = 0;
+      for (const e of enacted) {
+        const def = LAW_BY_ID[e.lawId];
+        if (!def) continue;
+        for (const t of s.traits ?? []) {
+          dMood += def.traitMood[t] ?? 0;
+          dLoy += def.traitLoyalty[t] ?? 0;
+        }
+      }
+      if (!dMood && !dLoy) return s;
+      return {
+        ...s,
+        mood: Math.max(-100, Math.min(100, s.mood + dMood)),
+        loyaltyToFounder: Math.max(-100, Math.min(100, s.loyaltyToFounder + dLoy)),
+      };
+    });
+
+    const titles = enacted.map((e) => LAW_BY_ID[e.lawId]?.title).filter(Boolean).join(" · ");
+    const charterEntry: ChronicleEntry = {
+      id: nanoid(8),
+      tick: st.time.tick,
+      year: st.time.year, season: st.time.season, day: st.time.day,
+      category: "succession",
+      title: "The Founder's Charter",
+      body: `The ten houses gather. The founder names the law: ${titles}.`,
+      involvedIds: [st.founderId],
+      involvedFamilyIds: [],
+    };
+
+    toast.success("The Charter is signed", { description: `${enacted.length} laws written into the founding.` });
+    set({
+      laws: enacted,
+      hasHeldFirstCouncil: true,
+      pendingFoundingCharter: false,
+      survivors: newSurvivors,
+      chronicle: [charterEntry, ...st.chronicle].slice(0, 600),
+    });
+  },
+
+  repealLaw: (lawId) => {
+    const st = get();
+    const law = st.laws.find((l) => l.lawId === lawId);
+    if (!law) return;
+    
+    const def = LAW_BY_ID[law.lawId];
+    // Reverse half of the original trait drift on repeal (sentiments fade, don't snap).
+    const newSurvivors = st.survivors.map((s) => {
+      if (s.health <= 0 || !def) return s;
+      let dMood = 0;
+      let dLoy = 0;
+      for (const t of s.traits ?? []) {
+        dMood -= (def.traitMood[t] ?? 0) * 0.5;
+        dLoy -= (def.traitLoyalty[t] ?? 0) * 0.5;
+      }
+      if (!dMood && !dLoy) return s;
+      return {
+        ...s,
+        mood: Math.max(-100, Math.min(100, s.mood + Math.round(dMood))),
+        loyaltyToFounder: Math.max(-100, Math.min(100, s.loyaltyToFounder + Math.round(dLoy))),
+      };
+    });
+    const entry: ChronicleEntry = {
+      id: nanoid(8),
+      tick: st.time.tick,
+      year: st.time.year, season: st.time.season, day: st.time.day,
+      category: "succession",
+      title: `Repealed: ${def?.title ?? law.lawId}`,
+      body: `The council strikes the law from the long room's wall.`,
+      involvedIds: [],
+      involvedFamilyIds: [],
+    };
+    toast(`Repealed: ${def?.title ?? law.lawId}`);
+    set({
+      laws: st.laws.filter((l) => l.lawId !== lawId),
+      survivors: newSurvivors,
+      chronicle: [entry, ...st.chronicle].slice(0, 600),
     });
   },
 
@@ -1057,6 +1171,7 @@ export const useGame = create<GameState>((set, get) => ({
     if (st.speed === 0 || st.screen !== "game") return;
     if (st.pendingArrival) return; // pause while the player decides
     if (st.pendingCouncilVote) return; // pause during a council vote
+    if (st.pendingFoundingCharter) return; // pause during the Founding Charter
     const tps = 8 * (st.speed === 1 ? 1 : st.speed === 2 ? 2 : 4);
     const n = Math.max(1, Math.floor((deltaMs / 1000) * tps));
 
@@ -1165,12 +1280,35 @@ export const useGame = create<GameState>((set, get) => ({
       }
     }
 
-    // Annual Council Vote — first day of spring, year > founding, not during founding,
-    // not while another modal is open, only if we just crossed into a new year.
+    // ── Council triggers ────────────────────────────────────
+    // (a) First council: once the ranch has 10+ houses, the founder holds the
+    //     Founding Charter — picks the laws of the ranch. Cannot be deposed.
+    // (b) After the charter, an annual council convenes each spring; rivals
+    //     may also demand a hated law be repealed.
     let pendingCouncilVote: CouncilVoteEvent | null = st.pendingCouncilVote;
+    let pendingFoundingCharter: boolean = st.pendingFoundingCharter;
+    let hasHeldFirstCouncil: boolean = st.hasHeldFirstCouncil;
+    const livingFamilies = eng.families.filter(
+      (f) => f.memberIds.some((id) => eng.survivors.find((s) => s.id === id && s.health > 0))
+    );
     const crossedYear = eng.time.year > st.time.year;
+
     if (
-      !pendingCouncilVote && !pendingArrival && !st.foundingPhase &&
+      !hasHeldFirstCouncil &&
+      !pendingFoundingCharter &&
+      !pendingArrival &&
+      !st.foundingPhase &&
+      livingFamilies.length >= 10
+    ) {
+      pendingFoundingCharter = true;
+      toast("The Ten Houses gather", {
+        description: "Call the Founding Charter — set the laws of the ranch.",
+      });
+    }
+
+    if (
+      hasHeldFirstCouncil &&
+      !pendingCouncilVote && !pendingArrival && !pendingFoundingCharter && !st.foundingPhase &&
       crossedYear && eng.time.year > st.stats.foundedYear
     ) {
       const ev = generateCouncilVote({
@@ -1185,11 +1323,27 @@ export const useGame = create<GameState>((set, get) => ({
         currentYear: eng.time.year,
       });
       if (ev) {
+        // If any active law is strongly opposed, attach a repeal demand.
+        const view = computeFactions(eng.survivors, eng.families, st.laws);
+        const hated = mostHatedLaw(view, st.laws);
+        if (hated && hated.opposingFaction.strength >= 25) {
+          ev.lawRepealRequest = {
+            lawId: hated.lawDef.id,
+            lawTitle: hated.lawDef.title,
+            factionId: hated.opposingFaction.id,
+            factionName: hated.opposingFaction.def.name,
+            intensity: hated.opposingFaction.strength,
+          };
+          ev.challengerAgenda = `Repeal: ${hated.lawDef.title}`;
+        }
         pendingCouncilVote = ev;
-        toast(ev.contested ? "Council in uproar" : "The Council convenes", {
-          description: ev.contested
+        const desc = ev.lawRepealRequest
+          ? `${ev.lawRepealRequest.factionName} demand: repeal "${ev.lawRepealRequest.lawTitle}".`
+          : ev.contested
             ? `House ${ev.challengerHouseName ?? "—"} challenges the porch.`
-            : `Year ${ev.year}. The houses gather.`,
+            : `Year ${ev.year}. The houses gather.`;
+        toast(ev.contested || ev.lawRepealRequest ? "Council in uproar" : "The Council convenes", {
+          description: desc,
         });
       }
     }
@@ -1214,6 +1368,8 @@ export const useGame = create<GameState>((set, get) => ({
       ministerReports: eng.ministerReports,
       pendingArrival,
       pendingCouncilVote,
+      pendingFoundingCharter,
+      hasHeldFirstCouncil,
       lastChronicleId: lastId,
     });
 

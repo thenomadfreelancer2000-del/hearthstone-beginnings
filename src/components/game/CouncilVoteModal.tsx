@@ -107,14 +107,28 @@ export function CouncilVoteModal() {
     );
   };
 
+  const isLawDemand = !!ev.lawRepealRequest;
+
   return (
     <div className="absolute inset-0 z-[60] bg-black/70 flex items-center justify-center p-4">
       <div className="parchment-panel-warm corner-brackets w-[min(680px,96vw)] max-h-[92vh] overflow-y-auto p-4 shadow-2xl">
         <div className="ranch-label text-[10px] text-amber">Council of Houses · Year {ev.year}</div>
         <div className="ranch-display text-lg text-parchment mt-0.5">
-          {ev.contested ? "A Challenge in the Hall" : "The Annual Council"}
+          {isLawDemand
+            ? `Demand: Repeal "${ev.lawRepealRequest!.lawTitle}"`
+            : ev.contested ? "A Challenge in the Hall" : "The Annual Council"}
         </div>
         <div className="ranch-handwritten text-xs text-dust-light italic mt-1">{ev.flavor}</div>
+
+        {isLawDemand && (
+          <div className="mt-2 border border-danger/40 bg-coal/40 p-2">
+            <div className="ranch-label text-[10px] text-danger">Law in Question</div>
+            <div className="ranch-display text-sm text-parchment mt-0.5">{ev.lawRepealRequest!.lawTitle}</div>
+            <div className="ranch-handwritten text-[11px] text-dust-light italic mt-1">
+              {ev.lawRepealRequest!.factionName} press the council. Strength of their hand: {ev.lawRepealRequest!.intensity}.
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-2 mt-3">
           <div className="border border-amber/30 bg-coal/40 p-2">
@@ -124,7 +138,7 @@ export function CouncilVoteModal() {
             <div className="ranch-data text-xs text-amber mt-1">⚜ Power {ev.leaderPower}</div>
           </div>
           <div className={`border ${canChallenge ? "border-danger/40" : "border-amber/15"} bg-coal/40 p-2`}>
-            <div className="ranch-label text-[9px] text-danger">The Challenger</div>
+            <div className="ranch-label text-[9px] text-danger">{isLawDemand ? "The Petitioner" : "The Challenger"}</div>
             <div className="ranch-body text-sm text-parchment">{ev.challengerName ?? "— none —"}</div>
             <div className="ranch-body text-[11px] text-dust">
               {ev.challengerHouseName ? `House ${ev.challengerHouseName}` : "No rival rises"}
@@ -161,12 +175,22 @@ export function CouncilVoteModal() {
 
         <div className="mt-4 space-y-1.5">
           <div className="ranch-label text-[10px] text-amber">Your Response</div>
-          <ActionCard action="speech" />
-          <ActionCard action="bribe" />
-          <ActionCard action="office" />
-          <ActionCard action="crush" danger />
-          <ActionCard action="stepdown" danger />
-          {!ev.contested && <ActionCard action="abdicate-peace" />}
+          {isLawDemand ? (
+            <>
+              <ActionCard action="repeal-law" />
+              <ActionCard action="refuse-repeal" danger />
+              <ActionCard action="bribe" />
+            </>
+          ) : (
+            <>
+              <ActionCard action="speech" />
+              <ActionCard action="bribe" />
+              <ActionCard action="office" />
+              <ActionCard action="crush" danger />
+              <ActionCard action="stepdown" danger />
+              {!ev.contested && <ActionCard action="abdicate-peace" />}
+            </>
+          )}
         </div>
       </div>
     </div>

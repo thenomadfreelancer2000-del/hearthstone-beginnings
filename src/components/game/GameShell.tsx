@@ -17,7 +17,9 @@ import { LivestockPanel } from "./LivestockPanel";
 import { MinisterRequestsPanel } from "./MinisterRequestsPanel";
 import { AdministrationPanel } from "./AdministrationPanel";
 import { PoliticsPanel } from "./PoliticsPanel";
+import { FactionsPanel } from "./FactionsPanel";
 import { CouncilVoteModal } from "./CouncilVoteModal";
+import { FoundingCharterModal } from "./FoundingCharterModal";
 import { useGame } from "@/game/store";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -32,6 +34,7 @@ export function GameShell() {
   const [livestockOpen, setLivestockOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const [politicsOpen, setPoliticsOpen] = useState(false);
+  const [factionsOpen, setFactionsOpen] = useState(false);
   const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
 
   // Auto-open inspector when something is selected on mobile.
@@ -86,6 +89,14 @@ export function GameShell() {
             ⚜
           </button>
           <button
+            onClick={() => setFactionsOpen(true)}
+            className="btn-ranch btn-ranch-ghost text-base backdrop-blur-sm bg-coal/70 w-9 h-9 flex items-center justify-center p-0"
+            title="Political Factions"
+            aria-label="Political Factions"
+          >
+            ☰
+          </button>
+          <button
             onClick={() => setOverlay("tree")}
             className="btn-ranch btn-ranch-ghost text-base backdrop-blur-sm bg-coal/70 w-9 h-9 flex items-center justify-center p-0"
             title="Dynasty Tree"
@@ -97,6 +108,8 @@ export function GameShell() {
         {livestockOpen && <LivestockPanel onClose={() => setLivestockOpen(false)} />}
         {adminOpen && <AdministrationPanel onClose={() => setAdminOpen(false)} />}
         {politicsOpen && <PoliticsPanel onClose={() => setPoliticsOpen(false)} />}
+        {factionsOpen && <FactionsPanel onClose={() => setFactionsOpen(false)} />}
+        <FoundingCharterModal />
 
 
         {!isMobile && (

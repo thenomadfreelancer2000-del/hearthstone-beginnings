@@ -6,7 +6,9 @@ import type { Animal, Building, Family, ID, Minister, ResourceKind, Survivor } f
 import type { ReputationProfile } from "./reputation";
 import { computePolitics } from "./politics";
 
-export type CouncilAction = "speech" | "bribe" | "office" | "crush" | "stepdown" | "abdicate-peace";
+export type CouncilAction =
+  | "speech" | "bribe" | "office" | "crush" | "stepdown" | "abdicate-peace"
+  | "repeal-law" | "refuse-repeal";
 
 export interface CouncilVote {
   familyId: ID;
@@ -34,6 +36,14 @@ export interface CouncilVoteEvent {
   againstCount: number;
   contested: boolean;
   flavor: string;
+  /** When a faction is pushing to repeal one of the founder's laws. */
+  lawRepealRequest?: {
+    lawId: string;
+    lawTitle: string;
+    factionId: string;
+    factionName: string;
+    intensity: number;
+  };
 }
 
 interface GenInput {
@@ -227,6 +237,33 @@ export const COUNCIL_ACTION_INFO: Record<CouncilAction, ActionInfo> = {
     effects: ["No effect. The houses go home grumbling."],
     risks: [],
   },
+  "repeal-law": {
+    label: "Concede — strike the law",
+    hint: "Repeal the law the faction hates. The hall calms.",
+    cost: {},
+    effects: [
+      "Law is repealed; opposing faction stands down",
+      "+6 prestige to your house (statesmanship)",
+      "+5 'compassionate' reputation",
+    ],
+    risks: [
+      "Houses that loved the law lose loyalty (−6)",
+      "Future councils will test more laws",
+    ],
+  },
+  "refuse-repeal": {
+    label: "Refuse — the law stands",
+    hint: "Hold the line. The faction grumbles into the dust.",
+    cost: {},
+    effects: [
+      "Law remains in force",
+      "+4 'ruthless' reputation, +2 prestige to your house",
+    ],
+    risks: [
+      "Opposing faction loses 10 loyalty; long memory",
+      "−20 relations with the leading opposition house",
+    ],
+  },
 };
 
 // ── Risk forecasting ─────────────────────────────────────────────
@@ -309,6 +346,20 @@ export function forecastActionRisk(
     case "abdicate-peace": {
       score = 5;
       backlash.push(`Nothing changes; rivals will return next year`);
+      break;
+    }
+    case "repeal-law": {
+      score = 20;
+      backlash.push(`Houses that supported the law lose loyalty`);
+      backlash.push(`A precedent — councils will press for more changes`);
+      repShifts.push({ axis: "compassionate", delta: 5, reason: "yields to the people" });
+      break;
+    }
+    case "refuse-repeal": {
+      score = 55;
+      backlash.push(`The opposing faction loses loyalty and remembers it`);
+      backlash.push(`Relations with the leading opposition house drop sharply`);
+      repShifts.push({ axis: "ruthless", delta: 4, reason: "holds the law by force" });
       break;
     }
   }
@@ -556,6 +607,35 @@ export function resolveCouncilVote(
     case "abdicate-peace": {
       out.title = "The council disperses";
       out.body = "No grand promises. The year turns and the houses wait.";
+      return out;
+    }
+    case "repeal-law": {
+      if (!ev.lawRepealRequest) { out.ok = false; out.title = "No law to repeal"; out.body = ""; return out; }
+      out.title = `The council strikes "${ev.lawRepealRequest.lawTitle}"`;
+      out.body = `${ev.lawRepealRequest.factionName} carry the day. The law comes down from the wall.`;
+      D(out.prestigeDeltas, ev.leaderHouseId, 6);
+      out.loyaltyDeltas.all = -3;
+      out.reputationDeltas.compassionate = 5;
+      out.memoryText = `The founder bent. "${ev.lawRepealRequest.lawTitle}" is no more.`;
+      out.memoryEmotion = "trust";
+      out.memoryWeight = 35;
+      out.tone = "neutral";
+      return out;
+    }
+    case "refuse-repeal": {
+      if (!ev.lawRepealRequest) { out.ok = false; out.title = "No demand to refuse"; out.body = ""; return out; }
+      out.title = `The law stands`;
+      out.body = `The porch refuses. ${ev.lawRepealRequest.factionName} leave the hall in silence.`;
+      D(out.prestigeDeltas, ev.leaderHouseId, 2);
+      if (chId) {
+        out.relationsDelta = { a: ev.leaderHouseId, b: chId, delta: -20 };
+      }
+      out.loyaltyDeltas.all = -4;
+      out.reputationDeltas.ruthless = 4;
+      out.memoryText = `The founder held the line. "${ev.lawRepealRequest.lawTitle}" still stands.`;
+      out.memoryEmotion = "fear";
+      out.memoryWeight = 30;
+      out.tone = "bad";
       return out;
     }
   }
