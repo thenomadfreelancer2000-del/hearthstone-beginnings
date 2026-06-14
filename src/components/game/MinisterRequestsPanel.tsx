@@ -4,6 +4,9 @@ import { ROLE_LABEL, ROLE_OCCUPATION } from "@/game/sim/ministers";
 import type { MinisterRequest, Survivor } from "@/game/types";
 
 export function MinisterRequestsPanel() {
+  // Managers now staff their own departments automatically (see
+  // autoAssignWorkers). The Founder no longer approves worker requests, so
+  // this HUD is hidden. Kept as a no-op so existing imports/wiring still work.
   const requests = useGame((s) => s.ministerRequests);
   const ministers = useGame((s) => s.ministers);
   const survivors = useGame((s) => s.survivors);
@@ -11,7 +14,9 @@ export function MinisterRequestsPanel() {
   const decide = useGame((s) => s.decideMinisterRequest);
 
   const [picking, setPicking] = useState<{ req: MinisterRequest; mode: "approve" | "partial" } | null>(null);
-  const pending = requests.filter((r) => r.status === "pending");
+  const pending: typeof requests = [];
+  void requests; void ministers; void survivors; void families; void decide; void setPicking; void picking;
+
 
   return (
     <>
