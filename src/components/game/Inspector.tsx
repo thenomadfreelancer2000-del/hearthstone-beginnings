@@ -27,6 +27,7 @@ function cap(s: string) { return s[0].toUpperCase() + s.slice(1); }
 export function Inspector() {
   const sel = useGame((s) => s.selection);
   const survivors = useGame((s) => s.survivors);
+  const [arrangeFor, setArrangeFor] = useState<string | null>(null);
   const buildings = useGame((s) => s.buildings);
   const relationships = useGame((s) => s.relationships);
   const families = useGame((s) => s.families);
