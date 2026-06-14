@@ -544,6 +544,8 @@ function succeed(eng: Engine) {
 // Daily resolution + seasonal enqueue are imported here.
 
 
+const GESTATION_DAYS = 36; // ~9 in-game months (12 days/season × 3 seasons)
+
 function processBirths(eng: Engine, rng: () => number) {
   // Iterate copy to allow push during loop
   const couples = new Set<string>();
@@ -560,11 +562,31 @@ function processBirths(eng: Engine, rng: () => number) {
     const father = s.gender === "m" ? s : spouse.gender === "m" ? spouse : null;
     if (!mother || !father) continue;
     if (mother.age < FERTILE_MIN || mother.age > FERTILE_MAX) continue;
-    // Conception chance per season — modulated by number of existing children
-    const existing = mother.childrenIds.length;
-    const base = 0.42;
-    const p = Math.max(0.05, base - existing * 0.08);
-    if (!chance(rng, p)) continue;
+
+    // Already pregnant? Check if gestation complete; otherwise wait.
+    if (mother.pregnant) {
+      const elapsedTicks = eng.time.tick - (mother.pregnancyTick ?? eng.time.tick);
+      if (elapsedTicks < GESTATION_DAYS * TICKS_PER_DAY) continue;
+      // Deliver below.
+      mother.pregnant = false;
+      mother.pregnancyTick = null;
+    } else {
+      // Conception roll — modulated by number of existing children
+      const existing = mother.childrenIds.length;
+      const base = 0.42;
+      const p = Math.max(0.05, base - existing * 0.08);
+      if (!chance(rng, p)) continue;
+      mother.pregnant = true;
+      mother.pregnancyTick = eng.time.tick;
+      addChronicle(
+        eng, "birth",
+        `${mother.name} is with child`,
+        `${mother.name} and ${father.name} expect a child by next harvest.`,
+        [mother.id, father.id], [],
+      );
+      continue;
+    }
+
     // Spawn near mother
     const spawnX = mother.x + (rng() - 0.5);
     const spawnY = mother.y + (rng() - 0.5);
