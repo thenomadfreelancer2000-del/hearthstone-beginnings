@@ -604,7 +604,8 @@ function SurvivorArtCore({ founder, dead, female, elderTint, pregnant }: { found
     ? (founder ? "#9a4a6a" : "#6a4a8a")
     : (founder ? "#7a3a2a" : "#3a5a6a");
   const pants = "#3d2810";
-  const hairColor = founder ? "#4a2818" : "#3a2410";
+  const hairColor = elderTint ? "#c8c0b0" : (founder ? "#4a2818" : "#3a2410");
+
 
   if (female) {
     // Distinctly feminine silhouette: narrower shoulders, wider hip flare,
