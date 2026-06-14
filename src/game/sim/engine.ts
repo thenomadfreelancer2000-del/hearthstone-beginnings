@@ -1,6 +1,7 @@
 import { nanoid } from "nanoid";
 import type {
-  Building, ChronicleEntry, Family, GameTime, ID, MarriageProposal, ResourceKind, ResourceNode,
+  Animal, Building, ChronicleEntry, Family, GameTime, ID, LivestockRequest,
+  MarriageProposal, ResourceKind, ResourceNode,
   Survivor, Relationship, SettlementStats, Tile, Memory,
 } from "../types";
 import {
@@ -18,6 +19,7 @@ import { dailyEducationTick, pickSuccessor } from "./heirs";
 import { applyAgingEffects, applyLeadershipTransition, lifeStageLabel } from "./legacy";
 import { BUILDINGS } from "../data/content";
 import { enqueueProposalsForSeason, resolveProposalsDaily } from "./marriage";
+import { dailyLivestockTick } from "./livestock";
 
 export interface Engine {
   time: GameTime;
@@ -38,6 +40,9 @@ export interface Engine {
   seed: number;
   /** Dynastic marriage proposals queue. */
   proposals: MarriageProposal[];
+  /** Livestock (v4). */
+  animals: Animal[];
+  livestockRequests: LivestockRequest[];
   /** During the Founding Phase, needs do not decay and arrivals are paused. */
   foundingPhase?: boolean;
 }
