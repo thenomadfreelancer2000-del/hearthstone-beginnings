@@ -53,7 +53,7 @@ export function GameShell() {
         <MarriageProposalsPanel />
         <LivestockRequestsPanel />
         <MinisterRequestsPanel />
-        <div className="fixed top-12 left-2 z-40 flex flex-col gap-1 items-start">
+        <div className="fixed top-12 right-2 z-40 flex flex-col gap-1 items-end">
           <button
             onClick={() => setLivestockOpen(true)}
             className="btn-ranch btn-ranch-ghost text-[10px] px-2 py-1 backdrop-blur-sm bg-coal/70"
