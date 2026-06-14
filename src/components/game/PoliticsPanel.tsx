@@ -1,8 +1,9 @@
 import { useMemo, useState } from "react";
 import { useGame } from "@/game/store";
 import { computePolitics, type HousePolitics } from "@/game/sim/politics";
+import type { CouncilReactionLogEntry, CouncilReactionEntry } from "@/game/sim/councilVote";
 
-type Tab = "council" | "houses" | "stability";
+type Tab = "council" | "houses" | "stability" | "reactions";
 
 export function PoliticsPanel({ onClose }: { onClose: () => void }) {
   const survivors = useGame((s) => s.survivors);
