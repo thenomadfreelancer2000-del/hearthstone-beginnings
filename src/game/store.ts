@@ -1038,6 +1038,35 @@ export const useGame = create<GameState>((set, get) => ({
       }
     }
 
+    // Annual Council Vote — first day of spring, year > founding, not during founding,
+    // not while another modal is open, only if we just crossed into a new year.
+    let pendingCouncilVote = st.pendingCouncilVote;
+    const crossedYear = eng.time.year > st.time.year;
+    if (
+      !pendingCouncilVote && !pendingArrival && !st.foundingPhase &&
+      crossedYear && eng.time.year > st.stats.foundedYear
+    ) {
+      const ev = generateCouncilVote({
+        survivors: eng.survivors,
+        families: eng.families,
+        buildings: eng.buildings,
+        animals: eng.animals,
+        ministers: eng.ministers,
+        resources: eng.resources,
+        currentLeaderId: eng.currentLeaderId,
+        founderId: eng.founderId,
+        currentYear: eng.time.year,
+      });
+      if (ev) {
+        pendingCouncilVote = ev;
+        toast(ev.contested ? "Council in uproar" : "The Council convenes", {
+          description: ev.contested
+            ? `House ${ev.challengerHouseName ?? "—"} challenges the porch.`
+            : `Year ${ev.year}. The houses gather.`,
+        });
+      }
+    }
+
     set({
       time: eng.time,
       nodes: eng.nodes,
@@ -1057,6 +1086,7 @@ export const useGame = create<GameState>((set, get) => ({
       ministerRequests: eng.ministerRequests,
       ministerReports: eng.ministerReports,
       pendingArrival,
+      pendingCouncilVote,
       lastChronicleId: lastId,
     });
 
