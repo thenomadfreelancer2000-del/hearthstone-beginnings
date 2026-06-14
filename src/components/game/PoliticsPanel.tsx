@@ -52,15 +52,19 @@ export function PoliticsPanel({ onClose }: { onClose: () => void }) {
           <button className="btn-ranch btn-ranch-ghost text-xs" onClick={onClose}>Close ✕</button>
         </div>
 
-        <div className="flex gap-1 mb-3 border-b border-amber/20">
+        <div className="flex gap-1 mb-3 border-b border-amber/20 flex-wrap">
           <TabBtn active={tab === "council"} onClick={() => setTab("council")}>Council</TabBtn>
           <TabBtn active={tab === "houses"} onClick={() => setTab("houses")}>All Houses</TabBtn>
           <TabBtn active={tab === "stability"} onClick={() => setTab("stability")}>Stability</TabBtn>
+          <TabBtn active={tab === "reactions"} onClick={() => setTab("reactions")}>
+            Reactions{reactionLog.length > 0 && <span className="ml-1 text-amber/70">· {reactionLog.length}</span>}
+          </TabBtn>
         </div>
 
         {tab === "council" && <CouncilView seats={snap.council} totalSeats={snap.totalCouncilSeats} />}
         {tab === "houses" && <HousesView houses={snap.houses} />}
         {tab === "stability" && <StabilityView score={snap.stability.score} label={snap.stability.label} factors={snap.stability.factors} />}
+        {tab === "reactions" && <ReactionsView log={reactionLog} />}
       </div>
     </div>
   );
