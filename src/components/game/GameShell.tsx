@@ -29,6 +29,7 @@ export function GameShell() {
   const [inspectorOpen, setInspectorOpen] = useState(false);
   const [livestockOpen, setLivestockOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
+  const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
 
   // Auto-open inspector when something is selected on mobile.
   useEffect(() => {
