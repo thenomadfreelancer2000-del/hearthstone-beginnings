@@ -53,22 +53,28 @@ export function GameShell() {
         <MarriageProposalsPanel />
         <LivestockRequestsPanel />
         <MinisterRequestsPanel />
-        <div className="absolute bottom-2 left-2 z-30 flex gap-1">
+        <div className="absolute top-2 left-2 z-30 flex flex-col gap-1 items-start">
           <button
             onClick={() => setLivestockOpen(true)}
-            className="btn-ranch btn-ranch-ghost text-[10px] px-2 py-1"
+            className="btn-ranch btn-ranch-ghost text-[10px] px-2 py-1 backdrop-blur-sm bg-coal/70"
             title="Open Livestock Ledger"
           >
             🐄 Livestock
           </button>
           <button
             onClick={() => setAdminOpen(true)}
-            className="btn-ranch btn-ranch-ghost text-[10px] px-2 py-1"
+            className="btn-ranch btn-ranch-ghost text-[10px] px-2 py-1 backdrop-blur-sm bg-coal/70"
             title="Administration & Managers"
           >
             ⚖ Managers
           </button>
-
+          <button
+            onClick={() => setOverlay("tree")}
+            className="btn-ranch btn-ranch-ghost text-[10px] px-2 py-1 backdrop-blur-sm bg-coal/70"
+            title="Dynasty Tree"
+          >
+            🜲 Dynasty
+          </button>
         </div>
         {livestockOpen && <LivestockPanel onClose={() => setLivestockOpen(false)} />}
         {adminOpen && <AdministrationPanel onClose={() => setAdminOpen(false)} />}
