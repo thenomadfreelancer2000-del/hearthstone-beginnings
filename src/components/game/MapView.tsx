@@ -428,6 +428,108 @@ function NodeArt({ kind, size, seed }: { kind: string; size: number; seed: numbe
   );
 }
 
+// ── Animal sprite ────────────────────────────────────────────────
+function AnimalArt({ species, dead, adult }: { species: "chicken" | "goat" | "sheep" | "cattle"; dead: boolean; adult: boolean }) {
+  const scale = adult ? 1 : 0.7;
+  const op = dead ? 0.35 : 1;
+  if (species === "chicken") {
+    return (
+      <g opacity={op} transform={`scale(${scale})`}>
+        <ellipse cx={0} cy={3.5} rx={3} ry={0.8} fill={PAL.shadow} />
+        {/* body */}
+        <ellipse cx={0} cy={1} rx={2.6} ry={2} fill="#e8d8b8" stroke={PAL.ink} strokeWidth={0.4} />
+        {/* wing */}
+        <path d="M-1.6,1 Q0,-0.5 1.8,1 Q0,2 -1.6,1 Z" fill="#c4ae90" stroke={PAL.ink} strokeWidth={0.3} />
+        {/* head */}
+        <circle cx={2.2} cy={-1.2} r={1.3} fill="#e8d8b8" stroke={PAL.ink} strokeWidth={0.4} />
+        {/* comb */}
+        <path d="M1.6,-2.3 q0.4,-0.6 0.8,0 q0.4,-0.6 0.8,0" stroke="#a83a3a" strokeWidth={0.7} fill="none" />
+        {/* beak */}
+        <polygon points={`3.4,-1.1 4.4,-0.8 3.4,-0.6`} fill="#c9a14a" stroke={PAL.ink} strokeWidth={0.2} />
+        {/* eye */}
+        <circle cx={2.5} cy={-1.5} r={0.2} fill={PAL.ink} />
+        {/* legs */}
+        <line x1={-0.6} y1={2.8} x2={-0.6} y2={3.6} stroke="#c9a14a" strokeWidth={0.5} />
+        <line x1={0.6} y1={2.8} x2={0.6} y2={3.6} stroke="#c9a14a" strokeWidth={0.5} />
+      </g>
+    );
+  }
+  if (species === "goat") {
+    return (
+      <g opacity={op} transform={`scale(${scale})`}>
+        <ellipse cx={0} cy={4} rx={4} ry={0.9} fill={PAL.shadow} />
+        {/* body */}
+        <ellipse cx={-0.5} cy={1} rx={3.4} ry={1.8} fill="#b8a48a" stroke={PAL.ink} strokeWidth={0.4} />
+        {/* head */}
+        <ellipse cx={2.6} cy={-0.6} rx={1.5} ry={1.2} fill="#c4b094" stroke={PAL.ink} strokeWidth={0.4} />
+        {/* horns */}
+        <path d="M2.2,-1.6 q0.4,-1.2 1.2,-1.6" stroke={PAL.ink} strokeWidth={0.5} fill="none" />
+        <path d="M3.0,-1.6 q0.6,-1.0 1.4,-1.2" stroke={PAL.ink} strokeWidth={0.5} fill="none" />
+        {/* beard */}
+        <line x1={3.4} y1={0.2} x2={3.6} y2={1.4} stroke="#8a7a5e" strokeWidth={0.6} />
+        {/* legs */}
+        {[-2.4, -1.0, 0.6, 2.0].map((lx, i) => (
+          <line key={i} x1={lx} y1={2.5} x2={lx} y2={4} stroke={PAL.ink} strokeWidth={0.7} />
+        ))}
+        {/* eye */}
+        <circle cx={3.0} cy={-0.8} r={0.2} fill={PAL.ink} />
+        {/* tail */}
+        <line x1={-3.8} y1={0.3} x2={-4.6} y2={-0.2} stroke="#8a7a5e" strokeWidth={0.6} />
+      </g>
+    );
+  }
+  if (species === "sheep") {
+    return (
+      <g opacity={op} transform={`scale(${scale})`}>
+        <ellipse cx={0} cy={4} rx={4.2} ry={0.9} fill={PAL.shadow} />
+        {/* fluffy body */}
+        <ellipse cx={-0.5} cy={0.6} rx={3.6} ry={2.2} fill="#ece4d4" stroke={PAL.ink} strokeWidth={0.4} />
+        <circle cx={-2.2} cy={-0.4} r={1.1} fill="#f4ecdc" stroke={PAL.ink} strokeWidth={0.3} />
+        <circle cx={0.4} cy={-1.0} r={1.1} fill="#f4ecdc" stroke={PAL.ink} strokeWidth={0.3} />
+        <circle cx={-1.2} cy={-1.2} r={0.9} fill="#f4ecdc" stroke={PAL.ink} strokeWidth={0.3} />
+        {/* head */}
+        <ellipse cx={2.6} cy={-0.2} rx={1.3} ry={1.1} fill="#3a2410" stroke={PAL.ink} strokeWidth={0.4} />
+        {/* ears */}
+        <ellipse cx={2.0} cy={-1.2} rx={0.5} ry={0.3} fill="#3a2410" />
+        {/* eye */}
+        <circle cx={3.0} cy={-0.4} r={0.2} fill="#f4ecdc" />
+        {/* legs */}
+        {[-2.2, -0.8, 0.8, 2.0].map((lx, i) => (
+          <line key={i} x1={lx} y1={2.5} x2={lx} y2={4} stroke="#3a2410" strokeWidth={0.7} />
+        ))}
+      </g>
+    );
+  }
+  // cattle
+  return (
+    <g opacity={op} transform={`scale(${scale})`}>
+      <ellipse cx={0} cy={5} rx={5.5} ry={1.1} fill={PAL.shadow} />
+      {/* body */}
+      <ellipse cx={-0.5} cy={1.2} rx={4.6} ry={2.4} fill="#c4ae90" stroke={PAL.ink} strokeWidth={0.5} />
+      {/* brown patches */}
+      <ellipse cx={-2.2} cy={0.4} rx={1.4} ry={0.9} fill="#5a3820" />
+      <ellipse cx={1.4} cy={1.8} rx={1.6} ry={1.0} fill="#5a3820" />
+      {/* head */}
+      <ellipse cx={3.6} cy={-0.4} rx={1.7} ry={1.4} fill="#c4ae90" stroke={PAL.ink} strokeWidth={0.5} />
+      {/* horns */}
+      <path d="M2.8,-1.6 q0.4,-0.8 1.2,-0.6" stroke={PAL.ink} strokeWidth={0.6} fill="none" />
+      <path d="M4.4,-1.6 q-0.2,-0.8 -1.0,-0.6" stroke={PAL.ink} strokeWidth={0.6} fill="none" />
+      {/* snout */}
+      <ellipse cx={4.6} cy={0.2} rx={0.8} ry={0.6} fill="#e8d8b8" stroke={PAL.ink} strokeWidth={0.3} />
+      <circle cx={4.5} cy={0.1} r={0.18} fill={PAL.ink} />
+      <circle cx={4.8} cy={0.3} r={0.18} fill={PAL.ink} />
+      {/* eye */}
+      <circle cx={3.8} cy={-0.7} r={0.22} fill={PAL.ink} />
+      {/* legs */}
+      {[-3.2, -1.4, 0.6, 2.6].map((lx, i) => (
+        <line key={i} x1={lx} y1={3.2} x2={lx} y2={5} stroke={PAL.ink} strokeWidth={0.9} />
+      ))}
+      {/* tail */}
+      <line x1={-4.8} y1={0.6} x2={-5.6} y2={2.2} stroke={PAL.ink} strokeWidth={0.6} />
+    </g>
+  );
+}
+
 // ── Survivor sprite ──────────────────────────────────────────────
 function SurvivorArt({ founder, dead, female }: { founder: boolean; dead: boolean; female: boolean }) {
   const skin = "#d9b48a";
