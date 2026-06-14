@@ -176,21 +176,21 @@ export function FounderCreation() {
               className="pt-2 sm:pt-6 min-w-0"
             >
               <p
-                className="ranch-label mb-2 text-[9px] sm:text-[10px]"
+                className="ranch-label mb-1 sm:mb-2 text-[8px] sm:text-[10px]"
                 style={{ letterSpacing: "0.2em" }}
               >
                 {t.eyebrow}
               </p>
               <h1
-                className="ranch-display leading-[1.05] mb-2 sm:mb-4 break-words"
-                style={{ fontSize: "clamp(18px, 5vw, 60px)" }}
+                className="ranch-display leading-[1.05] mb-1 sm:mb-4 break-words"
+                style={{ fontSize: "clamp(15px, 4.4vw, 60px)" }}
               >
                 {t.title}
               </h1>
-              <p className="ranch-display italic text-dust-light text-xs sm:text-lg max-w-2xl leading-snug">
+              <p className="ranch-display italic text-dust-light text-[11px] sm:text-lg max-w-2xl leading-snug">
                 {t.sub}
               </p>
-              <div className="divider-amber my-4 sm:my-8" />
+              <div className="divider-amber my-2 sm:my-8" />
 
 
 
