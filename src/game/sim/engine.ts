@@ -256,6 +256,19 @@ function dailyTick(eng: Engine, opts?: { onArrival?: (s: Survivor) => Survivor |
     livestockRequests: eng.livestockRequests,
   }, rng);
 
+  // Ministers (Administration update)
+  dailyMinistersTick({
+    time: { tick: eng.time.tick, year: eng.time.year, season: eng.time.season, day: eng.time.day },
+    ministers: eng.ministers,
+    ministerRequests: eng.ministerRequests,
+    ministerReports: eng.ministerReports,
+    survivors: eng.survivors,
+    buildings: eng.buildings,
+    animals: eng.animals,
+    families: eng.families,
+    founderId: eng.founderId,
+  }, rng);
+
   // Memories decay daily — major events have a floor that keeps them alive.
   for (const s of eng.survivors) {
     if (s.health <= 0) continue;
