@@ -911,6 +911,7 @@ export const useGame = create<GameState>((set, get) => ({
       ministers: save.ministers ?? [],
       ministerRequests: save.ministerRequests ?? [],
       ministerReports: save.ministerReports ?? [],
+      expeditions: save.expeditions ?? [],
       borderMode: false,
     });
     return true;
@@ -919,7 +920,7 @@ export const useGame = create<GameState>((set, get) => ({
   save: () => {
     const st = get();
     const data: SaveGame = {
-      version: 5,
+      version: 6,
       ranchName: st.ranchName,
       seed: st.seed,
       time: st.time,
@@ -946,6 +947,7 @@ export const useGame = create<GameState>((set, get) => ({
       ministers: st.ministers,
       ministerRequests: st.ministerRequests,
       ministerReports: st.ministerReports,
+      expeditions: st.expeditions,
       factions: [], laws: [], externalSettlements: [],
     };
     return saveToLocal(data);
