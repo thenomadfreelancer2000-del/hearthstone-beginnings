@@ -391,6 +391,8 @@ export interface SaveGame {
   unlockedCrops?: string[];
   foundingPhase?: boolean;
   territory?: { cx: number; cy: number; radius: number } | null;
+  // Marriage proposals (v3+)
+  proposals?: MarriageProposal[];
   // Phase 3+ reservations (always present, empty for now):
   factions: unknown[];
   laws: unknown[];
