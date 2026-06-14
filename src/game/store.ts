@@ -762,6 +762,7 @@ export const useGame = create<GameState>((set, get) => ({
       // Preserve founding phase if the save was created during it; legacy saves default to completed.
       foundingPhase: save.foundingPhase ?? false,
       territory: save.territory ?? null,
+      proposals: save.proposals ?? [],
       borderMode: false,
     });
     return true;
