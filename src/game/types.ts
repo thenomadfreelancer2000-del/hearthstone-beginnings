@@ -28,7 +28,9 @@ export interface Tile {
   variant: number;
 }
 
-export type ResourceKind = "wood" | "stone" | "food" | "water" | "fiber" | "tools";
+export type ResourceKind =
+  | "wood" | "stone" | "food" | "water" | "fiber" | "tools"
+  | "eggs" | "milk" | "wool";
 
 export interface ResourceNode {
   id: ID;
@@ -54,7 +56,7 @@ export type LifeStage = "child" | "teen" | "youth" | "adult" | "elder";
 
 export type Occupation =
   | "idle" | "forager" | "woodcutter" | "miner"
-  | "farmer" | "builder" | "hauler" | "leader";
+  | "farmer" | "builder" | "hauler" | "leader" | "rancher";
 
 export interface Needs {
   food: number; water: number; rest: number;
@@ -65,6 +67,8 @@ export interface Skills {
   forage: number; cut: number; mine: number;
   build: number; farm: number; medic: number; lead: number;
   social: number;
+  /** Ranching skill, capped 0..30 at use sites. */
+  ranch?: number;
 }
 
 export interface Memory {
