@@ -8,8 +8,7 @@ import type {
 import { chance } from "./rng";
 import { findRelationship, markAsSpouses } from "./ai";
 import { headOfFamily } from "./families";
-import { addChronicle, emitMemory, type Engine } from "./engine";
-import { assignSpousesToShared } from "./housing";
+import { addChronicle, emitMemory, assignSpousesToShared, type Engine } from "./engine";
 
 // ── Helpers ─────────────────────────────────────────────────────
 
