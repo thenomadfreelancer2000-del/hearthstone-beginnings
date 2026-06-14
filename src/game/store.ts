@@ -340,13 +340,14 @@ export const useGame = create<GameState>((set, get) => ({
       st.territory.radius > 0 &&
       !st.buildings.some((b) => b.kind === "fence")
     ) {
-      const { cx, cy, radius } = st.territory;
+      const { cx, cy } = st.territory;
+      const { halfW, halfH } = territoryDims(st.territory);
       const used = new Set<string>();
-      // Rectangular perimeter: walk the four sides of the square bbox.
-      const x0 = Math.round(cx - radius);
-      const y0 = Math.round(cy - radius);
-      const x1 = Math.round(cx + radius);
-      const y1 = Math.round(cy + radius);
+      // Rectangular perimeter: walk the four sides of the bbox.
+      const x0 = Math.round(cx - halfW);
+      const y0 = Math.round(cy - halfH);
+      const x1 = Math.round(cx + halfW);
+      const y1 = Math.round(cy + halfH);
       const tiles: { x: number; y: number }[] = [];
       const pushTile = (x: number, y: number) => {
         if (x < 0 || y < 0 || x >= st.mapW || y >= st.mapH) return;
