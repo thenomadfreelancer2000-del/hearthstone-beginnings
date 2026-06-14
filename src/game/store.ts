@@ -28,6 +28,10 @@ import { findBestHome as findBestHomeFor, homeCapacity } from "./sim/housing";
 import { getPortrait } from "./data/portraits";
 import { TRAIT_INFO, traitRefugeeBias } from "./data/traits";
 import { computeFounderEpithet, founderDeathTitle, founderDeathBody } from "./sim/legacy";
+import {
+  generateCouncilVote, resolveCouncilVote as resolveCouncilVoteLogic,
+  type CouncilVoteEvent, type CouncilAction,
+} from "./sim/councilVote";
 
 export type Screen = "menu" | "founder" | "game";
 export type Overlay = "tree" | "family" | "chronicle" | null;
@@ -78,6 +82,8 @@ interface GameState {
 
   // Arrival event (transient — pauses the simulation while open)
   pendingArrival: ArrivalEvent | null;
+  // Annual Council vote (transient — pauses the simulation while open)
+  pendingCouncilVote: CouncilVoteEvent | null;
   // Building awaiting builder assignment (transient)
   pendingBuildAssignment: ID | null;
   // Farm plot awaiting crop+farmer selection (transient)
@@ -146,6 +152,8 @@ interface GameState {
   dismissMinister: (ministerId: ID) => void;
   decideMinisterRequest: (id: ID, decision: "approve" | "partial" | "reject" | "postpone", transferIds?: ID[]) => void;
   reassignWorker: (survivorId: ID, occupation: Survivor["occupation"]) => void;
+  // Council
+  resolveCouncilVote: (action: CouncilAction) => void;
 }
 
 const emptyResources = (): Record<ResourceKind, number> => ({
@@ -247,6 +255,7 @@ export const useGame = create<GameState>((set, get) => ({
   selection: { kind: "none" },
   buildPlacement: null,
   pendingArrival: null,
+  pendingCouncilVote: null,
   pendingBuildAssignment: null,
   pendingFarmSetup: null,
   unlockedCrops: [...STARTER_CROP_IDS],
