@@ -159,9 +159,9 @@ export function computeFactions(
     const topHouseId = leadingHouses[0];
     if (topHouseId) {
       const topFam = familyById.get(topHouseId);
-      const headId = topFam?.headId;
-      const head = headId ? alive.find((x) => x.id === headId) : null;
-      const candidate = head ?? alive
+      // Family head = oldest living adult in that family, preferring known founderId.
+      const founderAlive = topFam ? alive.find((x) => x.id === topFam.founderId) : null;
+      const candidate = founderAlive ?? alive
         .filter((s) => s.familyId === topHouseId && affinity[s.id]?.primary === fid)
         .sort((a, b) => b.age - a.age)[0]
         ?? null;
