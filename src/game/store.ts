@@ -608,7 +608,8 @@ export const useGame = create<GameState>((set, get) => ({
     const occ: Survivor["occupation"] =
       node.kind === "trees" ? "woodcutter" :
       node.kind === "rocks" ? "miner" :
-      node.kind === "berries" ? "forager" : "hauler";
+      node.kind === "berries" ? "forager" :
+      node.kind === "fiber-grass" ? "forager" : "hauler";
     set({
       survivors: st.survivors.map(s => s.id === survivorId ? { ...s, occupation: occ } : s),
     });
