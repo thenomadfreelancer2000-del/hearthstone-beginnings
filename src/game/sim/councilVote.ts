@@ -237,6 +237,33 @@ export const COUNCIL_ACTION_INFO: Record<CouncilAction, ActionInfo> = {
     effects: ["No effect. The houses go home grumbling."],
     risks: [],
   },
+  "repeal-law": {
+    label: "Concede — strike the law",
+    hint: "Repeal the law the faction hates. The hall calms.",
+    cost: {},
+    effects: [
+      "Law is repealed; opposing faction stands down",
+      "+6 prestige to your house (statesmanship)",
+      "+5 'compassionate' reputation",
+    ],
+    risks: [
+      "Houses that loved the law lose loyalty (−6)",
+      "Future councils will test more laws",
+    ],
+  },
+  "refuse-repeal": {
+    label: "Refuse — the law stands",
+    hint: "Hold the line. The faction grumbles into the dust.",
+    cost: {},
+    effects: [
+      "Law remains in force",
+      "+4 'ruthless' reputation, +2 prestige to your house",
+    ],
+    risks: [
+      "Opposing faction loses 10 loyalty; long memory",
+      "−20 relations with the leading opposition house",
+    ],
+  },
 };
 
 // ── Risk forecasting ─────────────────────────────────────────────
