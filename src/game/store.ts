@@ -85,6 +85,7 @@ interface GameState {
   pendingArrival: ArrivalEvent | null;
   // Annual Council vote (transient — pauses the simulation while open)
   pendingCouncilVote: CouncilVoteEvent | null;
+  councilReactionLog: CouncilReactionLogEntry[];
   // Building awaiting builder assignment (transient)
   pendingBuildAssignment: ID | null;
   // Farm plot awaiting crop+farmer selection (transient)
