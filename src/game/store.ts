@@ -771,7 +771,7 @@ export const useGame = create<GameState>((set, get) => ({
   save: () => {
     const st = get();
     const data: SaveGame = {
-      version: 2,
+      version: 3,
       ranchName: st.ranchName,
       seed: st.seed,
       time: st.time,
