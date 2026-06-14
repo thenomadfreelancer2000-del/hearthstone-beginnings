@@ -1063,6 +1063,102 @@ export const useGame = create<GameState>((set, get) => ({
     });
   },
 
+  enactFoundingCharter: (lawIds) => {
+    const st = get();
+    if (!st.pendingFoundingCharter || st.hasHeldFirstCouncil) return;
+    const { LAW_BY_ID } = require("./sim/laws") as typeof import("./sim/laws");
+    const valid = lawIds.filter((id) => LAW_BY_ID[id]);
+    if (valid.length === 0) return;
+
+    const enacted: import("./sim/laws").EnactedLaw[] = valid.map((lawId) => ({
+      id: nanoid(8),
+      lawId,
+      yearEnacted: st.time.year,
+    }));
+
+    // Apply trait-driven mood / loyalty drift across the population.
+    const newSurvivors = st.survivors.map((s) => {
+      if (s.health <= 0) return s;
+      let dMood = 0;
+      let dLoy = 0;
+      for (const e of enacted) {
+        const def = LAW_BY_ID[e.lawId];
+        if (!def) continue;
+        for (const t of s.traits ?? []) {
+          dMood += def.traitMood[t] ?? 0;
+          dLoy += def.traitLoyalty[t] ?? 0;
+        }
+      }
+      if (!dMood && !dLoy) return s;
+      return {
+        ...s,
+        mood: Math.max(-100, Math.min(100, s.mood + dMood)),
+        loyaltyToFounder: Math.max(-100, Math.min(100, s.loyaltyToFounder + dLoy)),
+      };
+    });
+
+    const titles = enacted.map((e) => LAW_BY_ID[e.lawId]?.title).filter(Boolean).join(" · ");
+    const charterEntry: ChronicleEntry = {
+      id: nanoid(8),
+      tick: st.time.tick,
+      year: st.time.year, season: st.time.season, day: st.time.day,
+      category: "succession",
+      title: "The Founder's Charter",
+      body: `The ten houses gather. The founder names the law: ${titles}.`,
+      involvedIds: [st.founderId],
+      involvedFamilyIds: [],
+    };
+
+    toast.success("The Charter is signed", { description: `${enacted.length} laws written into the founding.` });
+    set({
+      laws: enacted,
+      hasHeldFirstCouncil: true,
+      pendingFoundingCharter: false,
+      survivors: newSurvivors,
+      chronicle: [charterEntry, ...st.chronicle].slice(0, 600),
+    });
+  },
+
+  repealLaw: (lawId) => {
+    const st = get();
+    const law = st.laws.find((l) => l.lawId === lawId);
+    if (!law) return;
+    const { LAW_BY_ID } = require("./sim/laws") as typeof import("./sim/laws");
+    const def = LAW_BY_ID[law.lawId];
+    // Reverse half of the original trait drift on repeal (sentiments fade, don't snap).
+    const newSurvivors = st.survivors.map((s) => {
+      if (s.health <= 0 || !def) return s;
+      let dMood = 0;
+      let dLoy = 0;
+      for (const t of s.traits ?? []) {
+        dMood -= (def.traitMood[t] ?? 0) * 0.5;
+        dLoy -= (def.traitLoyalty[t] ?? 0) * 0.5;
+      }
+      if (!dMood && !dLoy) return s;
+      return {
+        ...s,
+        mood: Math.max(-100, Math.min(100, s.mood + Math.round(dMood))),
+        loyaltyToFounder: Math.max(-100, Math.min(100, s.loyaltyToFounder + Math.round(dLoy))),
+      };
+    });
+    const entry: ChronicleEntry = {
+      id: nanoid(8),
+      tick: st.time.tick,
+      year: st.time.year, season: st.time.season, day: st.time.day,
+      category: "succession",
+      title: `Repealed: ${def?.title ?? law.lawId}`,
+      body: `The council strikes the law from the long room's wall.`,
+      involvedIds: [],
+      involvedFamilyIds: [],
+    };
+    toast(`Repealed: ${def?.title ?? law.lawId}`);
+    set({
+      laws: st.laws.filter((l) => l.lawId !== lawId),
+      survivors: newSurvivors,
+      chronicle: [entry, ...st.chronicle].slice(0, 600),
+    });
+  },
+
   tickReal: (deltaMs) => {
     const st = get();
     if (st.speed === 0 || st.screen !== "game") return;
