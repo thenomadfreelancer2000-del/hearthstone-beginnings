@@ -44,6 +44,10 @@ export interface Engine {
   /** Livestock (v4). */
   animals: Animal[];
   livestockRequests: LivestockRequest[];
+  /** Ministers (v5). */
+  ministers: Minister[];
+  ministerRequests: MinisterRequest[];
+  ministerReports: MinisterReport[];
   /** During the Founding Phase, needs do not decay and arrivals are paused. */
   foundingPhase?: boolean;
 }
