@@ -323,6 +323,52 @@ export interface LivestockRequest {
   resolveAfterTick?: number;
 }
 
+// ── Ministers / Administration (v5) ──────────────────────────────
+export type MinisterRole =
+  | "head-farmer" | "head-builder" | "head-rancher" | "quartermaster";
+
+export interface Minister {
+  id: ID;
+  role: MinisterRole;
+  survivorId: ID;
+  appointedTick: number;
+  /** 0..100, drives loyalty drift and report tone. */
+  satisfaction: number;
+  requestsApproved: number;
+  requestsRejected: number;
+  lastRequestTick?: number | null;
+  lastReportTick?: number | null;
+}
+
+export type MinisterRequestStatus =
+  | "pending" | "approved" | "partial" | "rejected" | "postponed";
+
+export interface MinisterRequest {
+  id: ID;
+  ministerId: ID;
+  role: MinisterRole;
+  survivorId: ID;
+  requestedWorkers: number;
+  approvedWorkers: number;
+  createdTick: number;
+  createdYear: number;
+  status: MinisterRequestStatus;
+  reason: string;
+  resolveAfterTick?: number;
+}
+
+export interface MinisterReport {
+  id: ID;
+  ministerId: ID;
+  role: MinisterRole;
+  tick: number;
+  year: number;
+  season: Season;
+  day: number;
+  text: string;
+  tone: "positive" | "neutral" | "negative";
+}
+
 export interface BuildingDef {
   kind: BuildingKind;
   name: string;
