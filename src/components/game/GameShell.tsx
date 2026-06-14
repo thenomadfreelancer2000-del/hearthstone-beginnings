@@ -12,6 +12,8 @@ import { FarmSetupModal } from "./FarmSetupModal";
 import { FoundingPanel } from "./FoundingPanel";
 import { LeaderProfile } from "./LeaderProfile";
 import { MarriageProposalsPanel } from "./MarriageProposalsPanel";
+import { LivestockRequestsPanel } from "./LivestockRequestsPanel";
+import { LivestockPanel } from "./LivestockPanel";
 import { useGame } from "@/game/store";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -22,6 +24,7 @@ export function GameShell() {
   const isMobile = useIsMobile();
   const [dockOpen, setDockOpen] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(false);
+  const [livestockOpen, setLivestockOpen] = useState(false);
 
   // Auto-open inspector when something is selected on mobile.
   useEffect(() => {
@@ -44,6 +47,15 @@ export function GameShell() {
         <FoundingPanel />
         <LeaderProfile dockOpen={dockOpen} />
         <MarriageProposalsPanel />
+        <LivestockRequestsPanel />
+        <button
+          onClick={() => setLivestockOpen(true)}
+          className="absolute bottom-2 left-2 z-30 btn-ranch btn-ranch-ghost text-[10px] px-2 py-1"
+          title="Open Livestock Ledger"
+        >
+          🐄 Livestock
+        </button>
+        {livestockOpen && <LivestockPanel onClose={() => setLivestockOpen(false)} />}
 
 
         {!isMobile && <Inspector />}
