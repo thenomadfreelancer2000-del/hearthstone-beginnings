@@ -112,8 +112,8 @@ export function FoundingCharterModal() {
 
         <div className="flex items-center justify-between mt-4 pt-3 border-t border-amber/20">
           <div className="ranch-handwritten text-xs text-dust-light italic">
-            {pickedCount} of 6 domains chosen
-            {canSign ? "." : " — pick at least three to sign."}
+            {pickedCount} of {DOMAINS.length} domains chosen
+            {canSign ? "." : ` — pick at least ${MIN_PICKS} to sign.`}
           </div>
           <button
             disabled={!canSign}
