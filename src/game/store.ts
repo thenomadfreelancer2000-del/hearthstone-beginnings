@@ -792,6 +792,7 @@ export const useGame = create<GameState>((set, get) => ({
       unlockedCrops: [...st.unlockedCrops],
       foundingPhase: st.foundingPhase,
       territory: st.territory,
+      proposals: st.proposals,
       factions: [], laws: [], externalSettlements: [],
     };
     return saveToLocal(data);
