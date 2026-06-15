@@ -693,6 +693,37 @@ function assignHomeWithGratitude(eng: Engine, s: Survivor, b: Building) {
 
 
 export function assignSpousesToShared(eng: Engine, a: Survivor, b: Survivor) {
+  // Founder marriage: the homestead is their home. Other occupants must leave.
+  const founderId = eng.founderId;
+  if (founderId && (a.id === founderId || b.id === founderId)) {
+    const homestead = eng.buildings.find(x => x.kind === "homestead");
+    if (homestead) {
+      const couple = new Set([a.id, b.id]);
+      const evicted = (homestead.occupantIds ?? []).filter(id => !couple.has(id));
+      for (const eid of evicted) {
+        const occ = eng.survivors.find(s => s.id === eid);
+        if (!occ) continue;
+        occ.homeId = null;
+        emitMem(eng, occ, `Asked to leave the homestead — it is the Founder's house now.`,
+          "anger", 45, founderId, { kind: "evicted-homestead", floor: 15, decayRate: 0.4 });
+        // Try to find them a new home.
+        const newHome = findBestHome(occ, eng.buildings, eng.survivors);
+        if (newHome && (newHome.occupantIds?.length ?? 0) < homeCapacity(newHome)) {
+          assignHomeWithGratitude(eng, occ, newHome);
+        }
+      }
+      homestead.occupantIds = [];
+      // Move the couple in.
+      for (const sp of [a, b]) {
+        if (sp.homeId && sp.homeId !== homestead.id) {
+          const old = eng.buildings.find(x => x.id === sp.homeId);
+          if (old) old.occupantIds = old.occupantIds.filter(id => id !== sp.id);
+        }
+        assignHomeWithGratitude(eng, sp, homestead);
+      }
+      return;
+    }
+  }
   // If one has room at home, the other moves in.
   const tryMoveInto = (target: Survivor, mover: Survivor) => {
     if (!target.homeId) return false;
@@ -722,6 +753,7 @@ export function assignSpousesToShared(eng: Engine, a: Survivor, b: Survivor) {
     }
   }
 }
+
 
 
 // ── Farms ──────────────────────────────────────────────────────
