@@ -209,9 +209,11 @@ const CARRY_CAP = 12;
 export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
   if (s.health <= 0) return;
 
-  // The founder is a manager, not a porter. Strip any stale "carrying" so they
-  // don't oscillate between hauling and building.
-  if (s.isFounder && s.carrying) s.carrying = null;
+  // The founder normally manages rather than hauls — but if the player has
+  // explicitly assigned them a task (node or building), let them carry like
+  // anyone else. Otherwise strip stale carry so they don't oscillate.
+  if (s.isFounder && s.carrying && !s.workTarget) s.carrying = null;
+
   // Clear empty carrying refs so the haul block can't fire on a zero-amount lump.
   if (s.carrying && s.carrying.amount <= 0) s.carrying = null;
 
