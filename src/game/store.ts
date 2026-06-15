@@ -148,6 +148,7 @@ interface GameState {
   assignSurvivorToHome: (survivorId: ID, buildingId: ID | null) => void;
   setHomeReserved: (buildingId: ID, reserved: boolean) => void;
   autoAssignHomeless: () => void;
+  demolishBuilding: (buildingId: ID) => void;
   setPreferredHeir: (id: ID | null) => void;
   setEducationFocus: (childId: ID, focus: "build" | "farm" | "lead" | "social" | "medic" | null) => void;
   newGame: (ranchName: string, founderInput: FounderInput) => void;
@@ -332,59 +333,81 @@ export const useGame = create<GameState>((set, get) => ({
   },
   startBuild: (kind) => {
     const st = get();
-    // First-time fence during founding: auto-encircle the territory.
-    if (
-      kind === "fence" &&
-      st.foundingPhase &&
-      st.territory &&
-      st.territory.radius > 0 &&
-      !st.buildings.some((b) => b.kind === "fence")
-    ) {
-      const { cx, cy } = st.territory;
-      const { halfW, halfH } = territoryDims(st.territory);
-      const used = new Set<string>();
-      // Rectangular perimeter: walk the four sides of the bbox.
-      const x0 = Math.round(cx - halfW);
-      const y0 = Math.round(cy - halfH);
-      const x1 = Math.round(cx + halfW);
-      const y1 = Math.round(cy + halfH);
-      const tiles: { x: number; y: number }[] = [];
-      const pushTile = (x: number, y: number) => {
-        if (x < 0 || y < 0 || x >= st.mapW || y >= st.mapH) return;
-        const key = `${x},${y}`;
-        if (used.has(key)) return;
-        if (st.buildings.some((b) => x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h)) return;
-        const t = st.tiles[y * st.mapW + x];
-        if (!t || t.kind === "water" || t.kind === "stone") return;
-        used.add(key);
-        tiles.push({ x, y });
-      };
-      for (let x = x0; x <= x1; x++) { pushTile(x, y0); pushTile(x, y1); }
-      for (let y = y0 + 1; y < y1; y++) { pushTile(x0, y); pushTile(x1, y); }
+    // For perimeter walls (fence, palisade, stone-wall), offer the player a
+    // choice: auto-encircle the ranch territory, or place segments manually.
+    const isPerimeter = kind === "fence" || kind === "palisade" || kind === "stone-wall";
+    if (isPerimeter && st.territory && st.territory.radius > 0) {
+      const auto = typeof window !== "undefined"
+        ? window.confirm(`Build ${kind.replace("-", " ")} automatically around the entire ranch perimeter?\n\nOK = Auto-encircle\nCancel = Place segments manually`)
+        : false;
+      if (auto) {
+        const { cx, cy } = st.territory;
+        const { halfW, halfH } = territoryDims(st.territory);
+        const used = new Set<string>();
+        const x0 = Math.round(cx - halfW);
+        const y0 = Math.round(cy - halfH);
+        const x1 = Math.round(cx + halfW);
+        const y1 = Math.round(cy + halfH);
+        const tiles: { x: number; y: number }[] = [];
+        const pushTile = (x: number, y: number) => {
+          if (x < 0 || y < 0 || x >= st.mapW || y >= st.mapH) return;
+          const key = `${x},${y}`;
+          if (used.has(key)) return;
+          if (st.buildings.some((b) => x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h)) return;
+          const t = st.tiles[y * st.mapW + x];
+          if (!t || t.kind === "water" || t.kind === "stone") return;
+          used.add(key);
+          tiles.push({ x, y });
+        };
+        for (let x = x0; x <= x1; x++) { pushTile(x, y0); pushTile(x, y1); }
+        for (let y = y0 + 1; y < y1; y++) { pushTile(x0, y); pushTile(x1, y); }
 
-      const newFences: Building[] = tiles.map((p) => ({
-        id: nanoid(10),
-        kind: "fence",
-        x: p.x, y: p.y, w: 1, h: 1,
-        builtProgress: 1,
-        effortRemaining: 0,
-        buildEffortTotal: BUILDINGS.fence.buildEffort,
-        completedYear: st.time.year,
-        assignedBuilderId: null,
-        resourcesDelivered: { wood: BUILDINGS.fence.cost.wood ?? 0 },
-        lastWorkedTick: null,
-        stalledTicks: 0,
-        occupantIds: [],
-        stored: {},
-        farm: null,
-      }));
-      set({
-        buildings: [...st.buildings, ...newFences],
-        buildPlacement: null,
-        selection: { kind: "none" },
-      });
-      toast.success(`Fence raised around the ranch (${newFences.length} segments)`);
-      return;
+        const def = BUILDINGS[kind];
+        const woodPer = def.cost.wood ?? 0;
+        const stonePer = def.cost.stone ?? 0;
+        const totalWood = woodPer * tiles.length;
+        const totalStone = stonePer * tiles.length;
+        // In founding phase, materials are free (the original behavior).
+        // Outside founding, deduct from stockpile and cap to what we can afford.
+        let placeTiles = tiles;
+        const newResources = { ...st.resources };
+        if (!st.foundingPhase) {
+          const affordWood = woodPer > 0 ? Math.floor(newResources.wood / woodPer) : tiles.length;
+          const affordStone = stonePer > 0 ? Math.floor(newResources.stone / stonePer) : tiles.length;
+          const afford = Math.min(tiles.length, affordWood, affordStone);
+          placeTiles = tiles.slice(0, afford);
+          newResources.wood -= woodPer * placeTiles.length;
+          newResources.stone -= stonePer * placeTiles.length;
+          if (placeTiles.length < tiles.length) {
+            toast.warning(`Only enough materials for ${placeTiles.length}/${tiles.length} segments.`);
+          }
+        }
+
+        const newSegments: Building[] = placeTiles.map((p) => ({
+          id: nanoid(10),
+          kind,
+          x: p.x, y: p.y, w: def.size.w, h: def.size.h,
+          builtProgress: 1,
+          effortRemaining: 0,
+          buildEffortTotal: def.buildEffort,
+          completedYear: st.time.year,
+          assignedBuilderId: null,
+          resourcesDelivered: { wood: woodPer, stone: stonePer },
+          lastWorkedTick: null,
+          stalledTicks: 0,
+          occupantIds: [],
+          stored: {},
+          farm: null,
+        }));
+        set({
+          buildings: [...st.buildings, ...newSegments],
+          resources: newResources,
+          buildPlacement: null,
+          selection: { kind: "none" },
+        });
+        toast.success(`${def.name} raised around the ranch (${newSegments.length} segments)`);
+        return;
+      }
     }
     set({ buildPlacement: { kind }, selection: { kind: "none" } });
   },
@@ -483,6 +506,9 @@ export const useGame = create<GameState>((set, get) => ({
       buildings: st.buildings.map(b =>
         b.id === buildingId ? { ...b, assignedBuilderId: survivorId } : b
       ),
+      survivors: survivorId
+        ? st.survivors.map(s => s.id === survivorId ? { ...s, occupation: "builder" as const } : s)
+        : st.survivors,
       pendingBuildAssignment: st.pendingBuildAssignment === buildingId ? null : st.pendingBuildAssignment,
     });
   },
@@ -636,16 +662,19 @@ export const useGame = create<GameState>((set, get) => ({
       if (prev) {
         buildings = buildings.map(b => b.id === prev ? { ...b, occupantIds: b.occupantIds.filter(id => id !== s.id) } : b);
       }
-      // add to new (capacity check)
+      // add to new — capacity check uses authoritative homeId counts (not stale occupantIds)
       if (buildingId) {
         const tgt = buildings.find(b => b.id === buildingId);
         if (!tgt) return s;
         const cap = BUILDINGS[tgt.kind]?.housingCapacity ?? 0;
-        if ((tgt.occupantIds?.length ?? 0) >= cap) {
-          toast.warning("Home is full");
+        const realOccupants = st.survivors.filter(o =>
+          o.id !== survivorId && o.homeId === buildingId && o.health > 0,
+        ).length;
+        if (realOccupants >= cap) {
+          toast.warning(`Home is full (${realOccupants}/${cap})`);
           return s;
         }
-        buildings = buildings.map(b => b.id === buildingId ? { ...b, occupantIds: [...b.occupantIds, s.id] } : b);
+        buildings = buildings.map(b => b.id === buildingId ? { ...b, occupantIds: [...b.occupantIds.filter(id => id !== s.id), s.id] } : b);
         const prevKind = s.lastHomeKind ?? null;
         const prevQ = prevKind ? (BUILDINGS[prevKind]?.housingQuality ?? 0) : 0;
         const newQ = BUILDINGS[tgt.kind]?.housingQuality ?? 0;
@@ -683,6 +712,40 @@ export const useGame = create<GameState>((set, get) => ({
       ),
     });
   },
+
+  demolishBuilding: (buildingId) => {
+    const st = get();
+    const b = st.buildings.find(x => x.id === buildingId);
+    if (!b) return;
+    if (b.kind === "homestead") {
+      toast.error("The homestead cannot be demolished.");
+      return;
+    }
+    // Refund half the building's cost (rounded down).
+    const def = BUILDINGS[b.kind];
+    const refund = { ...st.resources };
+    for (const [r, amt] of Object.entries(def.cost ?? {})) {
+      const half = Math.floor((amt ?? 0) * 0.5);
+      (refund as any)[r] = ((refund as any)[r] ?? 0) + half;
+    }
+    // Unhouse any occupants; clear any worker/farmer/builder references.
+    const survivors = st.survivors.map(s => {
+      let next = s;
+      if (s.homeId === buildingId) next = { ...next, homeId: null };
+      if (s.workTarget?.kind === "building" && s.workTarget.id === buildingId) {
+        next = { ...next, workTarget: null, commitment: null };
+      }
+      return next;
+    });
+    set({
+      buildings: st.buildings.filter(x => x.id !== buildingId),
+      resources: refund,
+      survivors,
+      selection: { kind: "none" },
+    });
+    toast(`${def.name} demolished.`);
+  },
+
 
   autoAssignHomeless: () => {
     const st = get();
@@ -1803,20 +1866,22 @@ export const useGame = create<GameState>((set, get) => ({
     // approve
     let buildings = st.buildings;
     let animals = st.animals;
+    // For start-raising, place a pen if the family doesn't already have one,
+    // so the coop is actually visible on the map alongside the animals.
     if (req.kind === "start-raising") {
-      // Gift a starter pair into any existing pen of theirs, or unhoused.
-      const pen = buildings.find(b =>
+      const existingPen = buildings.find(b =>
         b.builtProgress >= 1 && b.kind === SPECIES_BUILDING[req.species] &&
-        (b.livestockOwnerFamilyId === fam?.id || b.livestockOwnerFamilyId == null),
+        b.livestockOwnerFamilyId === fam?.id,
       );
-      const penId = pen?.id ?? null;
-      const newAnimals: Animal[] = [
-        makeAnimal(req.species, "f", req.familyId, penId, st.time.tick, 40),
-        makeAnimal(req.species, "m", req.familyId, penId, st.time.tick, 40),
-      ];
-      animals = [...animals, ...newAnimals];
-      if (pen && !pen.livestockOwnerFamilyId) {
-        buildings = buildings.map(b => b.id === pen.id ? { ...b, livestockOwnerFamilyId: req.familyId } : b);
+      if (!existingPen) {
+        // fall through to pen placement below by treating as build-pen
+        req.kind = "build-pen";
+      } else {
+        const newAnimals: Animal[] = [
+          makeAnimal(req.species, "f", req.familyId, existingPen.id, st.time.tick, 40),
+          makeAnimal(req.species, "m", req.familyId, existingPen.id, st.time.tick, 40),
+        ];
+        animals = [...animals, ...newAnimals];
       }
     }
     if (req.kind === "build-pen" || req.kind === "expand") {

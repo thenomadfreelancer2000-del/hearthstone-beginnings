@@ -26,10 +26,15 @@ const RES_ORDER: { key: keyof ReturnType<typeof useGame.getState>["resources"]; 
 
 function ResourcesPopover({ onClose }: { onClose: () => void }) {
   const resources = useGame((s) => s.resources);
+  const time = useGame((s) => s.time);
   return (
     <>
       <div className="fixed inset-0 z-30" onClick={onClose} />
       <div className="absolute top-full left-2 mt-1 z-40 parchment-panel-warm corner-brackets p-2 shadow-2xl min-w-[180px]">
+        <div className="ranch-label text-[9px] text-amber mb-1">
+          {SEASON_LABEL[time.season]} · Day {time.day} · Year {time.year}
+        </div>
+        <div className="divider-amber my-1" />
         <div className="ranch-label text-[9px] text-amber mb-1">Stockpile</div>
         <ul className="grid grid-cols-2 gap-x-3 gap-y-0.5">
           {RES_ORDER.map((r) => (

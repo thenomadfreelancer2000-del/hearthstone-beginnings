@@ -385,6 +385,18 @@ export function Inspector({ onHide }: { onHide?: () => void } = {}) {
           {def.storageCapacity > 0 && <div>Storage capacity {def.storageCapacity}</div>}
           {def.produces && <div>Produces {def.produces.perDay} {def.produces.resource}/day</div>}
         </div>
+        {b.kind !== "homestead" && (
+          <button
+            onClick={() => {
+              if (typeof window === "undefined" || window.confirm(`Demolish ${def.name}? Half the materials will be returned.`)) {
+                useGame.getState().demolishBuilding(b.id);
+              }
+            }}
+            className="btn-ranch btn-ranch-ghost w-full text-[10px] mt-3 text-danger border-danger/40 hover:bg-danger/10"
+          >
+            Demolish
+          </button>
+        )}
       </aside>
     );
   }
