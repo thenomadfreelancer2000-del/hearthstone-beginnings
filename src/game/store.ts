@@ -24,7 +24,7 @@ import { saveToLocal, loadFromLocal } from "./persistence";
 import { makeRng } from "./sim/rng";
 import { normalizeConstructionBuilding } from "./sim/construction";
 import { CROPS, STARTER_CROP_IDS, isCropId, type CropId } from "./data/crops";
-import { findBestHome as findBestHomeFor, homeCapacity } from "./sim/housing";
+import { findBestHome as findBestHomeFor, homeCapacity, isResidential } from "./sim/housing";
 import { getPortrait } from "./data/portraits";
 import { TRAIT_INFO, traitRefugeeBias } from "./data/traits";
 import { computeFounderEpithet, founderDeathTitle, founderDeathBody } from "./sim/legacy";
