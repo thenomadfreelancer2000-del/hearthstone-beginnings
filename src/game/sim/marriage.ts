@@ -9,6 +9,17 @@ import { chance } from "./rng";
 import { findRelationship, markAsSpouses } from "./ai";
 import { headOfFamily } from "./families";
 import { addChronicle, emitMemory, assignSpousesToShared, type Engine } from "./engine";
+import { isResidential, homeCapacity } from "./housing";
+
+/** True if either spouse has a home, or any vacant residence is available. */
+function hasHomeFor(eng: Engine, a: Survivor, b: Survivor): boolean {
+  if (a.homeId || b.homeId) return true;
+  for (const bld of eng.buildings) {
+    if (!isResidential(bld.kind) || bld.builtProgress < 1) continue;
+    if ((bld.occupantIds?.length ?? 0) < homeCapacity(bld)) return true;
+  }
+  return false;
+}
 
 // ── Helpers ─────────────────────────────────────────────────────
 
