@@ -236,27 +236,20 @@ export function autoAssignWorkers(deps: {
     const targetOcc = ROLE_OCCUPATION[m.role];
     const skillKey = ROLE_SKILL[m.role];
 
-    // Pool: idle adults first, then other generic occupations (forager / woodcutter /
-    // hauler / miner) — never poach another manager, the founder, or a leader.
+    // Pool: ONLY idle adults. Managers never poach survivors already assigned
+    // by the leader (or another manager) to a specific job. The founder, the
+    // current leader, other ministers, and anyone with a node/building work
+    // target are off-limits.
     const takenIds = new Set(deps.ministers.map((x) => x.survivorId));
     const candidates = deps.survivors.filter((s) =>
       s.health > 0 &&
       (s.stage === "adult" || s.stage === "youth" || s.stage === "elder") &&
       s.id !== deps.founderId &&
       !takenIds.has(s.id) &&
-      s.occupation !== targetOcc &&
-      s.occupation !== "leader",
+      s.occupation === "idle" &&
+      !s.workTarget,
     );
-    // priority: idle > forager > hauler > woodcutter > miner; tiebreak by skill
-    const rank = (s: Survivor): number =>
-      s.occupation === "idle" ? 0 :
-      s.occupation === "forager" ? 1 :
-      s.occupation === "hauler" ? 2 :
-      s.occupation === "woodcutter" ? 3 :
-      s.occupation === "miner" ? 4 : 5;
     candidates.sort((a, b) => {
-      const r = rank(a) - rank(b);
-      if (r !== 0) return r;
       const sa = ((a.skills as any)[skillKey]) ?? 1;
       const sb = ((b.skills as any)[skillKey]) ?? 1;
       return sb - sa;
