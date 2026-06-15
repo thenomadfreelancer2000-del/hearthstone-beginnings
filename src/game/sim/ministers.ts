@@ -174,16 +174,6 @@ export function dailyMinistersTick(deps: {
 
 
 
-function gapReason(role: MinisterRole, gap: number): string {
-  const ppl = gap === 1 ? "an extra worker" : `${gap} more workers`;
-  switch (role) {
-    case "head-farmer": return `Fields are falling behind — I need ${ppl}.`;
-    case "head-builder": return `Construction is slipping. I need ${ppl}.`;
-    case "head-rancher": return `The herds are not getting the care they need. I need ${ppl}.`;
-    case "quartermaster": return `Stockpiles are not moving. I need ${ppl}.`;
-    default: return `I need ${ppl}.`;
-  }
-}
 
 function composeReport(role: MinisterRole, dept: DepartmentStatus, sat: number): string {
   const status = dept.status === "understaffed"
