@@ -591,6 +591,10 @@ export const useGame = create<GameState>((set, get) => ({
       "water-collector": "hauler",
       "stockpile": "hauler",
       "watchtower": "idle",
+      "chicken-coop": "rancher",
+      "goat-pen": "rancher",
+      "sheep-pen": "rancher",
+      "cattle-pasture": "rancher",
     };
     const occ = occMap[b.kind];
     set({
