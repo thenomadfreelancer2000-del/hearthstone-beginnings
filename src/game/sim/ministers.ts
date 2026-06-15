@@ -154,9 +154,42 @@ export function dailyMinistersTick(deps: {
       s.loyaltyToFounder = Math.max(-100, Math.min(100, s.loyaltyToFounder + delta));
     }
 
-    // Managers now silently fill their departments (see autoAssignWorkers).
-    // We no longer generate Founder-facing worker requests for staffing.
-    void gapReason; // kept for any future opt-in request flows
+    // Managers fill their own ranks silently (autoAssignWorkers) and step in
+    // personally when short-staffed. When the gap is too large to cover even
+    // with the manager working, raise a staffing request to the Founder —
+    // throttled so we don't spam (one open request per role, 5-day cooldown).
+    const idleAvailable = deps.survivors.filter((s) =>
+      s.health > 0 &&
+      (s.stage === "adult" || s.stage === "youth" || s.stage === "elder") &&
+      s.id !== deps.founderId &&
+      s.occupation === "idle" &&
+      !s.workTarget,
+    ).length;
+    const uncoveredGap = Math.max(0, dept.needed - dept.assigned - idleAvailable);
+    const hasOpen = deps.ministerRequests.some(
+      (r) => r.ministerId === m.id && r.status === "pending",
+    );
+    const cooledDown = m.lastRequestTick == null ||
+      deps.time.tick - m.lastRequestTick >= TICKS_PER_DAY * 5;
+    if (uncoveredGap >= 1 && !hasOpen && cooledDown) {
+      m.lastRequestTick = deps.time.tick;
+      const req: MinisterRequest = {
+        id: nanoid(8),
+        ministerId: m.id,
+        role: m.role,
+        survivorId: m.survivorId,
+        requestedWorkers: uncoveredGap,
+        approvedWorkers: 0,
+        createdTick: deps.time.tick,
+        createdYear: deps.time.year,
+        status: "pending",
+        reason: gapReason(m.role, uncoveredGap),
+      };
+      deps.ministerRequests.unshift(req);
+      while (deps.ministerRequests.length > 50) deps.ministerRequests.pop();
+    }
+
+
 
 
     // Periodic reports (~ every 30 days)
@@ -210,9 +243,19 @@ function composeReport(role: MinisterRole, dept: DepartmentStatus, sat: number):
 }
 
 /**
- * Managers are autonomous: each day they pull idle (or otherwise available)
- * survivors into their department until staffing matches the calculated need.
- * The Founder is never consulted — managers act on their own authority.
+ * Managers are autonomous: each day they pull idle survivors into their
+ * department until staffing matches need, and personally step into labor
+ * whenever a gap remains. The Founder is never consulted for staffing — but
+ * if the Founder *is* the manager, they roll up their sleeves too.
+ *
+ * Rules:
+ *  - Only idle adults (no workTarget) are recruited. Survivors already
+ *    assigned by the Founder or another minister are off-limits.
+ *  - If the gap survives recruitment, the manager themselves takes the
+ *    department occupation (Head Farmer → farmer, etc.) so the department
+ *    never stalls when labor is scarce.
+ *  - When the department is fully staffed by others, the manager returns to
+ *    supervision (occupation = idle / leader) unless the player overrode them.
  */
 export function autoAssignWorkers(deps: {
   ministers: Minister[];
@@ -221,51 +264,75 @@ export function autoAssignWorkers(deps: {
   animals: Animal[];
   founderId: ID;
 }) {
-  const departments = computeDepartments({
-    survivors: deps.survivors,
-    buildings: deps.buildings,
-    animals: deps.animals,
-  });
-  const depByRole = new Map(departments.map((d) => [d.role, d] as const));
+  const depByRole = new Map(
+    computeDepartments({
+      survivors: deps.survivors,
+      buildings: deps.buildings,
+      animals: deps.animals,
+    }).map((d) => [d.role, d] as const),
+  );
 
   for (const m of deps.ministers) {
     const dept = depByRole.get(m.role);
     if (!dept) continue;
-    const gap = dept.needed - dept.assigned;
-    if (gap <= 0) continue;
     const targetOcc = ROLE_OCCUPATION[m.role];
     const skillKey = ROLE_SKILL[m.role];
+    const minS = deps.survivors.find((s) => s.id === m.survivorId);
 
-    // Pool: ONLY idle adults. Managers never poach survivors already assigned
-    // by the leader (or another manager) to a specific job. The founder, the
-    // current leader, other ministers, and anyone with a node/building work
-    // target are off-limits.
-    const takenIds = new Set(deps.ministers.map((x) => x.survivorId));
-    const candidates = deps.survivors.filter((s) =>
-      s.health > 0 &&
-      (s.stage === "adult" || s.stage === "youth" || s.stage === "elder") &&
-      s.id !== deps.founderId &&
-      !takenIds.has(s.id) &&
-      s.occupation === "idle" &&
-      !s.workTarget,
-    );
-    candidates.sort((a, b) => {
-      const sa = ((a.skills as any)[skillKey]) ?? 1;
-      const sb = ((b.skills as any)[skillKey]) ?? 1;
-      return sb - sa;
-    });
-    const pick = candidates.slice(0, gap);
-    for (const s of pick) {
-      s.occupation = targetOcc;
-    }
-    if (pick.length > 0) {
-      m.satisfaction = Math.min(100, m.satisfaction + 2 * pick.length);
+    // Count workers in this department *excluding* the manager themselves —
+    // we want to know whether the team can stand on its own.
+    const teamSize = deps.survivors.filter(
+      (s) => s.health > 0 && s.occupation === targetOcc && s.id !== m.survivorId,
+    ).length;
+    let gap = Math.max(0, dept.needed - teamSize);
+
+    if (gap > 0) {
+      // Pool: ONLY idle adults with no work target. Never poach assigned workers.
+      const takenIds = new Set(deps.ministers.map((x) => x.survivorId));
+      const candidates = deps.survivors.filter((s) =>
+        s.health > 0 &&
+        (s.stage === "adult" || s.stage === "youth" || s.stage === "elder") &&
+        s.id !== deps.founderId &&
+        !takenIds.has(s.id) &&
+        s.occupation === "idle" &&
+        !s.workTarget,
+      );
+      candidates.sort((a, b) => {
+        const sa = ((a.skills as any)[skillKey]) ?? 1;
+        const sb = ((b.skills as any)[skillKey]) ?? 1;
+        return sb - sa;
+      });
+      const pick = candidates.slice(0, gap);
+      for (const s of pick) s.occupation = targetOcc;
+      gap -= pick.length;
+      if (pick.length > 0) {
+        m.satisfaction = Math.min(100, m.satisfaction + 2 * pick.length);
+      }
     }
 
-    // Managers also stick their hands to specific stations so production starts.
+    // Manager self-work: if labor is still short, the manager personally rolls
+    // into the field/site/pen. This applies even to the Founder if they hold a
+    // ministerial post. When the team is large enough, hand the work back and
+    // return to supervision.
+    if (minS && minS.health > 0) {
+      const supervisionOcc: Survivor["occupation"] = minS.isFounder ? "leader" : "idle";
+      if (gap > 0) {
+        if (minS.occupation !== targetOcc) {
+          minS.occupation = targetOcc;
+        }
+      } else if (minS.occupation === targetOcc) {
+        // Department is covered without the manager — return to supervision,
+        // but only if the manager isn't currently locked into an active task
+        // (mid-construction, mid-haul). Clearing here avoids yanking them
+        // mid-action; the AI loop will re-evaluate next tick.
+        if (!minS.workTarget) minS.occupation = supervisionOcc;
+      }
+    }
+
+    // Managers also stick hands to specific stations so production starts.
     if (m.role === "head-farmer") {
       const farmers = deps.survivors.filter(
-        (s) => s.health > 0 && s.occupation === "farmer" && s.id !== deps.founderId,
+        (s) => s.health > 0 && s.occupation === "farmer",
       );
       const taken = new Set(
         deps.buildings
@@ -283,7 +350,7 @@ export function autoAssignWorkers(deps: {
     }
     if (m.role === "head-rancher") {
       const ranchers = deps.survivors.filter(
-        (s) => s.health > 0 && s.occupation === "rancher" && s.id !== deps.founderId,
+        (s) => s.health > 0 && s.occupation === "rancher",
       );
       const taken = new Set(
         deps.buildings.filter((b) => b.assignedWorkerId).map((b) => b.assignedWorkerId!),
