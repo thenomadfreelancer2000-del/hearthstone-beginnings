@@ -140,59 +140,18 @@ export function dailyMinistersTick(deps: {
     if (!dept) continue;
     const ratio = dept.needed > 0 ? Math.min(2, dept.assigned / dept.needed) : 1;
     const target = Math.max(0, Math.min(100, Math.round(ratio * 60 + 20)));
-    // drift toward target
     m.satisfaction = m.satisfaction + Math.sign(target - m.satisfaction)
       * Math.min(1.2, Math.abs(target - m.satisfaction) * 0.15);
-
-    // chronic understaffing nudges satisfaction down faster
     if (dept.status === "understaffed") m.satisfaction = Math.max(0, m.satisfaction - 0.4);
 
-    // Apply opinion swing to the minister survivor
     const s = deps.survivors.find((x) => x.id === m.survivorId);
     if (s) {
       const delta = (m.satisfaction - 50) / 50 * 0.25;
       s.loyaltyToFounder = Math.max(-100, Math.min(100, s.loyaltyToFounder + delta));
     }
 
-    // Managers fill their own ranks silently (autoAssignWorkers) and step in
-    // personally when short-staffed. When the gap is too large to cover even
-    // with the manager working, raise a staffing request to the Founder —
-    // throttled so we don't spam (one open request per role, 5-day cooldown).
-    const idleAvailable = deps.survivors.filter((s) =>
-      s.health > 0 &&
-      (s.stage === "adult" || s.stage === "youth" || s.stage === "elder") &&
-      s.id !== deps.founderId &&
-      s.occupation === "idle" &&
-      !s.workTarget,
-    ).length;
-    const uncoveredGap = Math.max(0, dept.needed - dept.assigned - idleAvailable);
-    const hasOpen = deps.ministerRequests.some(
-      (r) => r.ministerId === m.id && r.status === "pending",
-    );
-    const cooledDown = m.lastRequestTick == null ||
-      deps.time.tick - m.lastRequestTick >= TICKS_PER_DAY * 5;
-    if (uncoveredGap >= 1 && !hasOpen && cooledDown) {
-      m.lastRequestTick = deps.time.tick;
-      const req: MinisterRequest = {
-        id: nanoid(8),
-        ministerId: m.id,
-        role: m.role,
-        survivorId: m.survivorId,
-        requestedWorkers: uncoveredGap,
-        approvedWorkers: 0,
-        createdTick: deps.time.tick,
-        createdYear: deps.time.year,
-        status: "pending",
-        reason: gapReason(m.role, uncoveredGap),
-      };
-      deps.ministerRequests.unshift(req);
-      while (deps.ministerRequests.length > 50) deps.ministerRequests.pop();
-    }
-
-
-
-
-    // Periodic reports (~ every 30 days)
+    // Periodic reports (~ every 30 days). No staffing requests — managers
+    // handle their own labor (see autoAssignWorkers).
     if (m.lastReportTick == null || deps.time.tick - m.lastReportTick >= TICKS_PER_DAY * 30) {
       m.lastReportTick = deps.time.tick;
       const report: MinisterReport = {
@@ -212,6 +171,8 @@ export function dailyMinistersTick(deps: {
     }
   }
 }
+
+
 
 function gapReason(role: MinisterRole, gap: number): string {
   const ppl = gap === 1 ? "an extra worker" : `${gap} more workers`;
