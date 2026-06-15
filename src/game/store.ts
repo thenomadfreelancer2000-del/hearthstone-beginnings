@@ -1866,20 +1866,22 @@ export const useGame = create<GameState>((set, get) => ({
     // approve
     let buildings = st.buildings;
     let animals = st.animals;
+    // For start-raising, place a pen if the family doesn't already have one,
+    // so the coop is actually visible on the map alongside the animals.
     if (req.kind === "start-raising") {
-      // Gift a starter pair into any existing pen of theirs, or unhoused.
-      const pen = buildings.find(b =>
+      const existingPen = buildings.find(b =>
         b.builtProgress >= 1 && b.kind === SPECIES_BUILDING[req.species] &&
-        (b.livestockOwnerFamilyId === fam?.id || b.livestockOwnerFamilyId == null),
+        b.livestockOwnerFamilyId === fam?.id,
       );
-      const penId = pen?.id ?? null;
-      const newAnimals: Animal[] = [
-        makeAnimal(req.species, "f", req.familyId, penId, st.time.tick, 40),
-        makeAnimal(req.species, "m", req.familyId, penId, st.time.tick, 40),
-      ];
-      animals = [...animals, ...newAnimals];
-      if (pen && !pen.livestockOwnerFamilyId) {
-        buildings = buildings.map(b => b.id === pen.id ? { ...b, livestockOwnerFamilyId: req.familyId } : b);
+      if (!existingPen) {
+        // fall through to pen placement below by treating as build-pen
+        req.kind = "build-pen";
+      } else {
+        const newAnimals: Animal[] = [
+          makeAnimal(req.species, "f", req.familyId, existingPen.id, st.time.tick, 40),
+          makeAnimal(req.species, "m", req.familyId, existingPen.id, st.time.tick, 40),
+        ];
+        animals = [...animals, ...newAnimals];
       }
     }
     if (req.kind === "build-pen" || req.kind === "expand") {
