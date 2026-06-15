@@ -1565,7 +1565,9 @@ export const useGame = create<GameState>((set, get) => ({
         ...s.memories,
       ],
     }))];
+    // Pass 1 — assign adults first so children can follow a parent.
     for (const s of ev.survivors) {
+      if (s.stage === "child" || s.stage === "teen") continue;
       const fresh = allSurvivors.find(x => x.id === s.id);
       if (!fresh) continue;
       const home = findBestHomeFor(fresh, buildings, allSurvivors);
@@ -1573,6 +1575,26 @@ export const useGame = create<GameState>((set, get) => ({
         fresh.homeId = home.id;
         fresh.lastHomeKind = home.kind;
         home.occupantIds.push(fresh.id);
+      }
+    }
+    // Pass 2 — children/teens always move in with a parent if one has a home,
+    // even if it means the home is over capacity. Family stays together.
+    for (const s of ev.survivors) {
+      if (s.stage !== "child" && s.stage !== "teen") continue;
+      const fresh = allSurvivors.find(x => x.id === s.id);
+      if (!fresh) continue;
+      let parentHomeId: string | null = null;
+      for (const pid of fresh.parentIds) {
+        const p = allSurvivors.find(x => x.id === pid);
+        if (p?.homeId) { parentHomeId = p.homeId; break; }
+      }
+      const home = parentHomeId
+        ? buildings.find(b => b.id === parentHomeId)
+        : findBestHomeFor(fresh, buildings, allSurvivors);
+      if (home) {
+        fresh.homeId = home.id;
+        fresh.lastHomeKind = home.kind;
+        if (!home.occupantIds.includes(fresh.id)) home.occupantIds.push(fresh.id);
       }
     }
     set({
