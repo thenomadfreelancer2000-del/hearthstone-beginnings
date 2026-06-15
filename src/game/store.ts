@@ -653,55 +653,98 @@ export const useGame = create<GameState>((set, get) => ({
 
   assignSurvivorToHome: (survivorId, buildingId) => {
     const st = get();
-    let buildings = st.buildings;
+    const survivor = st.survivors.find(s => s.id === survivorId);
+    if (!survivor) {
+      console.warn("[housing] assignSurvivorToHome: survivor not found", survivorId);
+      return;
+    }
+    const prev = survivor.homeId;
+    if (prev === buildingId) return; // no-op
+
+    // ── Validate target BEFORE mutating anything ──────────────────
+    let target: Building | null = null;
+    if (buildingId) {
+      target = st.buildings.find(b => b.id === buildingId) ?? null;
+      if (!target) {
+        console.warn("[housing] target building not found", buildingId);
+        toast.error("That home no longer exists.");
+        return;
+      }
+      if (!isResidential(target.kind)) {
+        toast.error("Not a residential building.");
+        return;
+      }
+      if (target.builtProgress < 1) {
+        toast.warning("Home is still under construction.");
+        return;
+      }
+      const cap = BUILDINGS[target.kind]?.housingCapacity ?? 0;
+      // Authoritative count: actual survivors whose homeId === target (excluding the mover).
+      const realOccupants = st.survivors.filter(o =>
+        o.id !== survivorId && o.homeId === buildingId && o.health > 0,
+      ).length;
+      if (realOccupants >= cap) {
+        toast.warning(`Home is full (${realOccupants}/${cap})`);
+        return;
+      }
+    }
+
+    // ── Apply atomically: rebuild survivors + rebuild ALL occupantIds from homeIds ──
     const survivors = st.survivors.map(s => {
       if (s.id !== survivorId) return s;
-      const prev = s.homeId;
-      if (prev === buildingId) return s;
-      // remove from old
-      if (prev) {
-        buildings = buildings.map(b => b.id === prev ? { ...b, occupantIds: b.occupantIds.filter(id => id !== s.id) } : b);
+      if (!buildingId || !target) {
+        return { ...s, homeId: null };
       }
-      // add to new — capacity check uses authoritative homeId counts (not stale occupantIds)
-      if (buildingId) {
-        const tgt = buildings.find(b => b.id === buildingId);
-        if (!tgt) return s;
-        const cap = BUILDINGS[tgt.kind]?.housingCapacity ?? 0;
-        const realOccupants = st.survivors.filter(o =>
-          o.id !== survivorId && o.homeId === buildingId && o.health > 0,
-        ).length;
-        if (realOccupants >= cap) {
-          toast.warning(`Home is full (${realOccupants}/${cap})`);
-          return s;
-        }
-        buildings = buildings.map(b => b.id === buildingId ? { ...b, occupantIds: [...b.occupantIds.filter(id => id !== s.id), s.id] } : b);
-        const prevKind = s.lastHomeKind ?? null;
-        const prevQ = prevKind ? (BUILDINGS[prevKind]?.housingQuality ?? 0) : 0;
-        const newQ = BUILDINGS[tgt.kind]?.housingQuality ?? 0;
-        const upgraded = newQ > prevQ;
-        const downgraded = newQ < prevQ && !!prevKind;
-        const newMemory = upgraded
-          ? { id: nanoid(6), tick: st.time.tick, year: st.time.year, season: st.time.season, day: st.time.day,
-              text: `The Founder gave us a ${BUILDINGS[tgt.kind]?.name ?? tgt.kind}.`,
-              emotion: "trust" as const, weight: 55, aboutSurvivorId: st.currentLeaderId,
-              kind: "housing-upgrade", floor: 12, decayRate: 0.4 }
-          : downgraded
-          ? { id: nanoid(6), tick: st.time.tick, year: st.time.year, season: st.time.season, day: st.time.day,
-              text: `Moved from our ${BUILDINGS[prevKind!]?.name ?? prevKind} to a ${BUILDINGS[tgt.kind]?.name ?? tgt.kind}.`,
-              emotion: "anger" as const, weight: 60, aboutSurvivorId: st.currentLeaderId,
-              kind: "housing-downgrade", floor: 20, decayRate: 0.3 }
-          : null;
-        return {
-          ...s,
-          homeId: buildingId,
-          lastHomeKind: tgt.kind,
-          housingGratitude: upgraded ? (s.housingGratitude ?? 0) + 10 : (s.housingGratitude ?? 0),
-          memories: newMemory ? [newMemory, ...s.memories].slice(0, 64) : s.memories,
-        };
-      }
-      return { ...s, homeId: null };
+      const prevKind = s.lastHomeKind ?? null;
+      const prevQ = prevKind ? (BUILDINGS[prevKind]?.housingQuality ?? 0) : 0;
+      const newQ = BUILDINGS[target.kind]?.housingQuality ?? 0;
+      const upgraded = newQ > prevQ;
+      const downgraded = newQ < prevQ && !!prevKind;
+      const newMemory = upgraded
+        ? { id: nanoid(6), tick: st.time.tick, year: st.time.year, season: st.time.season, day: st.time.day,
+            text: `The Founder gave us a ${BUILDINGS[target.kind]?.name ?? target.kind}.`,
+            emotion: "trust" as const, weight: 55, aboutSurvivorId: st.currentLeaderId,
+            kind: "housing-upgrade", floor: 12, decayRate: 0.4 }
+        : downgraded
+        ? { id: nanoid(6), tick: st.time.tick, year: st.time.year, season: st.time.season, day: st.time.day,
+            text: `Moved from our ${BUILDINGS[prevKind!]?.name ?? prevKind} to a ${BUILDINGS[target.kind]?.name ?? target.kind}.`,
+            emotion: "anger" as const, weight: 60, aboutSurvivorId: st.currentLeaderId,
+            kind: "housing-downgrade", floor: 20, decayRate: 0.3 }
+        : null;
+      return {
+        ...s,
+        homeId: buildingId,
+        lastHomeKind: target.kind,
+        housingGratitude: upgraded ? (s.housingGratitude ?? 0) + 10 : (s.housingGratitude ?? 0),
+        memories: newMemory ? [newMemory, ...s.memories].slice(0, 64) : s.memories,
+      };
     });
+
+    // Rebuild every building's occupantIds from the canonical survivor.homeId.
+    // This guarantees occupantIds is always perfectly in sync after an assignment.
+    const occByHome = new Map<string, string[]>();
+    for (const s of survivors) {
+      if (s.health <= 0 || !s.homeId) continue;
+      const arr = occByHome.get(s.homeId) ?? [];
+      arr.push(s.id);
+      occByHome.set(s.homeId, arr);
+    }
+    const buildings = st.buildings.map(b =>
+      isResidential(b.kind)
+        ? { ...b, occupantIds: occByHome.get(b.id) ?? [] }
+        : b,
+    );
+
     set({ buildings, survivors });
+    const movedSurv = survivors.find(s => s.id === survivorId)!;
+    if (buildingId && target) {
+      console.log("[housing] assigned", movedSurv.name, "→", target.kind, target.id,
+        `occ ${(occByHome.get(buildingId) ?? []).length}/${BUILDINGS[target.kind]?.housingCapacity ?? 0}`);
+      toast.success(`${movedSurv.name} moved into ${BUILDINGS[target.kind]?.name ?? target.kind}.`);
+    } else {
+      console.log("[housing] cleared home for", movedSurv.name);
+      toast(`${movedSurv.name} left their home.`);
+    }
   },
 
   setHomeReserved: (buildingId, reserved) => {
