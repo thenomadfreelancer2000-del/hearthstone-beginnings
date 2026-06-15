@@ -188,7 +188,8 @@ export function resolveProposalsDaily(eng: Engine, rng: () => number) {
     if (!a || !b || a.health <= 0 || b.health <= 0 || a.spouseId || b.spouseId) continue;
 
     if (p.status === "approved") {
-      // Honor approved proposal — marry now.
+      // Wait for a home before holding the wedding.
+      if (!hasHomeFor(eng, a, b)) { survive.push(p); continue; }
       marryPair(eng, a, b, p);
       continue;
     }
@@ -203,6 +204,12 @@ export function resolveProposalsDaily(eng: Engine, rng: () => number) {
     const attractionNorm = p.attraction / 100;
     const score = compatNorm * 0.35 + approveNorm * 0.4 + attractionNorm * 0.25;
     if (score > 0.55 && chance(rng, 0.6)) {
+      if (!hasHomeFor(eng, a, b)) {
+        // Council-approved internally, but no shelter — wait for one.
+        p.status = "approved";
+        survive.push(p);
+        continue;
+      }
       marryPair(eng, a, b, p);
       continue;
     }
