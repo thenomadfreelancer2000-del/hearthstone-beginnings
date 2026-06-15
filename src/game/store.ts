@@ -1331,9 +1331,9 @@ export const useGame = create<GameState>((set, get) => ({
         const alive = eng.survivors.filter(s => s.health > 0).length;
         // base probability per cadence: lower than before, capped by pop
         const reputationMod = st.reputation * 0.002;
-        const popMod = -Math.min(0.35, alive * 0.025);
+        const popMod = -Math.min(0.20, alive * 0.015);
         const moodMod = eng.stats.morale > 0 ? 0.05 : -0.05;
-        const p = Math.max(0.05, 0.315 + reputationMod + popMod + moodMod);
+        const p = Math.max(0.18, 0.35 + reputationMod + popMod + moodMod);
         if (h && Math.random() < p) {
           const around = { x: h.x + h.w / 2, y: h.y + h.h / 2 };
           pendingArrival = generateArrival(rng, newTick, eng.time.year, around);
