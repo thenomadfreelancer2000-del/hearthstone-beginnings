@@ -2065,6 +2065,7 @@ export const useGame = create<GameState>((set, get) => ({
         s.id === survivorId
           ? {
               ...s,
+              occupation: ROLE_OCCUPATION[role],
               loyaltyToFounder: Math.min(100, s.loyaltyToFounder + 10),
               mood: Math.min(100, s.mood + 6),
               memories: [{
@@ -2078,6 +2079,7 @@ export const useGame = create<GameState>((set, get) => ({
             }
           : s,
       ),
+
     });
     toast.success(`${survivor.name} ${survivor.surname} appointed.`);
   },
