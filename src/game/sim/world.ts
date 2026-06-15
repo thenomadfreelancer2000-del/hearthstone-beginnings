@@ -402,8 +402,10 @@ export function generateArrival(
   const stub = makeWanderer(rng, around, bornTick, year);
   const family = makeWandererFamily(stub, year);
   family.memberIds = []; // clear stub; we add real survivors below
-  // shared surname for households
+  // shared surname for households — also rename the family so the House
+  // matches the surname the player sees on each newcomer.
   const sharedSurname = pick(rng, SURNAMES);
+  family.name = sharedSurname;
 
   const pushAdult = (i: number, gender?: "m" | "f") => {
     const s = makeWanderer(rng, spawnAround(rng, around, i), bornTick, year);
