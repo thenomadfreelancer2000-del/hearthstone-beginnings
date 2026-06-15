@@ -80,7 +80,7 @@ export function Inspector({ onHide }: { onHide?: () => void } = {}) {
         )}
         <p className="ranch-handwritten text-sm mt-1">
           {s.isFounder ? "★ Founder · " : isLeader ? "◆ Leader · " : ""}
-          {lifeStageLabel(s)} · {cap(s.background)} · age {Math.floor(s.age)}
+          {lifeStageLabel(s)} <span className="text-amber">({s.gender === "m" ? "M" : "F"})</span> · {cap(s.background)} · age {Math.floor(s.age)}
           {isDead && <span className="text-danger"> · Deceased Y{s.deathYear}</span>}
         </p>
         {fam && (
