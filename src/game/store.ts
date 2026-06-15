@@ -148,6 +148,7 @@ interface GameState {
   assignSurvivorToHome: (survivorId: ID, buildingId: ID | null) => void;
   setHomeReserved: (buildingId: ID, reserved: boolean) => void;
   autoAssignHomeless: () => void;
+  demolishBuilding: (buildingId: ID) => void;
   setPreferredHeir: (id: ID | null) => void;
   setEducationFocus: (childId: ID, focus: "build" | "farm" | "lead" | "social" | "medic" | null) => void;
   newGame: (ranchName: string, founderInput: FounderInput) => void;
