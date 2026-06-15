@@ -662,16 +662,19 @@ export const useGame = create<GameState>((set, get) => ({
       if (prev) {
         buildings = buildings.map(b => b.id === prev ? { ...b, occupantIds: b.occupantIds.filter(id => id !== s.id) } : b);
       }
-      // add to new (capacity check)
+      // add to new — capacity check uses authoritative homeId counts (not stale occupantIds)
       if (buildingId) {
         const tgt = buildings.find(b => b.id === buildingId);
         if (!tgt) return s;
         const cap = BUILDINGS[tgt.kind]?.housingCapacity ?? 0;
-        if ((tgt.occupantIds?.length ?? 0) >= cap) {
-          toast.warning("Home is full");
+        const realOccupants = st.survivors.filter(o =>
+          o.id !== survivorId && o.homeId === buildingId && o.health > 0,
+        ).length;
+        if (realOccupants >= cap) {
+          toast.warning(`Home is full (${realOccupants}/${cap})`);
           return s;
         }
-        buildings = buildings.map(b => b.id === buildingId ? { ...b, occupantIds: [...b.occupantIds, s.id] } : b);
+        buildings = buildings.map(b => b.id === buildingId ? { ...b, occupantIds: [...b.occupantIds.filter(id => id !== s.id), s.id] } : b);
         const prevKind = s.lastHomeKind ?? null;
         const prevQ = prevKind ? (BUILDINGS[prevKind]?.housingQuality ?? 0) : 0;
         const newQ = BUILDINGS[tgt.kind]?.housingQuality ?? 0;
