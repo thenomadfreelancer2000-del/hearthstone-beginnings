@@ -7,13 +7,16 @@ export function FactionsPanel({ onClose }: { onClose: () => void }) {
   const survivors = useGame((s) => s.survivors);
   const families = useGame((s) => s.families);
   const laws = useGame((s) => s.laws);
+  const hasHeldFirstCouncil = useGame((s) => s.hasHeldFirstCouncil);
 
   const view = useMemo(
     () => computeFactions(survivors, families, laws),
     [survivors, families, laws],
   );
 
-  const active = view.factions.filter((f) => f.members + f.sympathizers > 0);
+  const active = hasHeldFirstCouncil
+    ? view.factions.filter((f) => f.members + f.sympathizers > 0)
+    : [];
 
   return (
     <div className="absolute inset-0 z-50 bg-black/60 flex items-stretch justify-end">
