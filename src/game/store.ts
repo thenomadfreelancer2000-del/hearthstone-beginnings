@@ -483,6 +483,9 @@ export const useGame = create<GameState>((set, get) => ({
       buildings: st.buildings.map(b =>
         b.id === buildingId ? { ...b, assignedBuilderId: survivorId } : b
       ),
+      survivors: survivorId
+        ? st.survivors.map(s => s.id === survivorId ? { ...s, occupation: "builder" as const } : s)
+        : st.survivors,
       pendingBuildAssignment: st.pendingBuildAssignment === buildingId ? null : st.pendingBuildAssignment,
     });
   },
