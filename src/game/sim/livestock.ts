@@ -268,6 +268,7 @@ export function dailyLivestockTick(eng: LivestockEngine, rng: () => number) {
 
   // ── 7) Generate livestock requests (rare) ────────────────────
   generateLivestockRequests(eng, rng);
+  payTributes(eng);
 
   // ── 8) Auto-resolve postponed requests at expiry ─────────────
   for (const r of eng.livestockRequests) {
