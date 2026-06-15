@@ -330,6 +330,10 @@ export interface LivestockRequest {
   createdYear: number;
   status: LivestockRequestStatus;
   resolveAfterTick?: number;
+  /** Tribute the family offers to the ranch in return — paid monthly when approved. */
+  tributeOffer?: { resource: ResourceKind; perMonth: number };
+  /** Tick the next tribute is due (set when approved). */
+  nextTributeTick?: number;
 }
 
 // ── Ministers / Administration (v5) ──────────────────────────────
