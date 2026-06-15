@@ -710,6 +710,40 @@ export const useGame = create<GameState>((set, get) => ({
     });
   },
 
+  demolishBuilding: (buildingId) => {
+    const st = get();
+    const b = st.buildings.find(x => x.id === buildingId);
+    if (!b) return;
+    if (b.kind === "homestead") {
+      toast.error("The homestead cannot be demolished.");
+      return;
+    }
+    // Refund half the building's cost (rounded down).
+    const def = BUILDINGS[b.kind];
+    const refund = { ...st.resources };
+    for (const [r, amt] of Object.entries(def.cost ?? {})) {
+      const half = Math.floor((amt ?? 0) * 0.5);
+      (refund as any)[r] = ((refund as any)[r] ?? 0) + half;
+    }
+    // Unhouse any occupants; clear any worker/farmer/builder references.
+    const survivors = st.survivors.map(s => {
+      let next = s;
+      if (s.homeId === buildingId) next = { ...next, homeId: null };
+      if (s.workTarget?.kind === "building" && s.workTarget.id === buildingId) {
+        next = { ...next, workTarget: null, commitment: null };
+      }
+      return next;
+    });
+    set({
+      buildings: st.buildings.filter(x => x.id !== buildingId),
+      resources: refund,
+      survivors,
+      selection: { kind: "none" },
+    });
+    toast(`${def.name} demolished.`);
+  },
+
+
   autoAssignHomeless: () => {
     const st = get();
     const buildings = st.buildings.map(b => ({ ...b, occupantIds: [...b.occupantIds] }));
