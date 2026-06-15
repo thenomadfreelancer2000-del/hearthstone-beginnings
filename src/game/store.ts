@@ -486,7 +486,13 @@ export const useGame = create<GameState>((set, get) => ({
       resources: newResources,
       buildPlacement: null,
       // Open assignment modal only for buildings that actually need labor.
-      pendingBuildAssignment: isInstant || bp.kind === "farm-plot" ? null : b.id,
+      // If a Build Manager is appointed, they handle staffing automatically.
+      pendingBuildAssignment:
+        isInstant || bp.kind === "farm-plot" ||
+        st.ministers.some((m) => m.role === "head-builder")
+          ? null
+          : b.id,
+
       // Open farm setup once a plot is placed.
       pendingFarmSetup: bp.kind === "farm-plot" ? b.id : st.pendingFarmSetup,
     });
