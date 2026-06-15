@@ -1308,14 +1308,17 @@ export const useGame = create<GameState>((set, get) => ({
       });
     }
 
-    // Notifications for new chronicle entries
+    // Notifications for new chronicle entries — fire any entry whose tick is
+    // newer than the last we've notified for. Avoids missing batches when the
+    // engine writes multiple entries between visual frames.
     let lastId = st.lastChronicleId;
     if (eng.chronicle.length > 0) {
-      const idxLast = lastId ? eng.chronicle.findIndex(c => c.id === lastId) : eng.chronicle.length;
-      const fresh = idxLast === -1 ? eng.chronicle.slice(0, 5) : eng.chronicle.slice(0, idxLast);
+      const lastTick = lastId
+        ? (eng.chronicle.find(c => c.id === lastId)?.tick ?? -1)
+        : -1;
+      const fresh = eng.chronicle.filter(c => c.tick > lastTick);
       for (let i = fresh.length - 1; i >= 0; i--) {
-        const c = fresh[i];
-        notifyChronicle(c);
+        notifyChronicle(fresh[i]);
       }
       lastId = eng.chronicle[0]?.id ?? lastId;
     }
