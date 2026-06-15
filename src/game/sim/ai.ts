@@ -359,18 +359,17 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
   }
 
   // Construction priority:
-  //   1. If this survivor is the assigned builder of any unfinished building → go there.
-  //   2. Otherwise, builders / idle / leader / hauler / forager pitch in on the
-  //      nearest unfinished site so construction never stalls when there's free labor.
+  //   1. If this survivor is the *assigned* builder of any unfinished site → go there.
+  //   2. Only the "builder" occupation pitches in as a helper. Idle survivors
+  //      may also help when nothing else is going on.
+  //   3. Survivors with an explicit node assignment (workTarget.kind === "node")
+  //      are locked to that task and never get pulled to a build site.
+  //   4. Workers with a set job (woodcutter, miner, farmer, forager, hauler,
+  //      rancher) stay on their task — the founder is also exempt unless idle.
   const assigned = deps.buildings.find(b => b.builtProgress < 1 && b.assignedBuilderId === s.id);
-  const helpsBuild =
-    !!assigned ||
-    s.occupation === "builder" || s.occupation === "idle" ||
-    s.occupation === "hauler" ||
-    s.occupation === "forager" || s.isFounder;
+  const hasNodeTask = s.workTarget?.kind === "node";
+  const helpsBuild = !!assigned || (!hasNodeTask && (s.occupation === "builder" || s.occupation === "idle"));
   if (helpsBuild) {
-    // Honor an existing work target so the helper sticks with a chosen site
-    // instead of re-evaluating "nearest" every tick mid-walk.
     let prior: Building | null = null;
     if (s.workTarget?.kind === "building") {
       const wt = deps.buildings.find(x => x.id === s.workTarget!.id);
@@ -383,8 +382,6 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
       s.workTarget = { kind: "building", id: b.id };
       const isAssigned = assigned?.id === b.id;
 
-      // Establish a long-running commitment for the assigned builder so they
-      // stop thrashing between tasks each tick.
       if (isAssigned && (!s.commitment || s.commitment.buildingId !== b.id)) {
         s.commitment = { kind: "construction", buildingId: b.id, phase: "building", sinceTick: deps.tick };
       }
@@ -397,8 +394,6 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
         const isBuilder = s.occupation === "builder";
         const nearDone = b.builtProgress >= 0.75;
         const skillMult = 1 + (s.skills.build ?? 1) * 0.18;
-        // Assigned = 100% priority. Helpers = lower. Near-completion bonus
-        // makes everyone push to finish the last quarter.
         const roleMult = isAssigned ? 1.25 : isBuilder ? 0.85 : 0.6;
         const finishMult = nearDone ? 1.4 : 1.0;
         const traitMult = traitWorkSpeed(s.traits);
