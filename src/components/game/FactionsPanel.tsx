@@ -26,7 +26,9 @@ export function FactionsPanel({ onClose }: { onClose: () => void }) {
           <div>
             <div className="ranch-display text-lg text-amber">Political Factions</div>
             <div className="ranch-handwritten text-[11px] text-dust-light italic">
-              {active.length === 0
+              {!hasHeldFirstCouncil
+                ? "Factions do not gather until after the first Council."
+                : active.length === 0
                 ? "No faction has taken shape yet."
                 : `${active.length} faction${active.length === 1 ? "" : "s"} have formed in the long room.`}
             </div>
@@ -34,7 +36,12 @@ export function FactionsPanel({ onClose }: { onClose: () => void }) {
           <button className="btn-ranch btn-ranch-ghost text-xs" onClick={onClose}>Close</button>
         </div>
 
-        {active.length === 0 ? (
+        {!hasHeldFirstCouncil ? (
+          <div className="border border-amber/25 bg-coal/40 p-3 ranch-handwritten text-xs text-dust-light italic">
+            The long room is empty. No political faction will form until the
+            Founding Charter is sealed at the first Council.
+          </div>
+        ) : active.length === 0 ? (
           <div className="border border-amber/25 bg-coal/40 p-3 ranch-handwritten text-xs text-dust-light italic">
             None of your people yet share traits strong enough to band together.
             Factions will emerge as the ranch grows.
