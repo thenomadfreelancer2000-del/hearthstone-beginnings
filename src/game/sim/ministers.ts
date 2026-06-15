@@ -268,6 +268,44 @@ export function autoAssignWorkers(deps: {
     if (pick.length > 0) {
       m.satisfaction = Math.min(100, m.satisfaction + 2 * pick.length);
     }
+
+    // Managers also stick their hands to specific stations so production starts.
+    if (m.role === "head-farmer") {
+      const farmers = deps.survivors.filter(
+        (s) => s.health > 0 && s.occupation === "farmer" && s.id !== deps.founderId,
+      );
+      const taken = new Set(
+        deps.buildings
+          .filter((b) => b.kind === "farm-plot" && b.farm?.assignedFarmerId)
+          .map((b) => b.farm!.assignedFarmerId!),
+      );
+      const free = farmers.filter((s) => !taken.has(s.id));
+      for (const b of deps.buildings) {
+        if (b.kind !== "farm-plot" || !b.farm || b.builtProgress < 1) continue;
+        if (b.farm.assignedFarmerId) continue;
+        const f = free.shift();
+        if (!f) break;
+        b.farm.assignedFarmerId = f.id;
+      }
+    }
+    if (m.role === "head-rancher") {
+      const ranchers = deps.survivors.filter(
+        (s) => s.health > 0 && s.occupation === "rancher" && s.id !== deps.founderId,
+      );
+      const taken = new Set(
+        deps.buildings.filter((b) => b.assignedWorkerId).map((b) => b.assignedWorkerId!),
+      );
+      const free = ranchers.filter((s) => !taken.has(s.id));
+      for (const b of deps.buildings) {
+        const isPen = b.kind === "chicken-coop" || b.kind === "goat-pen" ||
+          b.kind === "sheep-pen" || b.kind === "cattle-pasture";
+        if (!isPen || b.builtProgress < 1) continue;
+        if (b.assignedWorkerId) continue;
+        const f = free.shift();
+        if (!f) break;
+        b.assignedWorkerId = f.id;
+      }
+    }
   }
 }
 
