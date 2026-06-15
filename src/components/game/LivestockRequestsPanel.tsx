@@ -30,6 +30,11 @@ export function LivestockRequestsPanel() {
             <div className="ranch-handwritten text-[11px] text-dust-light mt-1">
               House of <span className="text-amber">{fam.name}</span> {verb} {target}.
             </div>
+            {r.tributeOffer && (
+              <div className="ranch-handwritten text-[11px] text-amber italic mt-1">
+                "In return, we'll send <span className="text-parchment">{r.tributeOffer.perMonth} {r.tributeOffer.resource}</span> to the ranch each month."
+              </div>
+            )}
             <div className="flex gap-1 mt-2">
               <button onClick={() => decide(r.id, "approve")} className="btn-ranch btn-ranch-primary text-[10px] flex-1 py-1">Approve</button>
               <button onClick={() => decide(r.id, "postpone")} className="btn-ranch btn-ranch-ghost text-[10px] flex-1 py-1">Postpone</button>

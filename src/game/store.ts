@@ -591,6 +591,10 @@ export const useGame = create<GameState>((set, get) => ({
       "water-collector": "hauler",
       "stockpile": "hauler",
       "watchtower": "idle",
+      "chicken-coop": "rancher",
+      "goat-pen": "rancher",
+      "sheep-pen": "rancher",
+      "cattle-pasture": "rancher",
     };
     const occ = occMap[b.kind];
     set({
@@ -1304,14 +1308,17 @@ export const useGame = create<GameState>((set, get) => ({
       });
     }
 
-    // Notifications for new chronicle entries
+    // Notifications for new chronicle entries — fire any entry whose tick is
+    // newer than the last we've notified for. Avoids missing batches when the
+    // engine writes multiple entries between visual frames.
     let lastId = st.lastChronicleId;
     if (eng.chronicle.length > 0) {
-      const idxLast = lastId ? eng.chronicle.findIndex(c => c.id === lastId) : eng.chronicle.length;
-      const fresh = idxLast === -1 ? eng.chronicle.slice(0, 5) : eng.chronicle.slice(0, idxLast);
+      const lastTick = lastId
+        ? (eng.chronicle.find(c => c.id === lastId)?.tick ?? -1)
+        : -1;
+      const fresh = eng.chronicle.filter(c => c.tick > lastTick);
       for (let i = fresh.length - 1; i >= 0; i--) {
-        const c = fresh[i];
-        notifyChronicle(c);
+        notifyChronicle(fresh[i]);
       }
       lastId = eng.chronicle[0]?.id ?? lastId;
     }
@@ -1327,9 +1334,9 @@ export const useGame = create<GameState>((set, get) => ({
         const alive = eng.survivors.filter(s => s.health > 0).length;
         // base probability per cadence: lower than before, capped by pop
         const reputationMod = st.reputation * 0.002;
-        const popMod = -Math.min(0.35, alive * 0.025);
+        const popMod = -Math.min(0.20, alive * 0.015);
         const moodMod = eng.stats.morale > 0 ? 0.05 : -0.05;
-        const p = Math.max(0.05, 0.315 + reputationMod + popMod + moodMod);
+        const p = Math.max(0.18, 0.35 + reputationMod + popMod + moodMod);
         if (h && Math.random() < p) {
           const around = { x: h.x + h.w / 2, y: h.y + h.h / 2 };
           pendingArrival = generateArrival(rng, newTick, eng.time.year, around);
@@ -1790,6 +1797,68 @@ export const useGame = create<GameState>((set, get) => ({
         buildings = buildings.map(b => b.id === pen.id ? { ...b, livestockOwnerFamilyId: req.familyId } : b);
       }
     }
+    if (req.kind === "build-pen" || req.kind === "expand") {
+      // Place the family pen near the homestead in an empty spot.
+      const home = buildings.find(b => b.kind === "homestead");
+      const def = BUILDINGS[SPECIES_BUILDING[req.species]];
+      const isFree = (x: number, y: number, w: number, h: number) => {
+        if (x < 0 || y < 0 || x + w > st.mapW || y + h > st.mapH) return false;
+        for (const b of buildings) {
+          if (x + w <= b.x || y + h <= b.y || b.x + b.w <= x || b.y + b.h <= y) continue;
+          return false;
+        }
+        for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) {
+          const t = st.tiles[(y + dy) * st.mapW + (x + dx)];
+          if (!t || t.kind === "water" || t.kind === "stone") return false;
+        }
+        if (st.territory && st.territory.radius > 0) {
+          const cx = x + w / 2, cy = y + h / 2;
+          const halfW = st.territory.halfW ?? st.territory.radius;
+          const halfH = st.territory.halfH ?? st.territory.radius;
+          if (Math.abs(cx - st.territory.cx) > halfW) return false;
+          if (Math.abs(cy - st.territory.cy) > halfH) return false;
+        }
+        return true;
+      };
+      const start = home ? { x: home.x + home.w + 1, y: home.y } : { x: 4, y: 4 };
+      let spot: { x: number; y: number } | null = null;
+      outer: for (let r = 1; r < 14 && !spot; r++) {
+        for (let dy = -r; dy <= r; dy++) {
+          for (let dx = -r; dx <= r; dx++) {
+            const x = start.x + dx, y = start.y + dy;
+            if (isFree(x, y, def.size.w, def.size.h)) { spot = { x, y }; break outer; }
+          }
+        }
+      }
+      if (spot) {
+        const newPen: Building = {
+          id: nanoid(10),
+          kind: SPECIES_BUILDING[req.species],
+          x: spot.x, y: spot.y, w: def.size.w, h: def.size.h,
+          builtProgress: 1,
+          effortRemaining: 0,
+          buildEffortTotal: def.buildEffort,
+          completedYear: st.time.year,
+          assignedBuilderId: null,
+          resourcesDelivered: {},
+          lastWorkedTick: null,
+          stalledTicks: 0,
+          occupantIds: [],
+          stored: {},
+          farm: null,
+          livestockOwnerFamilyId: req.familyId,
+        };
+        buildings = [...buildings, newPen];
+        // Seed a starter pair so the pen isn't empty.
+        animals = [
+          ...animals,
+          makeAnimal(req.species, "f", req.familyId, newPen.id, st.time.tick, 40),
+          makeAnimal(req.species, "m", req.familyId, newPen.id, st.time.tick, 40),
+        ];
+      } else {
+        toast.warning("No room near the homestead for their pen — request still granted.");
+      }
+    }
     // Founder opinion + prestige bump for the family
     const survivors = st.survivors.map(s => {
       const inFam = s.familyId === req.familyId && s.health > 0;
@@ -1812,8 +1881,14 @@ export const useGame = create<GameState>((set, get) => ({
     const families = st.families.map(f =>
       f.id === req.familyId ? { ...f, prestige: Math.min(200, f.prestige + 3) } : f,
     );
+    // Keep the approved request around (with tribute schedule) instead of deleting it.
+    const livestockRequests = st.livestockRequests.map(r =>
+      r.id === id
+        ? { ...r, status: "approved" as const, nextTributeTick: st.time.tick + 12 * 24 }
+        : r,
+    );
     set({
-      livestockRequests: st.livestockRequests.filter(r => r.id !== id),
+      livestockRequests,
       buildings,
       animals,
       survivors,

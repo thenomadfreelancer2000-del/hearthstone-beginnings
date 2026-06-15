@@ -268,6 +268,7 @@ export function dailyLivestockTick(eng: LivestockEngine, rng: () => number) {
 
   // ── 7) Generate livestock requests (rare) ────────────────────
   generateLivestockRequests(eng, rng);
+  payTributes(eng);
 
   // ── 8) Auto-resolve postponed requests at expiry ─────────────
   for (const r of eng.livestockRequests) {
@@ -278,22 +279,42 @@ export function dailyLivestockTick(eng: LivestockEngine, rng: () => number) {
   }
 }
 
+/** A "month" in this game = 12 days (one third of a season). */
+const TRIBUTE_PERIOD_DAYS = 12;
+
+const TRIBUTE_BY_SPECIES: Record<AnimalSpecies, { resource: ResourceKind; perMonth: number }> = {
+  chicken: { resource: "eggs", perMonth: 4 },
+  goat:    { resource: "milk", perMonth: 3 },
+  sheep:   { resource: "wool", perMonth: 2 },
+  cattle:  { resource: "milk", perMonth: 6 },
+};
+
+export function tributeOfferFor(species: AnimalSpecies) {
+  return TRIBUTE_BY_SPECIES[species];
+}
+
 function generateLivestockRequests(eng: LivestockEngine, rng: () => number) {
   const founderFamilyId = eng.survivors.find((s) => s.id === eng.founderId)?.familyId;
-  // ~ once per 3 game-days per family attempt
-  if (eng.time.tick % (3 * TICKS_PER_DAY) !== 0) return;
+  // ~ once per 8 game-days per family attempt (was 3)
+  if (eng.time.tick % (8 * TICKS_PER_DAY) !== 0) return;
   for (const fam of eng.families) {
     if (fam.id === founderFamilyId) continue;
     if (fam.extinctYear != null) continue;
     // already has a pending request?
     if (eng.livestockRequests.some((r) => r.familyId === fam.id && r.status === "pending")) continue;
+    // Also throttle: don't pester if they already have an active livestock arrangement.
+    const ownsAnimals = eng.animals.some((a) => !a.dead && a.ownerFamilyId === fam.id);
+    const ownsPen = eng.buildings.some(
+      (b) => b.builtProgress >= 1 && b.livestockOwnerFamilyId === fam.id,
+    );
     const alive = fam.memberIds
       .map((id) => eng.survivors.find((s) => s.id === id))
       .filter((s): s is Survivor => !!s && s.health > 0 && (s.stage === "adult" || s.stage === "elder"));
     if (alive.length === 0) continue;
     const loyaltyAvg = alive.reduce((a, s) => a + s.loyaltyToFounder, 0) / alive.length;
-    // base 4% chance, modulated by loyalty
-    const p = 0.04 + Math.max(0, loyaltyAvg) * 0.0006;
+    // base 1.5% chance (was 4%), modulated by loyalty; further dampened if already arranged.
+    let p = 0.015 + Math.max(0, loyaltyAvg) * 0.0003;
+    if (ownsAnimals || ownsPen) p *= 0.35;
     if (rng() > p) continue;
     const requester = alive[Math.floor(rng() * alive.length)];
     // pick species: avoid one already owned heavily; else random
@@ -321,6 +342,31 @@ function generateLivestockRequests(eng: LivestockEngine, rng: () => number) {
       createdTick: eng.time.tick,
       createdYear: eng.time.year,
       status: "pending",
+      tributeOffer: TRIBUTE_BY_SPECIES[species],
     });
+  }
+}
+
+/** Pay tributes that came due this tick. Called from dailyLivestockTick. */
+export function payTributes(eng: LivestockEngine) {
+  for (const r of eng.livestockRequests) {
+    if (r.status !== "approved") continue;
+    if (!r.tributeOffer || r.nextTributeTick == null) continue;
+    if (eng.time.tick < r.nextTributeTick) continue;
+    // Only pay if the family actually has produce.
+    const fam = eng.families.find((f) => f.id === r.familyId);
+    if (!fam || fam.extinctYear != null) continue;
+    const stash = eng.buildings.find(
+      (b) => b.livestockOwnerFamilyId === r.familyId &&
+        (b.stored?.[r.tributeOffer!.resource] ?? 0) > 0,
+    );
+    const have = stash?.stored?.[r.tributeOffer.resource] ?? 0;
+    const pay = Math.min(r.tributeOffer.perMonth, have);
+    if (pay > 0 && stash) {
+      stash.stored = { ...stash.stored, [r.tributeOffer.resource]: have - pay };
+      eng.resources[r.tributeOffer.resource] =
+        (eng.resources[r.tributeOffer.resource] ?? 0) + pay;
+    }
+    r.nextTributeTick = eng.time.tick + TRIBUTE_PERIOD_DAYS * TICKS_PER_DAY;
   }
 }
