@@ -762,6 +762,7 @@ function SurvivorHousingPanel({ s }: { s: Survivor }) {
   const buildings = useGame((g) => g.buildings);
   const survivors = useGame((g) => g.survivors);
   const selectBuilding = useGame((g) => g.selectBuilding);
+  const assignSurvivorToHome = useGame((g) => g.assignSurvivorToHome);
   const home = s.homeId ? buildings.find(b => b.id === s.homeId) ?? null : null;
   const occupants = home
     ? survivors.filter(o => o.homeId === home.id && o.health > 0)
@@ -772,6 +773,14 @@ function SurvivorHousingPanel({ s }: { s: Survivor }) {
     report.label === "Adequate" ? "text-amber" :
     report.label === "Acceptable" ? "text-dust-light" :
     report.label === "Crowded" ? "text-warning" : "text-danger";
+  // Residential buildings with free capacity (excluding current home)
+  const availableHomes = buildings.filter(b => {
+    if (!isResidential(b.kind)) return false;
+    if (b.builtProgress < 1) return false;
+    if (b.id === s.homeId) return false;
+    const occCount = survivors.filter(o => o.homeId === b.id && o.health > 0).length;
+    return occCount < homeCapacity(b);
+  });
   return (
     <>
       <h4 className="ranch-label mt-5 mb-2">Housing</h4>
@@ -813,10 +822,45 @@ function SurvivorHousingPanel({ s }: { s: Survivor }) {
         ) : (
           <p className="ranch-handwritten text-xs text-danger">Homeless — needs a place to sleep.</p>
         )}
+        {availableHomes.length > 0 && (
+          <div className="mt-3">
+            <div className="ranch-label text-[10px] text-amber mb-1">
+              {home ? "Move to another home" : "Assign a home"}
+            </div>
+            <select
+              className="w-full bg-coal border border-amber/30 text-parchment text-xs px-2 py-1"
+              defaultValue=""
+              onChange={(e) => {
+                if (e.target.value) assignSurvivorToHome(s.id, e.target.value);
+                e.currentTarget.value = "";
+              }}
+            >
+              <option value="">— Pick a home —</option>
+              {availableHomes.map(b => {
+                const occCount = survivors.filter(o => o.homeId === b.id && o.health > 0).length;
+                return (
+                  <option key={b.id} value={b.id}>
+                    {BUILDINGS_DATA[b.kind].name} ({occCount}/{homeCapacity(b)})
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+        )}
+        {home && (
+          <button
+            onClick={() => assignSurvivorToHome(s.id, null)}
+            className="btn-ranch btn-ranch-ghost w-full text-[10px] mt-2 text-danger border-danger/40 hover:bg-danger/10"
+          >
+            Remove from home
+          </button>
+        )}
       </div>
     </>
   );
 }
+
+
 
 function ResidentialPanel({ b }: { b: Building }) {
   const survivors = useGame((g) => g.survivors);
