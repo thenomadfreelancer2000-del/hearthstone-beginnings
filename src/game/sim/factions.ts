@@ -67,6 +67,10 @@ export interface SurvivorFactionAffinity {
 }
 
 export function affinityFor(s: Survivor): SurvivorFactionAffinity {
+  // Children and teens have no political affiliation yet.
+  if (s.stage === "child" || s.stage === "teen") {
+    return { survivorId: s.id, scores: [], primary: null, secondary: null };
+  }
   const scores: { faction: FactionId; score: number }[] = [];
   for (const fid of FACTION_LIST) {
     let score = 0;
