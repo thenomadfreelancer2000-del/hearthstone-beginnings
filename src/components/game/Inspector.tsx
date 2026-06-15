@@ -814,7 +814,7 @@ function ResidentialPanel({ b }: { b: Building }) {
   const occupants = survivors.filter(s => s.homeId === b.id && s.health > 0);
   const cap = homeCapacity(b);
   const q = homeQuality(b);
-  const homeless = survivors.filter(s => !s.homeId && s.health > 0);
+  const candidates = survivors.filter(s => s.health > 0 && s.homeId !== b.id);
   return (
     <div className="parchment-panel-warm corner-brackets p-3 mt-3">
       <div className="flex justify-between items-baseline mb-1">
@@ -838,7 +838,7 @@ function ResidentialPanel({ b }: { b: Building }) {
           {occupants.map(o => (
             <li key={o.id} className="flex justify-between items-baseline hover:bg-amber/5 px-1">
               <button onClick={() => selectSurvivor(o.id)} className="ranch-body text-parchment hover:text-amber">
-                {o.name} {o.surname}
+                {o.name} {o.surname} <span className="text-dust text-[10px]">({o.gender === "m" ? "M" : "F"})</span>
               </button>
               <button
                 onClick={() => assignSurvivorToHome(o.id, null)}
@@ -853,18 +853,25 @@ function ResidentialPanel({ b }: { b: Building }) {
       ) : (
         <p className="ranch-handwritten text-xs text-dust mt-1">Empty.</p>
       )}
-      {homeless.length > 0 && occupants.length < cap && (
+      {candidates.length > 0 && occupants.length < cap && (
         <div className="mt-3">
-          <div className="ranch-label text-[10px] text-amber mb-1">Assign homeless</div>
+          <div className="ranch-label text-[10px] text-amber mb-1">Move someone in</div>
           <select
             className="w-full bg-coal border border-amber/30 text-parchment text-xs px-2 py-1"
             defaultValue=""
             onChange={(e) => { if (e.target.value) assignSurvivorToHome(e.target.value, b.id); e.currentTarget.value = ""; }}
           >
             <option value="">— Pick someone —</option>
-            {homeless.map(s => (
-              <option key={s.id} value={s.id}>{s.name} {s.surname} ({s.stage})</option>
-            ))}
+            <optgroup label="Homeless">
+              {candidates.filter(s => !s.homeId).map(s => (
+                <option key={s.id} value={s.id}>{s.name} {s.surname} ({s.gender === "m" ? "M" : "F"}, {s.stage})</option>
+              ))}
+            </optgroup>
+            <optgroup label="Already housed (relocate)">
+              {candidates.filter(s => !!s.homeId).map(s => (
+                <option key={s.id} value={s.id}>{s.name} {s.surname} ({s.gender === "m" ? "M" : "F"}, {s.stage})</option>
+              ))}
+            </optgroup>
           </select>
         </div>
       )}
