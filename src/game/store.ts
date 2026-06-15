@@ -333,59 +333,81 @@ export const useGame = create<GameState>((set, get) => ({
   },
   startBuild: (kind) => {
     const st = get();
-    // First-time fence during founding: auto-encircle the territory.
-    if (
-      kind === "fence" &&
-      st.foundingPhase &&
-      st.territory &&
-      st.territory.radius > 0 &&
-      !st.buildings.some((b) => b.kind === "fence")
-    ) {
-      const { cx, cy } = st.territory;
-      const { halfW, halfH } = territoryDims(st.territory);
-      const used = new Set<string>();
-      // Rectangular perimeter: walk the four sides of the bbox.
-      const x0 = Math.round(cx - halfW);
-      const y0 = Math.round(cy - halfH);
-      const x1 = Math.round(cx + halfW);
-      const y1 = Math.round(cy + halfH);
-      const tiles: { x: number; y: number }[] = [];
-      const pushTile = (x: number, y: number) => {
-        if (x < 0 || y < 0 || x >= st.mapW || y >= st.mapH) return;
-        const key = `${x},${y}`;
-        if (used.has(key)) return;
-        if (st.buildings.some((b) => x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h)) return;
-        const t = st.tiles[y * st.mapW + x];
-        if (!t || t.kind === "water" || t.kind === "stone") return;
-        used.add(key);
-        tiles.push({ x, y });
-      };
-      for (let x = x0; x <= x1; x++) { pushTile(x, y0); pushTile(x, y1); }
-      for (let y = y0 + 1; y < y1; y++) { pushTile(x0, y); pushTile(x1, y); }
+    // For perimeter walls (fence, palisade, stone-wall), offer the player a
+    // choice: auto-encircle the ranch territory, or place segments manually.
+    const isPerimeter = kind === "fence" || kind === "palisade" || kind === "stone-wall";
+    if (isPerimeter && st.territory && st.territory.radius > 0) {
+      const auto = typeof window !== "undefined"
+        ? window.confirm(`Build ${kind.replace("-", " ")} automatically around the entire ranch perimeter?\n\nOK = Auto-encircle\nCancel = Place segments manually`)
+        : false;
+      if (auto) {
+        const { cx, cy } = st.territory;
+        const { halfW, halfH } = territoryDims(st.territory);
+        const used = new Set<string>();
+        const x0 = Math.round(cx - halfW);
+        const y0 = Math.round(cy - halfH);
+        const x1 = Math.round(cx + halfW);
+        const y1 = Math.round(cy + halfH);
+        const tiles: { x: number; y: number }[] = [];
+        const pushTile = (x: number, y: number) => {
+          if (x < 0 || y < 0 || x >= st.mapW || y >= st.mapH) return;
+          const key = `${x},${y}`;
+          if (used.has(key)) return;
+          if (st.buildings.some((b) => x >= b.x && x < b.x + b.w && y >= b.y && y < b.y + b.h)) return;
+          const t = st.tiles[y * st.mapW + x];
+          if (!t || t.kind === "water" || t.kind === "stone") return;
+          used.add(key);
+          tiles.push({ x, y });
+        };
+        for (let x = x0; x <= x1; x++) { pushTile(x, y0); pushTile(x, y1); }
+        for (let y = y0 + 1; y < y1; y++) { pushTile(x0, y); pushTile(x1, y); }
 
-      const newFences: Building[] = tiles.map((p) => ({
-        id: nanoid(10),
-        kind: "fence",
-        x: p.x, y: p.y, w: 1, h: 1,
-        builtProgress: 1,
-        effortRemaining: 0,
-        buildEffortTotal: BUILDINGS.fence.buildEffort,
-        completedYear: st.time.year,
-        assignedBuilderId: null,
-        resourcesDelivered: { wood: BUILDINGS.fence.cost.wood ?? 0 },
-        lastWorkedTick: null,
-        stalledTicks: 0,
-        occupantIds: [],
-        stored: {},
-        farm: null,
-      }));
-      set({
-        buildings: [...st.buildings, ...newFences],
-        buildPlacement: null,
-        selection: { kind: "none" },
-      });
-      toast.success(`Fence raised around the ranch (${newFences.length} segments)`);
-      return;
+        const def = BUILDINGS[kind];
+        const woodPer = def.cost.wood ?? 0;
+        const stonePer = def.cost.stone ?? 0;
+        const totalWood = woodPer * tiles.length;
+        const totalStone = stonePer * tiles.length;
+        // In founding phase, materials are free (the original behavior).
+        // Outside founding, deduct from stockpile and cap to what we can afford.
+        let placeTiles = tiles;
+        const newResources = { ...st.resources };
+        if (!st.foundingPhase) {
+          const affordWood = woodPer > 0 ? Math.floor(newResources.wood / woodPer) : tiles.length;
+          const affordStone = stonePer > 0 ? Math.floor(newResources.stone / stonePer) : tiles.length;
+          const afford = Math.min(tiles.length, affordWood, affordStone);
+          placeTiles = tiles.slice(0, afford);
+          newResources.wood -= woodPer * placeTiles.length;
+          newResources.stone -= stonePer * placeTiles.length;
+          if (placeTiles.length < tiles.length) {
+            toast.warning(`Only enough materials for ${placeTiles.length}/${tiles.length} segments.`);
+          }
+        }
+
+        const newSegments: Building[] = placeTiles.map((p) => ({
+          id: nanoid(10),
+          kind,
+          x: p.x, y: p.y, w: def.size.w, h: def.size.h,
+          builtProgress: 1,
+          effortRemaining: 0,
+          buildEffortTotal: def.buildEffort,
+          completedYear: st.time.year,
+          assignedBuilderId: null,
+          resourcesDelivered: { wood: woodPer, stone: stonePer },
+          lastWorkedTick: null,
+          stalledTicks: 0,
+          occupantIds: [],
+          stored: {},
+          farm: null,
+        }));
+        set({
+          buildings: [...st.buildings, ...newSegments],
+          resources: newResources,
+          buildPlacement: null,
+          selection: { kind: "none" },
+        });
+        toast.success(`${def.name} raised around the ranch (${newSegments.length} segments)`);
+        return;
+      }
     }
     set({ buildPlacement: { kind }, selection: { kind: "none" } });
   },
