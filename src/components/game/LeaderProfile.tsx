@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { useGame } from "@/game/store";
+
 import { useIsMobile } from "@/hooks/use-mobile";
 import { getPortraitUrl, defaultPortraitFor } from "@/game/data/portraits";
 import { useView, MIN_ZOOM, MAX_ZOOM } from "@/game/viewStore";
@@ -16,6 +18,8 @@ export function LeaderProfile({ dockOpen = false }: LeaderProfileProps) {
   const zoomOut = useView((s) => s.zoomOut);
   const resetZoom = useView((s) => s.resetZoom);
   const centerOnRanch = useView((s) => s.centerOnRanch);
+  const [zoomOpen, setZoomOpen] = useState(true);
+
 
   if (!leader) return null;
   const portraitUrl = getPortraitUrl(leader.portraitId) ?? getPortraitUrl(defaultPortraitFor(leader.gender));
@@ -57,16 +61,30 @@ export function LeaderProfile({ dockOpen = false }: LeaderProfileProps) {
         </div>
       </button>
 
-      {/* Zoom HUD — % label on top, 3 equal-width action cells below */}
+      {/* Zoom HUD — header row toggles collapse, actions hidden when closed */}
       <div className="bg-coal/90 backdrop-blur-sm border border-amber/40 shadow-lg">
-        <button
-          type="button"
-          onClick={resetZoom}
-          className="w-full h-5 grid place-items-center ranch-data text-[10px] leading-none text-parchment border-b border-amber/25 hover:bg-amber/10 transition-colors"
-          title="Reset zoom"
-        >
-          {Math.round(zoom * 100)}%
-        </button>
+        <div className="flex items-stretch h-5 border-b border-amber/25">
+          <button
+            type="button"
+            onClick={resetZoom}
+            className="flex-1 grid place-items-center ranch-data text-[10px] leading-none text-parchment hover:bg-amber/10 transition-colors"
+            title="Reset zoom"
+          >
+            {Math.round(zoom * 100)}%
+          </button>
+          <button
+            type="button"
+            onClick={() => setZoomOpen((v) => !v)}
+            className="w-5 grid place-items-center text-amber/70 hover:bg-amber/10 border-l border-amber/25 transition-colors"
+            title={zoomOpen ? "Hide zoom controls" : "Show zoom controls"}
+            aria-label={zoomOpen ? "Hide zoom controls" : "Show zoom controls"}
+            aria-expanded={zoomOpen}
+          >
+            <span className="ranch-label text-[10px] leading-none">{zoomOpen ? "▾" : "▸"}</span>
+          </button>
+        </div>
+        {zoomOpen && (
+
         <div className="flex items-stretch h-8 divide-x divide-amber/25">
           <button
             type="button"
@@ -98,7 +116,9 @@ export function LeaderProfile({ dockOpen = false }: LeaderProfileProps) {
             <span className="ranch-label text-[13px] leading-none">⌖</span>
           </button>
         </div>
+        )}
       </div>
+
 
     </div>
   );
