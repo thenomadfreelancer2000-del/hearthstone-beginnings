@@ -74,7 +74,19 @@ export function GameShell() {
       <div className="flex-1 flex min-h-0 relative">
         <MapView />
         {!mobileFocus && <FoundingPanel />}
-        {!(isMobile && (mobileFocus || dockOpen)) && <LeaderProfile dockOpen={dockOpen} />}
+        <AnimatePresence>
+          {!(isMobile && (mobileFocus || dockOpen)) && (
+            <motion.div
+              key="leader-profile"
+              initial={{ opacity: 0, y: 8, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.95 }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
+            >
+              <LeaderProfile dockOpen={dockOpen} />
+            </motion.div>
+          )}
+        </AnimatePresence>
         <MarriageProposalsPanel />
         <LivestockRequestsPanel />
         <MinisterRequestsPanel />
