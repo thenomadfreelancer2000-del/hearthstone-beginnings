@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useGame } from "@/game/store";
+import { useGame, territoryDims } from "@/game/store";
 import { useView } from "@/game/viewStore";
 import { BUILDINGS } from "@/game/data/content";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { ResourceNode, Tile } from "@/game/types";
 
 const TILE = 28;
