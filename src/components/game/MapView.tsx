@@ -983,12 +983,15 @@ export function MapView() {
   const placeBuilding = useGame((s) => s.placeBuilding);
   const cancelBuild = useGame((s) => s.cancelBuild);
   const territory = useGame((s) => s.territory);
+  const resources = useGame((s) => s.resources);
   const borderMode = useGame((s) => s.borderMode);
   const exitBorderMode = useGame((s) => s.exitBorderMode);
   const setBorderFromClick = useGame((s) => s.setBorderFromClick);
   const expandWorldToCurrentSize = useGame((s) => s.expandWorldToCurrentSize);
+  const isMobile = useIsMobile();
 
   const [hover, setHover] = useState<{ x: number; y: number } | null>(null);
+  const [pendingPlacement, setPendingPlacement] = useState<{ x: number; y: number } | null>(null);
   const ref = useRef<SVGSVGElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
