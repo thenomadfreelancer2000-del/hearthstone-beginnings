@@ -3,6 +3,7 @@ import { useGame, territoryDims } from "@/game/store";
 import { useView } from "@/game/viewStore";
 import { BUILDINGS } from "@/game/data/content";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { ZombieLayer } from "./ZombieLayer";
 import type { ResourceNode, Tile } from "@/game/types";
 
 const TILE = 28;
@@ -1405,6 +1406,9 @@ export function MapView() {
             </g>
           );
         })}
+
+        {/* Outside threat — wandering zombies beyond the perimeter */}
+        <ZombieLayer />
 
         {/* Ghost placement — surveyor's stake, parchment-styled */}
         {ghost && (() => {

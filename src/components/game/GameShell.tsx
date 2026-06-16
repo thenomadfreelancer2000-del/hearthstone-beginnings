@@ -6,6 +6,7 @@ import { MapView } from "./MapView";
 import { Inspector } from "./Inspector";
 import { BottomDock } from "./BottomDock";
 import { GameLoop } from "./GameLoop";
+import { ZombieLoop } from "./ZombieLayer";
 import { DynastyOverlay } from "./DynastyOverlay";
 import { ArrivalEvent } from "./ArrivalEvent";
 import { AssignBuilderModal } from "./AssignBuilderModal";
@@ -70,6 +71,7 @@ export function GameShell() {
   return (
     <div className="h-full w-full flex flex-col overflow-hidden">
       <GameLoop />
+      <ZombieLoop />
       <TopBar
         onToggleDock={() => setDockOpen((v) => !v)}
         dockOpen={dockOpen}
