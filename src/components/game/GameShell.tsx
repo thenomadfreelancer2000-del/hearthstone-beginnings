@@ -73,7 +73,7 @@ export function GameShell() {
       <div className="flex-1 flex min-h-0 relative">
         <MapView />
         {!mobileFocus && <FoundingPanel />}
-        {!mobileFocus && <LeaderProfile dockOpen={dockOpen} />}
+        <LeaderProfile dockOpen={dockOpen} />
         <MarriageProposalsPanel />
         <LivestockRequestsPanel />
         <MinisterRequestsPanel />
