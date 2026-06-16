@@ -1,17 +1,17 @@
-import { useState } from "react";
 import { useGame } from "@/game/store";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface SpeedControlProps {
   dockOpen?: boolean;
   inspectorOpen?: boolean;
+  open: boolean;
+  setOpen: (v: boolean | ((p: boolean) => boolean)) => void;
 }
 
-export function SpeedControl({ dockOpen = false, inspectorOpen = false }: SpeedControlProps) {
+export function SpeedControl({ dockOpen = false, inspectorOpen = false, open, setOpen }: SpeedControlProps) {
   const speed = useGame((s) => s.speed);
   const setSpeed = useGame((s) => s.setSpeed);
   const isMobile = useIsMobile();
-  const [open, setOpen] = useState(true);
 
   // Slide left when desktop inspector is docked; raise on mobile when dock is open.
   const rightOffset = !isMobile && inspectorOpen ? "right-[356px]" : "right-2 sm:right-3";
