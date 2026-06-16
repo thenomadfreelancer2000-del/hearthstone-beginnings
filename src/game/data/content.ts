@@ -337,9 +337,12 @@ export const BUILDABLE_KINDS: BuildingKind[] = [
   "manor", "founder-manor",
   "bunkhouse", "guest-house", "orphan-house", "elder-house",
   "campfire", "stockpile", "workbench",
-  "farm-plot", "foraging-camp", "well", "water-collector",
+  "farm-plot", "field", "large-field", "orchard", "greenhouse", "foraging-camp",
+  "well", "stone-well", "deep-well", "water-collector", "water-barrel", "water-tower", "reservoir",
   "fence", "palisade", "stone-wall", "gate", "watchtower", "guard-post",
   "chicken-coop", "goat-pen", "sheep-pen", "cattle-pasture",
+  "dairy-barn", "breeding-barn", "livestock-shelter",
+  "food-stockpile", "warehouse", "granary", "root-cellar", "cold-storage",
 ];
 
 export const CHRONICLE_OPENERS = [
