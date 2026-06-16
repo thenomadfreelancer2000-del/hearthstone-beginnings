@@ -458,14 +458,19 @@ export const useGame = create<GameState>((set, get) => ({
       }
     }
 
-    for (const [r, amt] of Object.entries(def.cost)) {
-      if ((st.resources as any)[r] < (amt ?? 0)) return false;
+    if (!bp.free) {
+      for (const [r, amt] of Object.entries(def.cost)) {
+        if ((st.resources as any)[r] < (amt ?? 0)) return false;
+      }
     }
     const newResources = { ...st.resources };
-    for (const [r, amt] of Object.entries(def.cost)) {
-      (newResources as any)[r] -= amt ?? 0;
+    if (!bp.free) {
+      for (const [r, amt] of Object.entries(def.cost)) {
+        (newResources as any)[r] -= amt ?? 0;
+      }
     }
-    const isInstant = def.buildEffort === 0;
+    const isGranted = !!bp.forFamilyId;
+    const isInstant = def.buildEffort === 0 || isGranted;
     const resourcesDelivered = Object.fromEntries(
       Object.entries(def.cost).map(([resource, amount]) => [resource, amount ?? 0]),
     ) as Partial<Record<ResourceKind, number>>;
@@ -475,7 +480,7 @@ export const useGame = create<GameState>((set, get) => ({
       x, y,
       w: def.size.w, h: def.size.h,
       builtProgress: isInstant ? 1 : 0,
-      effortRemaining: def.buildEffort,
+      effortRemaining: isInstant ? 0 : def.buildEffort,
       buildEffortTotal: def.buildEffort,
       completedYear: isInstant ? st.time.year : null,
       assignedBuilderId: null,
@@ -496,15 +501,65 @@ export const useGame = create<GameState>((set, get) => ({
             totalHarvests: 0,
           }
         : null,
+      livestockOwnerFamilyId: bp.forFamilyId ?? undefined,
     };
+    let animals = st.animals;
+    if (bp.seedSpecies) {
+      animals = [
+        ...animals,
+        makeAnimal(bp.seedSpecies, "f", bp.forFamilyId ?? st.survivors.find(s => s.id === st.founderId)!.familyId, b.id, st.time.tick, 40),
+        makeAnimal(bp.seedSpecies, "m", bp.forFamilyId ?? st.survivors.find(s => s.id === st.founderId)!.familyId, b.id, st.time.tick, 40),
+      ];
+    }
+    // Resolve a pending livestock request, if this placement was for one.
+    let livestockRequests = st.livestockRequests;
+    let survivors = st.survivors;
+    let families = st.families;
+    if (bp.livestockRequestId) {
+      const req = livestockRequests.find(r => r.id === bp.livestockRequestId);
+      if (req) {
+        livestockRequests = livestockRequests.map(r =>
+          r.id === bp.livestockRequestId
+            ? { ...r, status: "approved" as const, nextTributeTick: st.time.tick + 12 * 24 }
+            : r,
+        );
+        survivors = survivors.map(s => {
+          const inFam = s.familyId === req.familyId && s.health > 0;
+          if (!inFam) return s;
+          return {
+            ...s,
+            loyaltyToFounder: Math.min(100, s.loyaltyToFounder + (s.id === req.requesterId ? 10 : 4)),
+            mood: Math.min(100, s.mood + 4),
+            memories: s.id === req.requesterId ? [
+              {
+                id: nanoid(6), tick: st.time.tick, year: st.time.year, season: st.time.season, day: st.time.day,
+                text: `The Founder granted my wish to raise ${SPECIES_LABEL[req.species].toLowerCase()}.`,
+                emotion: "trust" as const, weight: 60, aboutSurvivorId: st.currentLeaderId,
+                kind: "livestock-approved", floor: 20, decayRate: 0.3,
+              },
+              ...s.memories,
+            ].slice(0, 64) : s.memories,
+          };
+        });
+        families = families.map(f =>
+          f.id === req.familyId ? { ...f, prestige: Math.min(200, f.prestige + 3) } : f,
+        );
+        const fam = families.find(f => f.id === req.familyId);
+        toast.success(`Granted House ${fam?.name ?? "—"}'s ${SPECIES_LABEL[req.species]} request`);
+      }
+    }
     set({
       buildings: [...st.buildings, b],
       resources: newResources,
+      animals,
+      livestockRequests,
+      survivors,
+      families,
       buildPlacement: null,
       // Open assignment modal only for buildings that actually need labor.
-      // If a Build Manager is appointed, they handle staffing automatically.
+      // Granted family pens skip this; the family handles them.
       pendingBuildAssignment:
-        isInstant || bp.kind === "farm-plot" ||
+        isInstant || isGranted || bp.kind === "farm-plot" ||
         st.ministers.some((m) => m.role === "head-builder")
           ? null
           : b.id,
