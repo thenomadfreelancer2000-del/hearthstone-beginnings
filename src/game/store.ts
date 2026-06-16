@@ -141,6 +141,7 @@ interface GameState {
   setOccupation: (id: string, occ: Survivor["occupation"]) => void;
   assignBuilder: (buildingId: ID, survivorId: ID | null) => void;
   autoAssignBuilder: (buildingId: ID) => void;
+  setLeaderHelp: (mode: "build" | "farm", on: boolean) => void;
   closeBuildAssignment: () => void;
   configureFarm: (buildingId: ID, cropId: string, farmerId: ID | null) => void;
   assignFarmer: (buildingId: ID, farmerId: ID | null) => void;
