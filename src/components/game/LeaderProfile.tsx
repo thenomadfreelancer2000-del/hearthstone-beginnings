@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { useGame } from "@/game/store";
+
 import { useIsMobile } from "@/hooks/use-mobile";
 import { getPortraitUrl, defaultPortraitFor } from "@/game/data/portraits";
 import { useView, MIN_ZOOM, MAX_ZOOM } from "@/game/viewStore";
