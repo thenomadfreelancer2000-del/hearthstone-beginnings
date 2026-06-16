@@ -20,7 +20,6 @@ export function LeaderProfile({ dockOpen = false, zoomOpen, setZoomOpen }: Leade
   const zoomOut = useView((s) => s.zoomOut);
   const resetZoom = useView((s) => s.resetZoom);
   const centerOnRanch = useView((s) => s.centerOnRanch);
-  const [zoomOpen, setZoomOpen] = useState(true);
 
 
   if (!leader) return null;
