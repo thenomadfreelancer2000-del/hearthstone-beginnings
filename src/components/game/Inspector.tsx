@@ -30,6 +30,8 @@ export function Inspector({ onHide }: { onHide?: () => void } = {}) {
   const sel = useGame((s) => s.selection);
   const survivors = useGame((s) => s.survivors);
   const [arrangeFor, setArrangeFor] = useState<string | null>(null);
+  const [tab, setTab] = useState<SurvivorTab>("overview");
+
   const buildings = useGame((s) => s.buildings);
   const relationships = useGame((s) => s.relationships);
   const families = useGame((s) => s.families);
