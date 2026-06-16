@@ -1126,11 +1126,47 @@ export function MapView() {
   }, [setMapZoom]);
 
 
+  // Clear pending placement when the build selection changes or is cancelled.
+  useEffect(() => { setPendingPlacement(null); }, [buildPlacement?.kind]);
+
   const ghost = useMemo(() => {
-    if (!buildPlacement || !hover) return null;
+    if (!buildPlacement) return null;
+    const origin = pendingPlacement ?? hover;
+    if (!origin) return null;
     const def = BUILDINGS[buildPlacement.kind];
-    return { x: hover.x, y: hover.y, w: def.size.w, h: def.size.h };
-  }, [buildPlacement, hover]);
+    const x = origin.x, y = origin.y, w = def.size.w, h = def.size.h;
+
+    // Validity rules (mirror placeBuilding in store).
+    const reasons: string[] = [];
+    if (x < 0 || y < 0 || x + w > mapW || y + h > mapH) reasons.push("Off map");
+    for (const b of buildings) {
+      if (x + w <= b.x || y + h <= b.y || b.x + b.w <= x || b.y + b.h <= y) continue;
+      reasons.push("Overlaps a building");
+      break;
+    }
+    outer: for (let dy = 0; dy < h; dy++) {
+      for (let dx = 0; dx < w; dx++) {
+        const t = tiles[(y + dy) * mapW + (x + dx)];
+        if (!t) { reasons.push("Off map"); break outer; }
+        if (t.kind === "water" && buildPlacement.kind !== "well") { reasons.push("On water"); break outer; }
+        if (t.kind === "stone" && buildPlacement.kind !== "well") { reasons.push("On stone"); break outer; }
+      }
+    }
+    if (territory && territory.radius > 0) {
+      const tx = x + w / 2, ty = y + h / 2;
+      const { halfW, halfH } = territoryDims(territory);
+      if (Math.abs(tx - territory.cx) > halfW || Math.abs(ty - territory.cy) > halfH) {
+        reasons.push("Outside territory");
+      }
+    }
+    if (!buildPlacement.free) {
+      const def2 = BUILDINGS[buildPlacement.kind];
+      for (const [r, amt] of Object.entries(def2.cost)) {
+        if ((resources as any)[r] < (amt ?? 0)) { reasons.push(`Need more ${r}`); break; }
+      }
+    }
+    return { x, y, w, h, valid: reasons.length === 0, reason: reasons[0] ?? "" };
+  }, [buildPlacement, hover, pendingPlacement, buildings, tiles, mapW, mapH, territory, resources]);
 
   function svgToTile(e: React.MouseEvent) {
     const svg = ref.current!;
