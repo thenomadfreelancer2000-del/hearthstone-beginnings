@@ -36,11 +36,11 @@ interface ZombieState {
   reset: () => void;
 }
 
-const MIN_COUNT = 10;
-const MAX_COUNT = 24;
-const SPAWN_COOLDOWN_MS = 2500;     // try a spawn at most this often
-const FLAVOR_COOLDOWN_MS = 90_000;  // very rare flavor toast
-const WANDER_SPEED = 0.0004;        // tiles per ms (very slow shamble)
+const MIN_COUNT = 30;
+const MAX_COUNT = 60;
+const SPAWN_COOLDOWN_MS = 1200;
+const FLAVOR_COOLDOWN_MS = 90_000;
+const WANDER_SPEED = 0.0004;
 const REDIRECT_MIN = 2500;
 const REDIRECT_MAX = 7000;
 
@@ -140,17 +140,18 @@ export const useZombies = create<ZombieState>((set, get) => ({
 
     // Spawn / despawn management
     let lastSpawnAt = st.lastSpawnAt;
+    // Fill up to MIN_COUNT immediately so the world never feels empty.
+    while (zombies.length < MIN_COUNT) {
+      const p = pickSpawnPoint(mapW, mapH, territory);
+      if (!p) break;
+      zombies = [...zombies, spawnZombie(p.x, p.y)];
+      lastSpawnAt = now;
+    }
+    // Above MIN, drift toward a randomized desired count on a cooldown.
     const desired = MIN_COUNT + Math.floor(rand() * (MAX_COUNT - MIN_COUNT));
-    if (zombies.length < MIN_COUNT && now - lastSpawnAt > SPAWN_COOLDOWN_MS / 2) {
+    if (zombies.length < desired && now - lastSpawnAt > SPAWN_COOLDOWN_MS) {
       const p = pickSpawnPoint(mapW, mapH, territory);
       if (p) { zombies = [...zombies, spawnZombie(p.x, p.y)]; lastSpawnAt = now; }
-    } else if (zombies.length < desired && now - lastSpawnAt > SPAWN_COOLDOWN_MS) {
-      if (rand() < 0.35) {
-        const p = pickSpawnPoint(mapW, mapH, territory);
-        if (p) { zombies = [...zombies, spawnZombie(p.x, p.y)]; lastSpawnAt = now; }
-      } else {
-        lastSpawnAt = now;
-      }
     }
     if (zombies.length > MAX_COUNT) zombies = zombies.slice(0, MAX_COUNT);
 
