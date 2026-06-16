@@ -18,6 +18,8 @@ export function LeaderProfile({ dockOpen = false }: LeaderProfileProps) {
   const zoomOut = useView((s) => s.zoomOut);
   const resetZoom = useView((s) => s.resetZoom);
   const centerOnRanch = useView((s) => s.centerOnRanch);
+  const [zoomOpen, setZoomOpen] = useState(true);
+
 
   if (!leader) return null;
   const portraitUrl = getPortraitUrl(leader.portraitId) ?? getPortraitUrl(defaultPortraitFor(leader.gender));
