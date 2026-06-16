@@ -58,7 +58,17 @@ export interface SelectionTile { kind: "tile"; x: number; y: number }
 export interface SelectionFamily { kind: "family"; id: string }
 export type Selection = SelectionNone | SelectionSurvivor | SelectionBuilding | SelectionTile | SelectionFamily;
 
-export type BuildPlacement = { kind: BuildingKind } | null;
+export type BuildPlacement = {
+  kind: BuildingKind;
+  /** When set, the building is granted to a non-founder family. */
+  forFamilyId?: ID;
+  /** When true, skip resource cost (e.g. granted pens). */
+  free?: boolean;
+  /** When set, completing placement resolves this livestock request. */
+  livestockRequestId?: ID;
+  /** When set, seed a starter pair of this species inside the new pen. */
+  seedSpecies?: AnimalSpecies;
+} | null;
 
 interface GameState {
   screen: Screen;
