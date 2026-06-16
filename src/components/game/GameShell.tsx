@@ -86,7 +86,7 @@ export function GameShell() {
               exit={{ opacity: 0, y: 8, scale: 0.95 }}
               transition={{ duration: 0.22, ease: "easeOut" }}
             >
-              <LeaderProfile dockOpen={dockOpen} />
+              <LeaderProfile dockOpen={dockOpen} zoomOpen={zoomHudOpen} setZoomOpen={setZoomHudOpen} />
             </motion.div>
           )}
         </AnimatePresence>
