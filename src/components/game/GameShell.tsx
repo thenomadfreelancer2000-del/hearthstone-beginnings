@@ -12,6 +12,7 @@ import { AssignBuilderModal } from "./AssignBuilderModal";
 import { FarmSetupModal } from "./FarmSetupModal";
 import { FoundingPanel } from "./FoundingPanel";
 import { LeaderProfile } from "./LeaderProfile";
+import { SpeedControl } from "./SpeedControl";
 import { MarriageProposalsPanel } from "./MarriageProposalsPanel";
 import { LivestockRequestsPanel } from "./LivestockRequestsPanel";
 import { LivestockPanel } from "./LivestockPanel";
