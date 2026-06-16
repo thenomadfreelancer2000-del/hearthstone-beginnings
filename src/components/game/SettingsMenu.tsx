@@ -51,6 +51,15 @@ export function SettingsMenu({ compact = false }: { compact?: boolean }) {
               {enabled ? "ON" : "OFF"}
             </button>
           </label>
+          <div className="divider-amber my-2" />
+          <button
+            type="button"
+            onClick={() => { try { save(); } catch {} setScreen("menu"); }}
+            className="btn-ranch btn-ranch-ghost w-full text-[10px] !py-1"
+            title="Save and return to the main menu"
+          >
+            Return to Main Menu
+          </button>
         </div>
       )}
     </div>
