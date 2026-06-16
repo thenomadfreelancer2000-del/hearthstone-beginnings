@@ -181,6 +181,7 @@ export interface SimDeps {
   resources: Record<ResourceKind, number>;
   survivors: Survivor[];
   relationships: Relationship[];
+  leaderHelp?: { build: boolean; farm: boolean };
   emitMemory: (s: Survivor, text: string, emotion: import("../types").Memory["emotion"], weight: number) => void;
 }
 
