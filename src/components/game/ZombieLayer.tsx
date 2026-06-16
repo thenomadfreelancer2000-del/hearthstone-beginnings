@@ -51,7 +51,7 @@ export function ZombieLayer() {
         const cy = z.y * TILE + TILE / 2;
         const bob = Math.sin((z.x + z.y) * 1.7 + z.seed) * 1.2;
         return (
-          <g key={z.id} transform={`translate(${cx}, ${cy + bob})`}>
+          <g key={z.id} transform={`translate(${cx}, ${cy + bob}) scale(1.5)`}>
             {detail ? <ZombieDetailed /> : <ZombieDot />}
           </g>
         );
