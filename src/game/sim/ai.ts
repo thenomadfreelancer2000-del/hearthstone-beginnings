@@ -411,6 +411,8 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
           ? `Bickering through work on the ${b.kind}.`
           : isAssigned ? `Building — ${b.kind}.` : `Lending hands at the ${b.kind}.`;
         if (b.builtProgress >= 1 && s.commitment?.buildingId === b.id) s.commitment = null;
+        // The founder personally lending a hand earns goodwill from onlookers.
+        if (s.isFounder) grantLeaderHelpOpinion(s, deps, dt, "build");
       } else {
         setTarget(s, cx, cy);
         s.action = `Walking to the ${b.kind} build site.`;
