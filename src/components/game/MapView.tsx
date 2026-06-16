@@ -1205,7 +1205,18 @@ export function MapView() {
             return;
           }
           if (buildPlacement) {
-            placeBuilding(p.x, p.y);
+            // On mobile (no hover), first tap previews; second tap on same tile confirms.
+            // On desktop, the hovered ghost already shows the preview; click confirms.
+            if (isMobile) {
+              if (pendingPlacement && pendingPlacement.x === p.x && pendingPlacement.y === p.y) {
+                const ok = placeBuilding(p.x, p.y);
+                if (ok) setPendingPlacement(null);
+              } else {
+                setPendingPlacement(p);
+              }
+            } else {
+              placeBuilding(p.x, p.y);
+            }
             return;
           }
           const s = survivors.find(s => Math.abs(s.x - p.x) < 0.7 && Math.abs(s.y - p.y) < 0.7);
