@@ -247,6 +247,7 @@ export function Inspector({ onHide }: { onHide?: () => void } = {}) {
 
         {s.id === currentLeaderId && !isDead && (
           <>
+            <LeaderHelpToggles />
             <AuthorityPanel />
             <HeirPanel leader={s} />
           </>
