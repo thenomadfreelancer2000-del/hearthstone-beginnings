@@ -81,233 +81,276 @@ export function Inspector({ onHide }: { onHide?: () => void } = {}) {
     const isLeader = s.id === currentLeaderId;
     const isDead = s.health <= 0;
 
+    const portraitUrl = getPortraitUrl(s.portraitId);
+    const homeBuilding = s.homeId ? buildings.find(b => b.id === s.homeId) : null;
+    const homeDef = homeBuilding ? BUILDINGS[homeBuilding.kind] : null;
     return (
-      <aside className="parchment-panel w-full sm:w-[340px] p-4 border-l border-amber/20 overflow-auto scroll-amber">
-        <div className="flex justify-between items-center">
-          <button onClick={clearSelection} className="ranch-label hover:text-amber">← Deselect</button>
-          {onHide && <button onClick={onHide} className="ranch-label text-[10px] hover:text-amber">Hide panel →</button>}
+      <aside className="parchment-panel w-full sm:w-[340px] p-3 sm:p-4 border-l-2 border-amber/40 overflow-auto scroll-amber flex flex-col">
+        {/* Top header — compact character card */}
+        <div className="flex justify-between items-center mb-2">
+          <button onClick={clearSelection} className="ranch-label hover:text-amber">← Close</button>
+          {onHide && <button onClick={onHide} className="ranch-label text-[10px] hover:text-amber">Hide →</button>}
         </div>
-        <h3 className="ranch-display text-2xl mt-3 leading-tight">
-          {s.name} <span className="text-amber">{s.surname}</span>
-        </h3>
-        {s.epithet && (
-          <p className="ranch-display text-sm text-amber italic mt-0.5">— {s.epithet} —</p>
-        )}
-        <p className="ranch-handwritten text-sm mt-1">
-          {s.isFounder ? "★ Founder · " : isLeader ? "◆ Leader · " : ""}
-          {lifeStageLabel(s)} <span className="text-amber">({s.gender === "m" ? "M" : "F"})</span> · {cap(s.background)} · age {Math.floor(s.age)}
-          {isDead && <span className="text-danger"> · Deceased Y{s.deathYear}</span>}
-        </p>
-        {fam && (
-          <p className="ranch-data text-[10px] mt-1">
-            House of <button onClick={() => selectFamily(fam.id)} className="text-amber hover:underline">{fam.name}</button>
-            <span className="text-dust"> · Prestige {Math.round(fam.prestige)}</span>
-            <span className="text-dust"> · Gen {s.generation + 1}</span>
-          </p>
-        )}
-        <div className="divider-amber my-3" />
-        {!isDead && (
-          <>
-            <p className="ranch-body italic text-dust-light">{s.action}</p>
-            <p className="ranch-data mt-2 text-xs">
-              State: <span className="text-amber">{s.state}</span>
-              {s.carrying && <> · Carrying {s.carrying.amount} {s.carrying.resource}</>}
+        <div className="flex gap-3 items-start">
+          {portraitUrl && (
+            <img
+              src={portraitUrl}
+              alt={`${s.name} ${s.surname}`}
+              className="w-14 h-14 sm:w-16 sm:h-16 object-cover border border-amber/40 shrink-0 grayscale-[20%] sepia-[15%]"
+            />
+          )}
+          <div className="min-w-0 flex-1">
+            <h3 className="ranch-display text-lg sm:text-xl leading-tight truncate">
+              {s.name} <span className="text-amber">{s.surname}</span>
+            </h3>
+            {s.epithet && (
+              <p className="ranch-display text-[11px] text-amber italic leading-tight truncate">— {s.epithet} —</p>
+            )}
+            <p className="ranch-handwritten text-[11px] mt-0.5 text-dust-light leading-snug">
+              {s.isFounder ? "★ " : isLeader ? "◆ " : ""}
+              {lifeStageLabel(s)} · {s.gender === "m" ? "♂" : "♀"} · age {Math.floor(s.age)}
+              {isDead && <span className="text-danger"> · †Y{s.deathYear}</span>}
             </p>
-          </>
-        )}
+          </div>
+        </div>
 
-        {/* Kin */}
-        {(spouse || parents.length > 0 || children.length > 0) && (
-          <>
-            <h4 className="ranch-label mt-5 mb-2">Kin</h4>
-            <div className="space-y-1 text-sm">
-              {spouse && (
-                <KinRow label="Spouse" who={spouse} onClick={() => selectSurvivor(spouse.id)} />
-              )}
-              {parents.map(p => (
-                <KinRow key={p.id} label="Parent" who={p} onClick={() => selectSurvivor(p.id)} />
-              ))}
-              {children.map(c => (
-                <KinRow key={c.id} label="Child" who={c} onClick={() => selectSurvivor(c.id)} />
-              ))}
-            </div>
-          </>
-        )}
-
-        {!isDead && !s.spouseId && !s.fianceId && s.familyId === survivors.find(x => x.id === founderId)?.familyId && (s.stage === "adult" || s.stage === "youth" || s.stage === "elder") && s.age >= 18 && (
-          <button onClick={() => setArrangeFor(s.id)} className="btn-ranch btn-ranch-ghost w-full text-[10px] mt-3">
-            Arrange a marriage…
-          </button>
-        )}
-        {arrangeFor && <ArrangeMarriageModal initiatorId={arrangeFor} onClose={() => setArrangeFor(null)} />}
-
-        {/* Housing */}
-        {!isDead && <SurvivorHousingPanel s={s} />}
-
-        {/* Education — for children/teens */}
-        {!isDead && (s.stage === "child" || s.stage === "teen") && <EducationPanel s={s} />}
-
-
-
+        {/* Quick stats strip */}
+        <div className="mt-2 grid grid-cols-2 gap-x-2 gap-y-0.5 ranch-data text-[10px]">
+          {fam && (
+            <button onClick={() => selectFamily(fam.id)} className="text-left truncate hover:text-amber">
+              <span className="text-dust">House:</span> <span className="text-amber">{fam.name}</span>
+            </button>
+          )}
+          <div className="truncate"><span className="text-dust">Job:</span> <span className="text-parchment">{cap(s.occupation)}</span></div>
+          {homeDef && (
+            <div className="truncate"><span className="text-dust">Home:</span> <span className="text-parchment">{homeDef.name}</span></div>
+          )}
+          {fam && (
+            <div className="truncate"><span className="text-dust">Prestige:</span> <span className="text-parchment">{Math.round(fam.prestige)}</span> · Gen {s.generation + 1}</div>
+          )}
+        </div>
 
         {!isDead && (
-          <>
-            <h4 className="ranch-label mt-5 mb-2">Needs</h4>
-            <div className="grid grid-cols-2 gap-x-3 gap-y-1">
-              <NeedBar label="Food" v={s.needs.food} />
-              <NeedBar label="Water" v={s.needs.water} />
-              <NeedBar label="Rest" v={s.needs.rest} />
-              <NeedBar label="Shelter" v={s.needs.shelter} />
-              <NeedBar label="Belonging" v={s.needs.belonging} />
-              <NeedBar label="Purpose" v={s.needs.purpose} />
-              <NeedBar label="Health" v={s.health} warn />
-            </div>
-          </>
+          <p className="ranch-body italic text-dust-light text-xs mt-2 leading-snug">{s.action}</p>
         )}
 
-
-        <h4 className="ranch-label mt-5 mb-2">Traits</h4>
-        <div className="flex flex-wrap gap-1">
-          {s.traits.map((t) => (
-            <span key={t} className="ranch-label text-[10px] border border-amber/40 px-2 py-0.5 text-parchment">
-              {t}
-            </span>
+        {/* Tab nav */}
+        <div className="mt-3 flex gap-0.5 overflow-x-auto scroll-amber border-b border-amber/30 shrink-0">
+          {SURVIVOR_TABS.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className={`ranch-label text-[10px] px-2 py-1 whitespace-nowrap border-b-2 transition ${
+                tab === t.id
+                  ? "text-amber border-amber"
+                  : "text-dust border-transparent hover:text-amber-light"
+              }`}
+            >
+              {t.label}
+            </button>
           ))}
         </div>
 
-        <h4 className="ranch-label mt-5 mb-2">Values</h4>
-        <p className="ranch-body text-sm">{s.values.join(" · ")}</p>
+        <div className="mt-3 flex-1">
+          {tab === "overview" && (
+            <>
+              {!isDead && (
+                <p className="ranch-data text-[10px]">
+                  State: <span className="text-amber">{s.state}</span>
+                  {s.carrying && <> · Carrying {s.carrying.amount} {s.carrying.resource}</>}
+                </p>
+              )}
+              {!isDead && (
+                <>
+                  <h4 className="ranch-label mt-3 mb-1.5">Needs</h4>
+                  <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+                    <NeedBar label="Food" v={s.needs.food} />
+                    <NeedBar label="Water" v={s.needs.water} />
+                    <NeedBar label="Rest" v={s.needs.rest} />
+                    <NeedBar label="Shelter" v={s.needs.shelter} />
+                    <NeedBar label="Belonging" v={s.needs.belonging} />
+                    <NeedBar label="Purpose" v={s.needs.purpose} />
+                    <NeedBar label="Health" v={s.health} warn />
+                  </div>
+                </>
+              )}
+              <h4 className="ranch-label mt-3 mb-1.5">Traits</h4>
+              <div className="flex flex-wrap gap-1">
+                {s.traits.map((t) => (
+                  <span key={t} className="ranch-label text-[10px] border border-amber/40 px-2 py-0.5 text-parchment">
+                    {t}
+                  </span>
+                ))}
+              </div>
+              <h4 className="ranch-label mt-3 mb-1.5">Values</h4>
+              <p className="ranch-body text-xs">{s.values.join(" · ")}</p>
 
-        <h4 className="ranch-label mt-5 mb-2">Skills</h4>
-        <div className="grid grid-cols-2 gap-x-3 gap-y-1 ranch-data text-[10px]">
-          <SkillRow label="Building" v={s.skills.build} />
-          <SkillRow label="Farming" v={s.skills.farm} />
-          <SkillRow label="Gathering" v={s.skills.forage} />
-          <SkillRow label="Cutting" v={s.skills.cut} />
-          <SkillRow label="Mining" v={s.skills.mine} />
-          <SkillRow label="Medicine" v={s.skills.medic} />
-          <SkillRow label="Leadership" v={s.skills.lead} />
-          <SkillRow label="Social" v={s.skills.social ?? 1} />
+              {!isDead && s.stage !== "child" && s.stage !== "teen" && (
+                <>
+                  <h4 className="ranch-label mt-3 mb-1.5">Occupation</h4>
+                  <div className="grid grid-cols-2 gap-1">
+                    {OCCUPATIONS.map((o) => (
+                      <button
+                        key={o}
+                        onClick={() => setOccupation(s.id, o)}
+                        className={`btn-ranch text-[10px] py-1 ${s.occupation === o ? "btn-ranch-primary" : ""}`}
+                      >
+                        {o}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+
+              {s.id === currentLeaderId && !isDead && (
+                <>
+                  <LeaderHelpToggles />
+                  <AuthorityPanel />
+                  <HeirPanel leader={s} />
+                </>
+              )}
+            </>
+          )}
+
+          {tab === "skills" && (
+            <>
+              <h4 className="ranch-label mb-1.5">Skills</h4>
+              <div className="grid grid-cols-2 gap-x-3 gap-y-1 ranch-data text-[10px]">
+                <SkillRow label="Building" v={s.skills.build} />
+                <SkillRow label="Farming" v={s.skills.farm} />
+                <SkillRow label="Gathering" v={s.skills.forage} />
+                <SkillRow label="Cutting" v={s.skills.cut} />
+                <SkillRow label="Mining" v={s.skills.mine} />
+                <SkillRow label="Medicine" v={s.skills.medic} />
+                <SkillRow label="Leadership" v={s.skills.lead} />
+                <SkillRow label="Social" v={s.skills.social ?? 1} />
+              </div>
+              {s.achievements && s.achievements.length > 0 && (
+                <>
+                  <h4 className="ranch-label mt-4 mb-1.5">Legacy</h4>
+                  <ul className="ranch-handwritten text-xs space-y-0.5 text-parchment">
+                    {s.achievements.map((a, i) => <li key={i}>· {a}</li>)}
+                  </ul>
+                </>
+              )}
+            </>
+          )}
+
+          {tab === "relationships" && (
+            rels.length > 0 ? (() => {
+              const groups: Record<string, { r: Relationship; other: Survivor; score: number }[]> = {
+                "best-friend": [], "friend": [], "rival": [], "enemy": [],
+                "dislike": [], "acquaintance": [], "neutral": [],
+              };
+              for (const r of rels) {
+                const otherId = r.a === s.id ? r.b : r.a;
+                const other = survivors.find(o => o.id === otherId);
+                if (!other) continue;
+                const score = opinionScore(r);
+                const cat = opinionCategory(score, r.tag);
+                if (cat === "spouse" || cat === "kin") continue;
+                (groups[cat] ?? groups.neutral).push({ r, other, score });
+              }
+              for (const k of Object.keys(groups)) {
+                groups[k].sort((a, b) => Math.abs(b.score) - Math.abs(a.score));
+              }
+              const section = (title: string, key: string, tone: string) => {
+                const list = groups[key];
+                if (!list || list.length === 0) return null;
+                return (
+                  <div key={key} className="mt-2">
+                    <div className={`ranch-label text-[10px] ${tone} mb-1`}>{title} · {list.length}</div>
+                    <div className="space-y-1">
+                      {list.map(({ r, other }) => (
+                        <RelRow key={other.id} r={r} other={other} onClick={() => selectSurvivor(other.id)} />
+                      ))}
+                    </div>
+                  </div>
+                );
+              };
+              return (
+                <>
+                  {section("Best Friends", "best-friend", "text-success")}
+                  {section("Friends", "friend", "text-success")}
+                  {section("Acquaintances", "acquaintance", "text-amber")}
+                  {section("Dislikes", "dislike", "text-warning")}
+                  {section("Rivals", "rival", "text-warning")}
+                  {section("Enemies", "enemy", "text-danger")}
+                </>
+              );
+            })() : (
+              <p className="ranch-handwritten text-xs text-dust-light italic">No bonds beyond kin yet.</p>
+            )
+          )}
+
+          {tab === "family" && (
+            <>
+              {(spouse || parents.length > 0 || children.length > 0) ? (
+                <div className="space-y-1 text-sm">
+                  {spouse && <KinRow label="Spouse" who={spouse} onClick={() => selectSurvivor(spouse.id)} />}
+                  {parents.map(p => <KinRow key={p.id} label="Parent" who={p} onClick={() => selectSurvivor(p.id)} />)}
+                  {children.map(c => <KinRow key={c.id} label="Child" who={c} onClick={() => selectSurvivor(c.id)} />)}
+                </div>
+              ) : (
+                <p className="ranch-handwritten text-xs text-dust-light italic">No close kin recorded.</p>
+              )}
+              {!isDead && !s.spouseId && !s.fianceId && s.familyId === survivors.find(x => x.id === founderId)?.familyId && (s.stage === "adult" || s.stage === "youth" || s.stage === "elder") && s.age >= 18 && (
+                <button onClick={() => setArrangeFor(s.id)} className="btn-ranch btn-ranch-ghost w-full text-[10px] mt-3">
+                  Arrange a marriage…
+                </button>
+              )}
+              {arrangeFor && <ArrangeMarriageModal initiatorId={arrangeFor} onClose={() => setArrangeFor(null)} />}
+            </>
+          )}
+
+          {tab === "housing" && (
+            <>
+              {!isDead && <SurvivorHousingPanel s={s} />}
+              {!isDead && (s.stage === "child" || s.stage === "teen") && <EducationPanel s={s} />}
+              {isDead && <p className="ranch-handwritten text-xs text-dust-light italic">Their hearth grew cold.</p>}
+            </>
+          )}
+
+          {tab === "history" && (
+            <>
+              {s.memories.length > 0 ? (
+                <ul className="space-y-1.5 pr-1">
+                  {s.memories.slice(0, 48).map((m) => {
+                    const pos = ["joy", "love", "pride", "trust"].includes(m.emotion);
+                    const dateStamp = m.year != null
+                      ? `Y${m.year} ${m.season ? m.season[0].toUpperCase() + m.season.slice(1) : ""}${m.day ? ` d${m.day}` : ""}`
+                      : "—";
+                    const signed = (pos ? "+" : "−") + Math.round(m.weight);
+                    const barColor = pos ? "bg-success/70" : "bg-danger/70";
+                    return (
+                      <li key={m.id} className="border-l-2 border-amber/30 pl-2">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <span className="ranch-handwritten text-xs text-dust-light leading-tight">{m.text}</span>
+                          <span className={`ranch-data text-[10px] shrink-0 ${pos ? "text-success" : "text-danger"}`}>{signed}</span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="ranch-data text-[9px] text-dust">{dateStamp}</span>
+                          <div className="flex-1 h-[3px] bg-dust/20 overflow-hidden">
+                            <div className={`h-full ${barColor}`} style={{ width: `${Math.min(100, m.weight)}%` }} />
+                          </div>
+                          <span className="ranch-data text-[9px] text-dust capitalize">{m.emotion}</span>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              ) : (
+                <p className="ranch-handwritten text-xs text-dust-light italic">No memories worth telling yet.</p>
+              )}
+              {s.id === founderId && (
+                <p className="ranch-handwritten text-[11px] text-dust mt-5 italic">
+                  The first name in the Chronicle. Their legacy continues whether they live or not.
+                </p>
+              )}
+            </>
+          )}
         </div>
 
-        {s.achievements && s.achievements.length > 0 && (
-          <>
-            <h4 className="ranch-label mt-5 mb-2">Legacy</h4>
-            <ul className="ranch-handwritten text-sm space-y-0.5 text-parchment">
-              {s.achievements.map((a, i) => <li key={i}>· {a}</li>)}
-            </ul>
-          </>
-        )}
-
-        {!isDead && s.stage !== "child" && s.stage !== "teen" && (
-          <>
-            <h4 className="ranch-label mt-5 mb-2">Occupation</h4>
-            <div className="grid grid-cols-2 gap-1">
-              {OCCUPATIONS.map((o) => (
-                <button
-                  key={o}
-                  onClick={() => setOccupation(s.id, o)}
-                  className={`btn-ranch text-[10px] py-1 ${s.occupation === o ? "btn-ranch-primary" : ""}`}
-                >
-                  {o}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
-
-        {rels.length > 0 && (() => {
-          const groups: Record<string, { r: Relationship; other: Survivor; score: number }[]> = {
-            "best-friend": [], "friend": [], "rival": [], "enemy": [],
-            "dislike": [], "acquaintance": [], "neutral": [],
-          };
-          for (const r of rels) {
-            const otherId = r.a === s.id ? r.b : r.a;
-            const other = survivors.find(o => o.id === otherId);
-            if (!other) continue;
-            const score = opinionScore(r);
-            const cat = opinionCategory(score, r.tag);
-            if (cat === "spouse" || cat === "kin") continue; // shown in Kin section
-            (groups[cat] ?? groups.neutral).push({ r, other, score });
-          }
-          for (const k of Object.keys(groups)) {
-            groups[k].sort((a, b) => Math.abs(b.score) - Math.abs(a.score));
-          }
-          const section = (title: string, key: string, tone: string) => {
-            const list = groups[key];
-            if (!list || list.length === 0) return null;
-            return (
-              <div key={key} className="mt-2">
-                <div className={`ranch-label text-[10px] ${tone} mb-1`}>{title} · {list.length}</div>
-                <div className="space-y-1">
-                  {list.slice(0, 8).map(({ r, other }) => (
-                    <RelRow key={other.id} r={r} other={other} onClick={() => selectSurvivor(other.id)} />
-                  ))}
-                </div>
-              </div>
-            );
-          };
-          return (
-            <>
-              <h4 className="ranch-label mt-5 mb-2">Social Circle</h4>
-              {section("Best Friends", "best-friend", "text-success")}
-              {section("Friends", "friend", "text-success")}
-              {section("Enemies", "enemy", "text-danger")}
-              {section("Rivals", "rival", "text-danger")}
-              {section("Dislikes", "dislike", "text-warning")}
-              {section("Acquaintances", "acquaintance", "text-amber")}
-            </>
-          );
-        })()}
-
-        {s.id === currentLeaderId && !isDead && (
-          <>
-            <LeaderHelpToggles />
-            <AuthorityPanel />
-            <HeirPanel leader={s} />
-          </>
-        )}
-
-        {s.memories.length > 0 && (
-          <>
-            <h4 className="ranch-label mt-5 mb-2">Memories</h4>
-            <ul className="space-y-1.5 max-h-64 overflow-auto scroll-amber pr-1">
-              {s.memories.slice(0, 24).map((m) => {
-                const pos = ["joy", "love", "pride", "trust"].includes(m.emotion);
-                const dateStamp = m.year != null
-                  ? `Y${m.year} ${m.season ? m.season[0].toUpperCase() + m.season.slice(1) : ""}${m.day ? ` d${m.day}` : ""}`
-                  : "—";
-                const signed = (pos ? "+" : "−") + Math.round(m.weight);
-                const barColor = pos ? "bg-success/70" : "bg-danger/70";
-                return (
-                  <li key={m.id} className="border-l-2 border-amber/30 pl-2">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <span className="ranch-handwritten text-xs text-dust-light leading-tight">
-                        {m.text}
-                      </span>
-                      <span className={`ranch-data text-[10px] shrink-0 ${pos ? "text-success" : "text-danger"}`}>
-                        {signed}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2 mt-0.5">
-                      <span className="ranch-data text-[9px] text-dust">{dateStamp}</span>
-                      <div className="flex-1 h-[3px] bg-dust/20 overflow-hidden">
-                        <div className={`h-full ${barColor}`} style={{ width: `${Math.min(100, m.weight)}%` }} />
-                      </div>
-                      <span className="ranch-data text-[9px] text-dust capitalize">{m.emotion}</span>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          </>
-        )}
-
-        {s.id === founderId && (
-          <p className="ranch-handwritten text-[11px] text-dust mt-5 italic">
-            The first name in the Chronicle. Their legacy continues whether they live or not.
-          </p>
-        )}
       </aside>
     );
   }
