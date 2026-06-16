@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { AmbientSound, useAmbientToggle } from "./AmbientSound";
+import { useGame } from "@/game/store";
 
 export function SettingsMenu({ compact = false }: { compact?: boolean }) {
   const { enabled, toggle } = useAmbientToggle();
+  const setScreen = useGame((s) => s.setScreen);
+  const save = useGame((s) => s.save);
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
