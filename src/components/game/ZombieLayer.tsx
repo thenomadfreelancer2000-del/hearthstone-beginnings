@@ -49,8 +49,7 @@ export function ZombieLayer() {
       {zombies.map((z) => {
         const cx = z.x * TILE + TILE / 2;
         const cy = z.y * TILE + TILE / 2;
-        // Subtle shamble: tiny vertical bob driven by position so it looks alive.
-        const bob = Math.sin((z.x + z.y) * 1.7 + z.seed) * 0.6;
+        const bob = Math.sin((z.x + z.y) * 1.7 + z.seed) * 1.2;
         return (
           <g key={z.id} transform={`translate(${cx}, ${cy + bob})`}>
             {detail ? <ZombieDetailed /> : <ZombieDot />}
@@ -64,33 +63,39 @@ export function ZombieLayer() {
 function ZombieDot() {
   return (
     <>
-      <ellipse cx={0} cy={2} rx={2.4} ry={0.8} fill="rgba(0,0,0,0.4)" />
-      <circle cx={0} cy={0} r={1.6} fill="#3a4a32" stroke="#1a1208" strokeWidth={0.4} />
+      <ellipse cx={0} cy={6} rx={6} ry={2} fill="rgba(0,0,0,0.5)" />
+      <circle cx={0} cy={0} r={4.5} fill="#3a4a32" stroke="#1a1208" strokeWidth={1} />
+      <circle cx={0} cy={-1.5} r={2.2} fill="#8a9078" stroke="#1a1208" strokeWidth={0.8} />
     </>
   );
 }
 
 function ZombieDetailed() {
-  // Hand-drawn matching the map's painted style.
+  // Hand-drawn, sized to roughly match a survivor figure.
   return (
     <g>
       {/* shadow */}
-      <ellipse cx={0} cy={4.2} rx={3.2} ry={1} fill="rgba(0,0,0,0.45)" />
+      <ellipse cx={0} cy={10} rx={7} ry={2.2} fill="rgba(0,0,0,0.5)" />
       {/* tattered body */}
-      <path d="M-2.2,4 L-2.6,-2 L-1,-3 L1,-3 L2.6,-2 L2.2,4 Z"
-        fill="#4a5a3e" stroke="#1a1208" strokeWidth={0.4} />
+      <path d="M-5,9 L-6,-4 L-2.5,-6 L2.5,-6 L6,-4 L5,9 Z"
+        fill="#4a5a3e" stroke="#1a1208" strokeWidth={0.9} />
+      {/* torn shirt lines */}
+      <line x1={-3} y1={0} x2={3} y2={2} stroke="#1a1208" strokeWidth={0.5} opacity={0.6} />
+      <line x1={-2} y1={4} x2={3.5} y2={5} stroke="#1a1208" strokeWidth={0.5} opacity={0.6} />
       {/* arms hanging forward */}
-      <line x1={-2.4} y1={-1} x2={-3.2} y2={2.6} stroke="#1a1208" strokeWidth={0.5} />
-      <line x1={2.4} y1={-1} x2={3.2} y2={2.6} stroke="#1a1208" strokeWidth={0.5} />
-      <circle cx={-3.2} cy={2.6} r={0.55} fill="#7a8a6a" stroke="#1a1208" strokeWidth={0.3} />
-      <circle cx={3.2} cy={2.6} r={0.55} fill="#7a8a6a" stroke="#1a1208" strokeWidth={0.3} />
+      <line x1={-5.5} y1={-2} x2={-7.5} y2={6} stroke="#1a1208" strokeWidth={1.1} strokeLinecap="round" />
+      <line x1={5.5} y1={-2} x2={7.5} y2={6} stroke="#1a1208" strokeWidth={1.1} strokeLinecap="round" />
+      <circle cx={-7.5} cy={6.2} r={1.3} fill="#7a8a6a" stroke="#1a1208" strokeWidth={0.6} />
+      <circle cx={7.5} cy={6.2} r={1.3} fill="#7a8a6a" stroke="#1a1208" strokeWidth={0.6} />
       {/* head — slack jaw, pale */}
-      <circle cx={0} cy={-3.8} r={1.5} fill="#8a9078" stroke="#1a1208" strokeWidth={0.4} />
+      <circle cx={0} cy={-9} r={3.6} fill="#8a9078" stroke="#1a1208" strokeWidth={0.9} />
       {/* eye sockets */}
-      <circle cx={-0.55} cy={-3.9} r={0.28} fill="#1a1208" />
-      <circle cx={0.55} cy={-3.9} r={0.28} fill="#1a1208" />
-      {/* mouth */}
-      <line x1={-0.5} y1={-3.1} x2={0.5} y2={-3.1} stroke="#1a1208" strokeWidth={0.35} />
+      <circle cx={-1.3} cy={-9.2} r={0.7} fill="#1a1208" />
+      <circle cx={1.3} cy={-9.2} r={0.7} fill="#1a1208" />
+      {/* slack mouth */}
+      <rect x={-1.2} y={-7.4} width={2.4} height={0.9} fill="#1a1208" />
+      {/* blood drip */}
+      <line x1={0.6} y1={-6.4} x2={0.9} y2={-5} stroke="#7a1a14" strokeWidth={0.6} strokeLinecap="round" />
     </g>
   );
 }

@@ -36,11 +36,11 @@ interface ZombieState {
   reset: () => void;
 }
 
-const MIN_COUNT = 3;
-const MAX_COUNT = 10;
-const SPAWN_COOLDOWN_MS = 9000;     // try a spawn at most this often
+const MIN_COUNT = 5;
+const MAX_COUNT = 12;
+const SPAWN_COOLDOWN_MS = 5000;     // try a spawn at most this often
 const FLAVOR_COOLDOWN_MS = 90_000;  // very rare flavor toast
-const WANDER_SPEED = 0.0009;        // tiles per ms (very slow)
+const WANDER_SPEED = 0.0012;        // tiles per ms (slow shamble)
 const REDIRECT_MIN = 2500;
 const REDIRECT_MAX = 7000;
 
