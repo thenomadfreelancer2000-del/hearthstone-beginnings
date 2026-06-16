@@ -233,7 +233,10 @@ export const BUILDINGS: Record<BuildingKind, BuildingDef> = {
 };
 
 export const BUILDABLE_KINDS: BuildingKind[] = [
-  "tent", "cabin", "house", "large-house",
+  "tent", "family-tent", "cabin", "family-cabin",
+  "house", "family-house", "large-house",
+  "manor", "founder-manor",
+  "bunkhouse", "guest-house", "orphan-house", "elder-house",
   "campfire", "stockpile", "workbench",
   "farm-plot", "foraging-camp", "well", "water-collector",
   "fence", "palisade", "stone-wall", "gate", "watchtower", "guard-post",
