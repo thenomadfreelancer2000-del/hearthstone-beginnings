@@ -40,14 +40,15 @@ export function BottomDock() {
 }
 
 const BUILD_CATEGORIES: { id: string; label: string; kinds: import("@/game/types").BuildingKind[] }[] = [
-  { id: "shelter",  label: "Shelter",         kinds: ["tent", "family-tent", "cabin", "family-cabin", "house", "family-house", "large-house", "manor", "founder-manor", "bunkhouse", "guest-house", "orphan-house", "elder-house"] },
-  { id: "food",     label: "Food Production", kinds: ["farm-plot", "foraging-camp"] },
-  { id: "water",    label: "Water",           kinds: ["well", "water-collector"] },
-  { id: "crafting", label: "Crafting",        kinds: ["workbench"] },
-  { id: "storage",  label: "Storage",         kinds: ["stockpile"] },
-  { id: "social",   label: "Social",          kinds: ["campfire"] },
+  { id: "shelter",   label: "Shelter",   kinds: ["tent", "family-tent", "cabin", "family-cabin", "house", "family-house", "large-house", "manor", "founder-manor", "bunkhouse", "guest-house", "orphan-house", "elder-house"] },
+  { id: "farming",   label: "Farming",   kinds: ["farm-plot", "field", "large-field", "orchard", "greenhouse"] },
+  { id: "food",      label: "Food",      kinds: ["foraging-camp"] },
+  { id: "water",     label: "Water",     kinds: ["water-collector", "water-barrel", "well", "stone-well", "deep-well", "water-tower", "reservoir"] },
+  { id: "crafting",  label: "Crafting",  kinds: ["workbench"] },
+  { id: "storage",   label: "Storage",   kinds: ["stockpile", "food-stockpile", "warehouse", "granary", "root-cellar", "cold-storage"] },
+  { id: "social",    label: "Social",    kinds: ["campfire"] },
   { id: "defense",   label: "Defense",   kinds: ["fence", "palisade", "stone-wall", "gate", "watchtower", "guard-post"] },
-  { id: "livestock", label: "Livestock", kinds: ["chicken-coop", "goat-pen", "sheep-pen", "cattle-pasture"] },
+  { id: "livestock", label: "Livestock", kinds: ["chicken-coop", "goat-pen", "sheep-pen", "cattle-pasture", "dairy-barn", "breeding-barn", "livestock-shelter"] },
 ];
 
 function BuildMenu() {
