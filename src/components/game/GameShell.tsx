@@ -88,6 +88,19 @@ export function GameShell() {
             </motion.div>
           )}
         </AnimatePresence>
+        <AnimatePresence>
+          {!(isMobile && (mobileFocus || dockOpen)) && (
+            <motion.div
+              key="speed-control"
+              initial={{ opacity: 0, y: 8, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.95 }}
+              transition={{ duration: 0.22, ease: "easeOut" }}
+            >
+              <SpeedControl dockOpen={dockOpen} inspectorOpen={!isMobile && !inspectorCollapsed} />
+            </motion.div>
+          )}
+        </AnimatePresence>
         <MarriageProposalsPanel />
         <LivestockRequestsPanel />
         <MinisterRequestsPanel />
