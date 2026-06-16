@@ -207,6 +207,28 @@ function rivalryWorkMult(s: Survivor, b: Building, deps: SimDeps): number {
 
 const CARRY_CAP = 12;
 
+/** Founder working alongside the people lifts loyalty of nearby onlookers. */
+function grantLeaderHelpOpinion(founder: Survivor, deps: SimDeps, dt: number, kind: "build" | "farm") {
+  const gain = 0.04 * (dt / 24);
+  for (const o of deps.survivors) {
+    if (o.id === founder.id || o.health <= 0) continue;
+    if (dist(o.x, o.y, founder.x, founder.y) > 6) continue;
+    o.loyaltyToFounder = Math.min(100, (o.loyaltyToFounder ?? 0) + gain);
+  }
+  // Occasional memory (rare; weight small)
+  if (Math.random() < 0.0008 * dt) {
+    for (const o of deps.survivors) {
+      if (o.id === founder.id || o.health <= 0) continue;
+      if (dist(o.x, o.y, founder.x, founder.y) > 6) continue;
+      deps.emitMemory(o, kind === "build"
+        ? `${founder.name} worked beside us on the build.`
+        : `${founder.name} worked the fields with us.`,
+        "pride", 6);
+      break;
+    }
+  }
+}
+
 export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
   if (s.health <= 0) return;
 
