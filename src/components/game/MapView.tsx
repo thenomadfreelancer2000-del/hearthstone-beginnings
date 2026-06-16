@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useGame } from "@/game/store";
+import { useGame, territoryDims } from "@/game/store";
 import { useView } from "@/game/viewStore";
 import { BUILDINGS } from "@/game/data/content";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { ResourceNode, Tile } from "@/game/types";
 
 const TILE = 28;
@@ -982,12 +983,15 @@ export function MapView() {
   const placeBuilding = useGame((s) => s.placeBuilding);
   const cancelBuild = useGame((s) => s.cancelBuild);
   const territory = useGame((s) => s.territory);
+  const resources = useGame((s) => s.resources);
   const borderMode = useGame((s) => s.borderMode);
   const exitBorderMode = useGame((s) => s.exitBorderMode);
   const setBorderFromClick = useGame((s) => s.setBorderFromClick);
   const expandWorldToCurrentSize = useGame((s) => s.expandWorldToCurrentSize);
+  const isMobile = useIsMobile();
 
   const [hover, setHover] = useState<{ x: number; y: number } | null>(null);
+  const [pendingPlacement, setPendingPlacement] = useState<{ x: number; y: number } | null>(null);
   const ref = useRef<SVGSVGElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -1122,11 +1126,47 @@ export function MapView() {
   }, [setMapZoom]);
 
 
+  // Clear pending placement when the build selection changes or is cancelled.
+  useEffect(() => { setPendingPlacement(null); }, [buildPlacement?.kind]);
+
   const ghost = useMemo(() => {
-    if (!buildPlacement || !hover) return null;
+    if (!buildPlacement) return null;
+    const origin = pendingPlacement ?? hover;
+    if (!origin) return null;
     const def = BUILDINGS[buildPlacement.kind];
-    return { x: hover.x, y: hover.y, w: def.size.w, h: def.size.h };
-  }, [buildPlacement, hover]);
+    const x = origin.x, y = origin.y, w = def.size.w, h = def.size.h;
+
+    // Validity rules (mirror placeBuilding in store).
+    const reasons: string[] = [];
+    if (x < 0 || y < 0 || x + w > mapW || y + h > mapH) reasons.push("Off map");
+    for (const b of buildings) {
+      if (x + w <= b.x || y + h <= b.y || b.x + b.w <= x || b.y + b.h <= y) continue;
+      reasons.push("Overlaps a building");
+      break;
+    }
+    outer: for (let dy = 0; dy < h; dy++) {
+      for (let dx = 0; dx < w; dx++) {
+        const t = tiles[(y + dy) * mapW + (x + dx)];
+        if (!t) { reasons.push("Off map"); break outer; }
+        if (t.kind === "water" && buildPlacement.kind !== "well") { reasons.push("On water"); break outer; }
+        if (t.kind === "stone" && buildPlacement.kind !== "well") { reasons.push("On stone"); break outer; }
+      }
+    }
+    if (territory && territory.radius > 0) {
+      const tx = x + w / 2, ty = y + h / 2;
+      const { halfW, halfH } = territoryDims(territory);
+      if (Math.abs(tx - territory.cx) > halfW || Math.abs(ty - territory.cy) > halfH) {
+        reasons.push("Outside territory");
+      }
+    }
+    if (!buildPlacement.free) {
+      const def2 = BUILDINGS[buildPlacement.kind];
+      for (const [r, amt] of Object.entries(def2.cost)) {
+        if ((resources as any)[r] < (amt ?? 0)) { reasons.push(`Need more ${r}`); break; }
+      }
+    }
+    return { x, y, w, h, valid: reasons.length === 0, reason: reasons[0] ?? "" };
+  }, [buildPlacement, hover, pendingPlacement, buildings, tiles, mapW, mapH, territory, resources]);
 
   function svgToTile(e: React.MouseEvent) {
     const svg = ref.current!;
@@ -1165,7 +1205,18 @@ export function MapView() {
             return;
           }
           if (buildPlacement) {
-            placeBuilding(p.x, p.y);
+            // On mobile (no hover), first tap previews; second tap on same tile confirms.
+            // On desktop, the hovered ghost already shows the preview; click confirms.
+            if (isMobile) {
+              if (pendingPlacement && pendingPlacement.x === p.x && pendingPlacement.y === p.y) {
+                const ok = placeBuilding(p.x, p.y);
+                if (ok) setPendingPlacement(null);
+              } else {
+                setPendingPlacement(p);
+              }
+            } else {
+              placeBuilding(p.x, p.y);
+            }
             return;
           }
           const s = survivors.find(s => Math.abs(s.x - p.x) < 0.7 && Math.abs(s.y - p.y) < 0.7);
@@ -1344,16 +1395,27 @@ export function MapView() {
           );
         })}
 
-        {/* Ghost placement */}
+        {/* Ghost placement — green = valid, red = invalid */}
         {ghost && (
-          <g>
+          <g pointerEvents="none">
             <rect x={ghost.x * TILE} y={ghost.y * TILE}
               width={ghost.w * TILE} height={ghost.h * TILE}
-              fill="rgba(201,161,74,0.18)"
-              stroke={PAL.gold}
+              fill={ghost.valid ? "rgba(74,222,128,0.22)" : "rgba(248,113,113,0.25)"}
+              stroke={ghost.valid ? "#4ade80" : "#f87171"}
               strokeDasharray="3 2"
-              strokeWidth="1.5"
-              pointerEvents="none" />
+              strokeWidth="1.5" />
+            {/* Grid snap tick marks at corners */}
+            {[[0,0],[ghost.w,0],[0,ghost.h],[ghost.w,ghost.h]].map(([cx,cy],i) => (
+              <circle key={i} cx={(ghost.x + cx) * TILE} cy={(ghost.y + cy) * TILE} r={1.6}
+                fill={ghost.valid ? "#4ade80" : "#f87171"} />
+            ))}
+            {pendingPlacement && (
+              <text x={(ghost.x + ghost.w / 2) * TILE} y={ghost.y * TILE - 4}
+                textAnchor="middle" fontSize="7" fill={ghost.valid ? "#4ade80" : "#f87171"}
+                fontWeight="bold">
+                {ghost.valid ? "Tap again to confirm" : (ghost.reason || "Invalid")}
+              </text>
+            )}
           </g>
         )}
 
