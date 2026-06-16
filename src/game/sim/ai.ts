@@ -371,8 +371,9 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
   //      rancher) stay on their task — the founder is also exempt unless idle.
   const assigned = deps.buildings.find(b => b.builtProgress < 1 && b.assignedBuilderId === s.id);
   const hasNodeTask = s.workTarget?.kind === "node";
-  // The founder never auto-pitches in on builds — only when explicitly assigned.
-  const helpsBuild = !!assigned || (!s.isFounder && !hasNodeTask && (s.occupation === "builder" || s.occupation === "idle"));
+  // The founder only auto-pitches in on builds when the player has toggled "Help builders".
+  const founderHelpsBuild = s.isFounder && (deps.leaderHelp?.build ?? false);
+  const helpsBuild = !!assigned || (!hasNodeTask && ((!s.isFounder && (s.occupation === "builder" || s.occupation === "idle")) || founderHelpsBuild));
   if (helpsBuild) {
     let prior: Building | null = null;
     if (s.workTarget?.kind === "building") {
