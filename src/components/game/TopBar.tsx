@@ -70,17 +70,6 @@ export function TopBar({ onToggleDock, dockOpen }: Props) {
               {SEASON_LABEL[time.season].slice(0,3)} Y{time.year} · {stats.population} souls
             </span>
           </button>
-          <div className="flex border border-amber/30 shrink-0">
-            {[0, 1, 2, 3].map((s) => (
-              <button
-                key={s}
-                onClick={() => setSpeed(s as 0 | 1 | 2 | 3)}
-                className={`px-1 py-0.5 ranch-label text-[9px] ${speed === s ? "bg-amber text-ink" : "text-dust"}`}
-              >
-                {s === 0 ? "❚❚" : `${s === 3 ? 4 : s}×`}
-              </button>
-            ))}
-          </div>
           <SettingsMenu compact />
           <button
             onClick={onToggleDock}
