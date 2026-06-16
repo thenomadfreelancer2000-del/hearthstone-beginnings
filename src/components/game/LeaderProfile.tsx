@@ -18,10 +18,7 @@ export function LeaderProfile({ dockOpen = false }: LeaderProfileProps) {
   const zoomOut = useView((s) => s.zoomOut);
   const resetZoom = useView((s) => s.resetZoom);
   const centerOnRanch = useView((s) => s.centerOnRanch);
-  const speed = useGame((s) => s.speed);
-  const setSpeed = useGame((s) => s.setSpeed);
   const [zoomOpen, setZoomOpen] = useState(true);
-  const [speedOpen, setSpeedOpen] = useState(true);
 
 
   if (!leader) return null;
