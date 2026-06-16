@@ -1395,16 +1395,27 @@ export function MapView() {
           );
         })}
 
-        {/* Ghost placement */}
+        {/* Ghost placement — green = valid, red = invalid */}
         {ghost && (
-          <g>
+          <g pointerEvents="none">
             <rect x={ghost.x * TILE} y={ghost.y * TILE}
               width={ghost.w * TILE} height={ghost.h * TILE}
-              fill="rgba(201,161,74,0.18)"
-              stroke={PAL.gold}
+              fill={ghost.valid ? "rgba(74,222,128,0.22)" : "rgba(248,113,113,0.25)"}
+              stroke={ghost.valid ? "#4ade80" : "#f87171"}
               strokeDasharray="3 2"
-              strokeWidth="1.5"
-              pointerEvents="none" />
+              strokeWidth="1.5" />
+            {/* Grid snap tick marks at corners */}
+            {[[0,0],[ghost.w,0],[0,ghost.h],[ghost.w,ghost.h]].map(([cx,cy],i) => (
+              <circle key={i} cx={(ghost.x + cx) * TILE} cy={(ghost.y + cy) * TILE} r={1.6}
+                fill={ghost.valid ? "#4ade80" : "#f87171"} />
+            ))}
+            {pendingPlacement && (
+              <text x={(ghost.x + ghost.w / 2) * TILE} y={ghost.y * TILE - 4}
+                textAnchor="middle" fontSize="7" fill={ghost.valid ? "#4ade80" : "#f87171"}
+                fontWeight="bold">
+                {ghost.valid ? "Tap again to confirm" : (ghost.reason || "Invalid")}
+              </text>
+            )}
           </g>
         )}
 
