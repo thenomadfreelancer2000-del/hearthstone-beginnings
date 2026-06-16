@@ -62,7 +62,38 @@ function layerChunks(width: number, height: number) {
 
 function canvasToObjectUrl(canvas: HTMLCanvasElement) {
   return new Promise<string | null>((resolve) => {
-    canvas.toBlob((blob) => resolve(blob ? URL.createObjectURL(blob) : null), "image/png");
+    // Some Android WebViews (APK wrappers) return null from toBlob for large
+    // canvases or throw on memory pressure. Fall back to a data URL so the
+    // terrain and resource layers still render.
+    let settled = false;
+    const finish = (url: string | null) => {
+      if (settled) return;
+      settled = true;
+      resolve(url);
+    };
+    try {
+      if (typeof canvas.toBlob === "function") {
+        canvas.toBlob((blob) => {
+          if (blob) {
+            finish(URL.createObjectURL(blob));
+            return;
+          }
+          try { finish(canvas.toDataURL("image/png")); }
+          catch { finish(null); }
+        }, "image/png");
+        // Safety net if toBlob never invokes its callback (seen in some WebViews).
+        setTimeout(() => {
+          if (settled) return;
+          try { finish(canvas.toDataURL("image/png")); }
+          catch { finish(null); }
+        }, 2000);
+      } else {
+        finish(canvas.toDataURL("image/png"));
+      }
+    } catch {
+      try { finish(canvas.toDataURL("image/png")); }
+      catch { finish(null); }
+    }
   });
 }
 
