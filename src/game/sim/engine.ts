@@ -50,6 +50,8 @@ export interface Engine {
   ministerReports: MinisterReport[];
   /** During the Founding Phase, needs do not decay and arrivals are paused. */
   foundingPhase?: boolean;
+  /** Leader auto-help toggles (founder pitches in on builds/farms). */
+  leaderHelp?: { build: boolean; farm: boolean };
 }
 
 function nextTime(t: GameTime): GameTime {
