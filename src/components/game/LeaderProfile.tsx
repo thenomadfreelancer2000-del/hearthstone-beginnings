@@ -64,43 +64,7 @@ export function LeaderProfile({ dockOpen = false }: LeaderProfileProps) {
         </div>
       </button>
 
-      {/* Speed HUD — pause + 1×/2×/4×, collapsible */}
-      <div className="bg-coal/90 backdrop-blur-sm border border-amber/40 shadow-lg">
-        <div className="flex items-stretch h-5 border-b border-amber/25">
-          <div className="flex-1 grid place-items-center ranch-label text-[9px] leading-none text-amber/80 tracking-wider">
-            SPEED
-          </div>
-          <button
-            type="button"
-            onClick={() => setSpeedOpen((v) => !v)}
-            className="w-5 grid place-items-center text-amber/70 hover:bg-amber/10 border-l border-amber/25 transition-colors"
-            title={speedOpen ? "Hide speed controls" : "Show speed controls"}
-            aria-label={speedOpen ? "Hide speed controls" : "Show speed controls"}
-            aria-expanded={speedOpen}
-          >
-            <span className="ranch-label text-[10px] leading-none">{speedOpen ? "▾" : "▸"}</span>
-          </button>
-        </div>
-        {speedOpen && (
-          <div className="flex items-stretch h-7 divide-x divide-amber/25">
-            {[0, 1, 2, 3].map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setSpeed(s as 0 | 1 | 2 | 3)}
-                className={`flex-1 min-w-0 grid place-items-center ranch-label text-[10px] leading-none transition-colors ${
-                  speed === s
-                    ? "bg-amber text-ink"
-                    : "text-amber/80 hover:bg-amber/10"
-                }`}
-                title={s === 0 ? "Pause" : `${s === 3 ? 4 : s}× speed`}
-              >
-                {s === 0 ? "❚❚" : `${s === 3 ? 4 : s}×`}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+
 
       {/* Zoom HUD — header row toggles collapse, actions hidden when closed */}
 
