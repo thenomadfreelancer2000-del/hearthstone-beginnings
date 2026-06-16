@@ -45,7 +45,7 @@ function ResourcesPanel() {
   );
 }
 
-export function TopBar({ onToggleDock, dockOpen }: Props) {
+export function TopBar({ onToggleDock, dockOpen, onSettingsOpenChange }: Props) {
   const ranchName = useGame((s) => s.ranchName);
   const time = useGame((s) => s.time);
   const speed = useGame((s) => s.speed);
