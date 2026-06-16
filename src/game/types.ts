@@ -267,7 +267,11 @@ export type BuildingKind =
   | "workbench" | "well" | "watchtower" | "field" | "farm-plot"
   | "water-collector" | "foraging-camp"
   | "fence" | "palisade" | "stone-wall" | "gate" | "guard-post"
-  | "chicken-coop" | "goat-pen" | "sheep-pen" | "cattle-pasture";
+  | "chicken-coop" | "goat-pen" | "sheep-pen" | "cattle-pasture"
+  | "large-field" | "orchard" | "greenhouse"
+  | "dairy-barn" | "breeding-barn" | "livestock-shelter"
+  | "food-stockpile" | "warehouse" | "granary" | "root-cellar" | "cold-storage"
+  | "water-barrel" | "stone-well" | "deep-well" | "water-tower" | "reservoir";
 
 export interface Territory {
   cx: number;     // center tile x (usually homestead center)

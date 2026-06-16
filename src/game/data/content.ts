@@ -230,6 +230,105 @@ export const BUILDINGS: Record<BuildingKind, BuildingDef> = {
     produces: { resource: "milk", perDay: 5 },
     livestock: { species: "cattle", capacity: 4 },
   },
+  "large-field": {
+    kind: "large-field", name: "Large Field", blurb: "A wide tract of tilled soil. Bigger yields, more labor.",
+    size: { w: 4, h: 4 },
+    cost: { wood: 12, fiber: 8 }, buildEffort: 90, housingCapacity: 0, storageCapacity: 0, social: false,
+    produces: { resource: "food", perDay: 10 },
+  },
+  orchard: {
+    kind: "orchard", name: "Orchard", blurb: "Rows of fruit trees. Slow to mature, generous when they bear.",
+    size: { w: 4, h: 4 },
+    cost: { wood: 24, fiber: 6 }, buildEffort: 160, housingCapacity: 0, storageCapacity: 0, social: false,
+    produces: { resource: "food", perDay: 8 },
+  },
+  greenhouse: {
+    kind: "greenhouse", name: "Greenhouse", blurb: "Glass-roofed shelter. Crops through every season.",
+    size: { w: 3, h: 3 },
+    cost: { wood: 30, stone: 10, tools: 4 }, buildEffort: 200, housingCapacity: 0, storageCapacity: 20, social: false,
+    produces: { resource: "food", perDay: 12 },
+  },
+  "dairy-barn": {
+    kind: "dairy-barn", name: "Dairy Barn", blurb: "Stalls, churns, and pails. Steady milk through the year.",
+    size: { w: 4, h: 3 },
+    cost: { wood: 40, stone: 10 }, buildEffort: 180, housingCapacity: 0, storageCapacity: 50, social: false,
+    produces: { resource: "milk", perDay: 8 },
+    livestock: { species: "cattle", capacity: 6 },
+  },
+  "breeding-barn": {
+    kind: "breeding-barn", name: "Breeding Barn", blurb: "Pens for pairing stock. Grows the herd over seasons.",
+    size: { w: 4, h: 3 },
+    cost: { wood: 36, stone: 8, fiber: 6 }, buildEffort: 170, housingCapacity: 0, storageCapacity: 40, social: false,
+    produces: null,
+    livestock: { species: "cattle", capacity: 6 },
+  },
+  "livestock-shelter": {
+    kind: "livestock-shelter", name: "Livestock Shelter", blurb: "A simple roofed shed for any animal caught in the cold.",
+    size: { w: 3, h: 2 },
+    cost: { wood: 18, fiber: 4 }, buildEffort: 70, housingCapacity: 0, storageCapacity: 20, social: false,
+    produces: null,
+    livestock: { species: "sheep", capacity: 4 },
+  },
+  "food-stockpile": {
+    kind: "food-stockpile", name: "Food Stockpile", blurb: "Crates and sacks for the harvest. Keeps food off the dirt.",
+    size: { w: 2, h: 2 },
+    cost: { wood: 8, fiber: 3 }, buildEffort: 30, housingCapacity: 0, storageCapacity: 200, social: false,
+    produces: null,
+  },
+  warehouse: {
+    kind: "warehouse", name: "Warehouse", blurb: "A timber-and-stone hall for the settlement's haul.",
+    size: { w: 4, h: 3 },
+    cost: { wood: 50, stone: 20 }, buildEffort: 220, housingCapacity: 0, storageCapacity: 800, social: false,
+    produces: null,
+  },
+  granary: {
+    kind: "granary", name: "Granary", blurb: "Raised bins that keep grain dry and out of reach of vermin.",
+    size: { w: 3, h: 3 },
+    cost: { wood: 30, stone: 8 }, buildEffort: 130, housingCapacity: 0, storageCapacity: 400, social: false,
+    produces: null,
+  },
+  "root-cellar": {
+    kind: "root-cellar", name: "Root Cellar", blurb: "A cool, earthen hold for tubers and preserves.",
+    size: { w: 2, h: 2 },
+    cost: { wood: 10, stone: 18 }, buildEffort: 100, housingCapacity: 0, storageCapacity: 250, social: false,
+    produces: null,
+  },
+  "cold-storage": {
+    kind: "cold-storage", name: "Cold Storage", blurb: "Ice-packed walls. Even meat keeps through summer.",
+    size: { w: 3, h: 2 },
+    cost: { wood: 24, stone: 30, tools: 4 }, buildEffort: 240, housingCapacity: 0, storageCapacity: 350, social: false,
+    produces: null,
+  },
+  "water-barrel": {
+    kind: "water-barrel", name: "Water Barrel", blurb: "A staved barrel under the eaves. Catches what the sky gives.",
+    size: { w: 1, h: 1 },
+    cost: { wood: 4 }, buildEffort: 10, housingCapacity: 0, storageCapacity: 0, social: false,
+    produces: { resource: "water", perDay: 2 },
+  },
+  "stone-well": {
+    kind: "stone-well", name: "Stone Well", blurb: "Mortared stone shaft. Cleaner draw, longer life.",
+    size: { w: 2, h: 2 },
+    cost: { stone: 28, wood: 6 }, buildEffort: 140, housingCapacity: 0, storageCapacity: 0, social: false,
+    produces: { resource: "water", perDay: 12 },
+  },
+  "deep-well": {
+    kind: "deep-well", name: "Deep Well", blurb: "Driven far below the dry layer. Water in any season.",
+    size: { w: 2, h: 2 },
+    cost: { stone: 40, wood: 10, tools: 4 }, buildEffort: 220, housingCapacity: 0, storageCapacity: 0, social: false,
+    produces: { resource: "water", perDay: 18 },
+  },
+  "water-tower": {
+    kind: "water-tower", name: "Water Tower", blurb: "A raised tank that feeds the ranch by gravity.",
+    size: { w: 2, h: 2 },
+    cost: { wood: 40, stone: 20, tools: 6 }, buildEffort: 260, housingCapacity: 0, storageCapacity: 300, social: false,
+    produces: null,
+  },
+  reservoir: {
+    kind: "reservoir", name: "Reservoir", blurb: "A lined basin holding water through the dry months.",
+    size: { w: 4, h: 4 },
+    cost: { stone: 60, wood: 18 }, buildEffort: 340, housingCapacity: 0, storageCapacity: 600, social: false,
+    produces: null,
+  },
 };
 
 export const BUILDABLE_KINDS: BuildingKind[] = [
@@ -238,9 +337,12 @@ export const BUILDABLE_KINDS: BuildingKind[] = [
   "manor", "founder-manor",
   "bunkhouse", "guest-house", "orphan-house", "elder-house",
   "campfire", "stockpile", "workbench",
-  "farm-plot", "foraging-camp", "well", "water-collector",
+  "farm-plot", "field", "large-field", "orchard", "greenhouse", "foraging-camp",
+  "well", "stone-well", "deep-well", "water-collector", "water-barrel", "water-tower", "reservoir",
   "fence", "palisade", "stone-wall", "gate", "watchtower", "guard-post",
   "chicken-coop", "goat-pen", "sheep-pen", "cattle-pasture",
+  "dairy-barn", "breeding-barn", "livestock-shelter",
+  "food-stockpile", "warehouse", "granary", "root-cellar", "cold-storage",
 ];
 
 export const CHRONICLE_OPENERS = [
