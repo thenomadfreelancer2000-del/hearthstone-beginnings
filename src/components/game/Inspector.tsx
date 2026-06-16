@@ -828,24 +828,25 @@ function SurvivorHousingPanel({ s }: { s: Survivor }) {
             <div className="ranch-label text-[10px] text-amber mb-1">
               {home ? "Move to another home" : "Assign a home"}
             </div>
-            <select
-              className="w-full bg-coal border border-amber/30 text-parchment text-xs px-2 py-1"
-              defaultValue=""
-              onChange={(e) => {
-                if (e.target.value) assignSurvivorToHome(s.id, e.target.value);
-                e.currentTarget.value = "";
-              }}
-            >
-              <option value="">— Pick a home —</option>
+            <ul className="space-y-1 max-h-48 overflow-auto scroll-amber pr-1">
               {availableHomes.map(b => {
                 const occCount = survivors.filter(o => o.homeId === b.id && o.health > 0).length;
                 return (
-                  <option key={b.id} value={b.id}>
-                    {BUILDINGS_DATA[b.kind].name} ({occCount}/{homeCapacity(b)})
-                  </option>
+                  <li key={b.id}>
+                    <button
+                      type="button"
+                      onClick={() => assignSurvivorToHome(s.id, b.id)}
+                      className="w-full text-left border border-amber/30 hover:border-amber bg-coal/40 hover:bg-amber/10 px-2 py-1.5 transition"
+                    >
+                      <div className="flex justify-between items-baseline">
+                        <span className="ranch-body text-xs text-parchment">{BUILDINGS_DATA[b.kind].name}</span>
+                        <span className="ranch-data text-[10px] text-dust">{occCount}/{homeCapacity(b)} · Q{homeQuality(b)}</span>
+                      </div>
+                    </button>
+                  </li>
                 );
               })}
-            </select>
+            </ul>
           </div>
         )}
         {home && (
