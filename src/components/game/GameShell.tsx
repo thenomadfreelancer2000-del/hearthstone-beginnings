@@ -73,6 +73,7 @@ export function GameShell() {
       <TopBar
         onToggleDock={() => setDockOpen((v) => !v)}
         dockOpen={dockOpen}
+        onSettingsOpenChange={setSettingsOpen}
       />
 
       <div className="flex-1 flex min-h-0 relative">
