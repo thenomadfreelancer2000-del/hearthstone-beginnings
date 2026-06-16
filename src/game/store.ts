@@ -122,6 +122,10 @@ interface GameState {
   territory: Territory | null;
   borderMode: boolean;
 
+  // Leader auto-help toggles. When on, the founder pitches in on builds/farms
+  // when not already busy, and gains opinion with onlookers.
+  leaderHelp: { build: boolean; farm: boolean };
+
   // actions
   setScreen: (s: Screen) => void;
   setOverlay: (o: Overlay) => void;
@@ -137,6 +141,7 @@ interface GameState {
   setOccupation: (id: string, occ: Survivor["occupation"]) => void;
   assignBuilder: (buildingId: ID, survivorId: ID | null) => void;
   autoAssignBuilder: (buildingId: ID) => void;
+  setLeaderHelp: (mode: "build" | "farm", on: boolean) => void;
   closeBuildAssignment: () => void;
   configureFarm: (buildingId: ID, cropId: string, farmerId: ID | null) => void;
   assignFarmer: (buildingId: ID, farmerId: ID | null) => void;
@@ -291,6 +296,7 @@ export const useGame = create<GameState>((set, get) => ({
   pendingFoundingCharter: false,
   expeditions: [],
   pendingBuildAssignment: null,
+  leaderHelp: { build: false, farm: false },
   pendingFarmSetup: null,
   unlockedCrops: [...STARTER_CROP_IDS],
   reputation: 0,
@@ -545,6 +551,10 @@ export const useGame = create<GameState>((set, get) => ({
   },
 
   closeBuildAssignment: () => set({ pendingBuildAssignment: null }),
+
+  setLeaderHelp: (mode, on) => set((st) => ({
+    leaderHelp: { ...st.leaderHelp, [mode]: on },
+  })),
 
   configureFarm: (buildingId, cropId, farmerId) => {
     const st = get();
@@ -963,6 +973,7 @@ export const useGame = create<GameState>((set, get) => ({
       buildPlacement: null,
       pendingArrival: null,
       pendingBuildAssignment: null,
+      leaderHelp: { build: false, farm: false },
       pendingFarmSetup: null,
       unlockedCrops: [...STARTER_CROP_IDS],
       reputation: 0,

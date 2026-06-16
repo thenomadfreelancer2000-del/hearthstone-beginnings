@@ -181,6 +181,7 @@ export interface SimDeps {
   resources: Record<ResourceKind, number>;
   survivors: Survivor[];
   relationships: Relationship[];
+  leaderHelp?: { build: boolean; farm: boolean };
   emitMemory: (s: Survivor, text: string, emotion: import("../types").Memory["emotion"], weight: number) => void;
 }
 
@@ -205,6 +206,28 @@ function rivalryWorkMult(s: Survivor, b: Building, deps: SimDeps): number {
 }
 
 const CARRY_CAP = 12;
+
+/** Founder working alongside the people lifts loyalty of nearby onlookers. */
+function grantLeaderHelpOpinion(founder: Survivor, deps: SimDeps, dt: number, kind: "build" | "farm") {
+  const gain = 0.04 * (dt / 24);
+  for (const o of deps.survivors) {
+    if (o.id === founder.id || o.health <= 0) continue;
+    if (dist(o.x, o.y, founder.x, founder.y) > 6) continue;
+    o.loyaltyToFounder = Math.min(100, (o.loyaltyToFounder ?? 0) + gain);
+  }
+  // Occasional memory (rare; weight small)
+  if (Math.random() < 0.0008 * dt) {
+    for (const o of deps.survivors) {
+      if (o.id === founder.id || o.health <= 0) continue;
+      if (dist(o.x, o.y, founder.x, founder.y) > 6) continue;
+      deps.emitMemory(o, kind === "build"
+        ? `${founder.name} worked beside us on the build.`
+        : `${founder.name} worked the fields with us.`,
+        "pride", 6);
+      break;
+    }
+  }
+}
 
 export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
   if (s.health <= 0) return;
@@ -370,8 +393,9 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
   //      rancher) stay on their task — the founder is also exempt unless idle.
   const assigned = deps.buildings.find(b => b.builtProgress < 1 && b.assignedBuilderId === s.id);
   const hasNodeTask = s.workTarget?.kind === "node";
-  // The founder never auto-pitches in on builds — only when explicitly assigned.
-  const helpsBuild = !!assigned || (!s.isFounder && !hasNodeTask && (s.occupation === "builder" || s.occupation === "idle"));
+  // The founder only auto-pitches in on builds when the player has toggled "Help builders".
+  const founderHelpsBuild = s.isFounder && (deps.leaderHelp?.build ?? false);
+  const helpsBuild = !!assigned || (!hasNodeTask && ((!s.isFounder && (s.occupation === "builder" || s.occupation === "idle")) || founderHelpsBuild));
   if (helpsBuild) {
     let prior: Building | null = null;
     if (s.workTarget?.kind === "building") {
@@ -409,6 +433,8 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
           ? `Bickering through work on the ${b.kind}.`
           : isAssigned ? `Building — ${b.kind}.` : `Lending hands at the ${b.kind}.`;
         if (b.builtProgress >= 1 && s.commitment?.buildingId === b.id) s.commitment = null;
+        // The founder personally lending a hand earns goodwill from onlookers.
+        if (s.isFounder) grantLeaderHelpOpinion(s, deps, dt, "build");
       } else {
         setTarget(s, cx, cy);
         s.action = `Walking to the ${b.kind} build site.`;
@@ -426,6 +452,7 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
       s.occupation === "miner" ? ["stone"] :
       s.occupation === "farmer" ? ["food"] :
       s.occupation === "forager" ? ["fiber", "food"] :
+      s.isFounder && deps.leaderHelp?.farm ? ["food"] :
       s.isFounder ? [] :
       ["wood"];
     let node: ResourceNode | null = null;
@@ -470,6 +497,9 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
         else s.skills.forage = Math.min(30, s.skills.forage + 0.0015 * dt);
         s.state = "working";
         s.action = wants === "fiber" ? `Stripping fiber from ${node.kind}.` : `Working at ${node.kind}.`;
+        if (s.isFounder && wants === "food" && deps.leaderHelp?.farm) {
+          grantLeaderHelpOpinion(s, deps, dt, "farm");
+        }
         if ((s.carrying?.amount ?? 0) >= CARRY_CAP) {
           const sp = nearestStockpile(s, deps.buildings);
           if (sp) setTarget(s, sp.x + sp.w / 2, sp.y + sp.h / 2);
