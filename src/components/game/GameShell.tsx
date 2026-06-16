@@ -99,7 +99,7 @@ export function GameShell() {
               exit={{ opacity: 0, y: 8, scale: 0.95 }}
               transition={{ duration: 0.22, ease: "easeOut" }}
             >
-              <SpeedControl dockOpen={dockOpen} inspectorOpen={!isMobile && !inspectorCollapsed} />
+              <SpeedControl dockOpen={dockOpen} inspectorOpen={!isMobile && !inspectorCollapsed} open={speedHudOpen} setOpen={setSpeedHudOpen} />
             </motion.div>
           )}
         </AnimatePresence>
