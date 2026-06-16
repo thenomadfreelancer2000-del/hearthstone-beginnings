@@ -108,7 +108,7 @@ export function GameShell() {
         <MarriageProposalsPanel />
         <LivestockRequestsPanel />
         <MinisterRequestsPanel />
-        {!mobileFocus && (
+        {!mobileFocus && !settingsOpen && (
           <div
             className="absolute top-2 z-40 flex flex-col gap-1 items-stretch transition-all"
             style={{ right: !isMobile && !inspectorCollapsed ? 348 : (!isMobile && inspectorCollapsed ? 40 : 8) }}
