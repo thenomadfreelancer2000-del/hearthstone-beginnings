@@ -1248,6 +1248,17 @@ export function MapView() {
             <stop offset="60%" stopColor="rgba(0,0,0,0)" />
             <stop offset="100%" stopColor="rgba(0,0,0,0.5)" />
           </radialGradient>
+          {/* Surveyor hatch — valid (amber/parchment) */}
+          <pattern id="ghost-hatch-ok" x="0" y="0" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <rect width="6" height="6" fill="rgba(201,161,74,0.14)" />
+            <line x1="0" y1="0" x2="0" y2="6" stroke="#c9a14a" strokeWidth="0.6" opacity="0.55" />
+          </pattern>
+          {/* Surveyor hatch — invalid (rusted iron) */}
+          <pattern id="ghost-hatch-bad" x="0" y="0" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <rect width="6" height="6" fill="rgba(140,40,30,0.18)" />
+            <line x1="0" y1="0" x2="0" y2="6" stroke="#b14a3a" strokeWidth="0.6" opacity="0.6" />
+            <line x1="3" y1="0" x2="3" y2="6" stroke="#1a1208" strokeWidth="0.4" opacity="0.4" />
+          </pattern>
         </defs>
 
         <StaticTileLayers tiles={tiles} width={W} height={H} />
