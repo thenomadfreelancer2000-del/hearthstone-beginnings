@@ -164,6 +164,7 @@ export function advance(eng: Engine, n: number, opts?: { onArrival?: (s: Survivo
       resources: eng.resources,
       survivors: eng.survivors,
       relationships: eng.relationships,
+      leaderHelp: eng.leaderHelp ?? { build: false, farm: false },
       emitMemory: (s: Survivor, text: string, emotion: Memory["emotion"], weight: number) =>
         emitMem(eng, s, text, emotion, weight),
     };
