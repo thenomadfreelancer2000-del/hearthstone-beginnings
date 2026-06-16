@@ -415,11 +415,22 @@ export function Inspector({ onHide }: { onHide?: () => void } = {}) {
 
 function WorkerPanel({ b }: { b: Building }) {
   const survivors = useGame((g) => g.survivors);
+  const families = useGame((g) => g.families);
+  const founderId = useGame((g) => g.founderId);
   const assignWorker = useGame((g) => g.assignWorker);
   const selectSurvivor = useGame((g) => g.selectSurvivor);
   const worker = b.assignedWorkerId ? survivors.find(s => s.id === b.assignedWorkerId) : null;
+  const founder = survivors.find((s) => s.id === founderId);
+  const founderFamilyId = founder?.familyId;
+  // Livestock pens owned by another family — the player can't assign workers there;
+  // only that house may put their own idle members to tend the herd.
+  const ownerFamilyId = b.livestockOwnerFamilyId;
+  const isOtherHouseLivestock =
+    !!ownerFamilyId && ownerFamilyId !== founderFamilyId;
+  const ownerFam = isOtherHouseLivestock ? families.find((f) => f.id === ownerFamilyId) : null;
   const eligible = survivors.filter(s =>
-    s.health > 0 && (s.stage === "adult" || s.stage === "youth" || s.stage === "elder" || s.isFounder)
+    s.health > 0 && (s.stage === "adult" || s.stage === "youth" || s.stage === "elder" || s.isFounder) &&
+    (!isOtherHouseLivestock || s.familyId === ownerFamilyId)
   );
   return (
     <div className="parchment-panel-warm corner-brackets p-3 mt-3">
@@ -432,18 +443,25 @@ function WorkerPanel({ b }: { b: Building }) {
       ) : (
         <p className="ranch-handwritten text-xs text-dust-light">No one assigned — anyone idle may pitch in.</p>
       )}
-      <select
-        className="w-full bg-coal border border-amber/30 text-parchment text-xs px-2 py-1 mt-2"
-        value={b.assignedWorkerId ?? ""}
-        onChange={(e) => assignWorker(b.id, e.target.value || null)}
-      >
-        <option value="">— Unassigned —</option>
-        {eligible.map((s) => (
-          <option key={s.id} value={s.id}>
-            {s.name} {s.surname} ({s.occupation})
-          </option>
-        ))}
-      </select>
+      {isOtherHouseLivestock ? (
+        <p className="ranch-handwritten text-[11px] text-dust-light mt-2 italic">
+          This herd belongs to House of <span className="text-amber">{ownerFam?.name ?? "?"}</span>.
+          Only their kin may tend it — you cannot assign outsiders here.
+        </p>
+      ) : (
+        <select
+          className="w-full bg-coal border border-amber/30 text-parchment text-xs px-2 py-1 mt-2"
+          value={b.assignedWorkerId ?? ""}
+          onChange={(e) => assignWorker(b.id, e.target.value || null)}
+        >
+          <option value="">— Unassigned —</option>
+          {eligible.map((s) => (
+            <option key={s.id} value={s.id}>
+              {s.name} {s.surname} ({s.occupation})
+            </option>
+          ))}
+        </select>
+      )}
     </div>
   );
 }
