@@ -24,7 +24,18 @@ const OCCUPATIONS: Occupation[] = [
   "idle", "forager", "woodcutter", "miner", "farmer", "builder", "hauler",
 ];
 
+type SurvivorTab = "overview" | "skills" | "relationships" | "family" | "housing" | "history";
+const SURVIVOR_TABS: { id: SurvivorTab; label: string }[] = [
+  { id: "overview", label: "Overview" },
+  { id: "skills", label: "Skills" },
+  { id: "relationships", label: "Bonds" },
+  { id: "family", label: "Family" },
+  { id: "housing", label: "Home" },
+  { id: "history", label: "History" },
+];
+
 function cap(s: string) { return s[0].toUpperCase() + s.slice(1); }
+
 
 export function Inspector({ onHide }: { onHide?: () => void } = {}) {
   const sel = useGame((s) => s.selection);
