@@ -116,7 +116,9 @@ export function LeaderProfile({ dockOpen = false }: LeaderProfileProps) {
             <span className="ranch-label text-[13px] leading-none">⌖</span>
           </button>
         </div>
+        )}
       </div>
+
 
     </div>
   );
