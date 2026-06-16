@@ -47,21 +47,75 @@ export const BUILDINGS: Record<BuildingKind, BuildingDef> = {
     produces: null,
   },
   cabin: {
-    kind: "cabin", name: "Log Cabin", blurb: "A real roof. Walls that hold the cold out.",
-    size: { w: 3, h: 3 },
-    cost: { wood: 30, stone: 8 }, buildEffort: 140, housingCapacity: 4, housingQuality: 2, storageCapacity: 40, social: false,
+    kind: "cabin", name: "Log Cabin", blurb: "A real roof. Walls that hold the cold out. Snug for one or two.",
+    size: { w: 2, h: 2 },
+    cost: { wood: 22, stone: 6 }, buildEffort: 110, housingCapacity: 2, housingQuality: 2, storageCapacity: 30, social: false,
     produces: null,
   },
   house: {
     kind: "house", name: "House", blurb: "Two rooms, a hearth, and a door that latches.",
     size: { w: 3, h: 3 },
-    cost: { wood: 60, stone: 20 }, buildEffort: 260, housingCapacity: 6, housingQuality: 3, storageCapacity: 60, social: false,
+    cost: { wood: 60, stone: 20 }, buildEffort: 260, housingCapacity: 4, housingQuality: 3, storageCapacity: 60, social: false,
+    produces: null,
+  },
+  "family-tent": {
+    kind: "family-tent", name: "Family Tent", blurb: "A larger canvas shelter stitched for a whole family.",
+    size: { w: 3, h: 2 },
+    cost: { wood: 14, fiber: 8 }, buildEffort: 70, housingCapacity: 5, housingQuality: 1, storageCapacity: 0, social: false,
+    produces: null,
+  },
+  "family-cabin": {
+    kind: "family-cabin", name: "Family Cabin", blurb: "A roomier log cabin built for a family.",
+    size: { w: 3, h: 3 },
+    cost: { wood: 55, stone: 14 }, buildEffort: 220, housingCapacity: 5, housingQuality: 2, storageCapacity: 50, social: false,
+    produces: null,
+  },
+  "family-house": {
+    kind: "family-house", name: "Family House", blurb: "Three rooms, a hearth, and space for the kids.",
+    size: { w: 4, h: 3 },
+    cost: { wood: 85, stone: 30 }, buildEffort: 360, housingCapacity: 7, housingQuality: 3, storageCapacity: 80, social: false,
     produces: null,
   },
   "large-house": {
     kind: "large-house", name: "Large House", blurb: "Room enough for a whole family and then some.",
     size: { w: 4, h: 4 },
     cost: { wood: 110, stone: 45 }, buildEffort: 460, housingCapacity: 10, housingQuality: 4, storageCapacity: 100, social: false,
+    produces: null,
+  },
+  manor: {
+    kind: "manor", name: "Manor", blurb: "A house head's residence. Carved beams and a wide hearth.",
+    size: { w: 5, h: 4 },
+    cost: { wood: 160, stone: 80 }, buildEffort: 640, housingCapacity: 8, housingQuality: 5, storageCapacity: 140, social: true,
+    produces: null,
+  },
+  "founder-manor": {
+    kind: "founder-manor", name: "Founder's Manor", blurb: "The seat of the founding family. Built to outlast generations.",
+    size: { w: 5, h: 5 },
+    cost: { wood: 220, stone: 140 }, buildEffort: 900, housingCapacity: 10, housingQuality: 5, storageCapacity: 200, social: true,
+    produces: null,
+  },
+  bunkhouse: {
+    kind: "bunkhouse", name: "Bunkhouse", blurb: "Rows of cots for the work crews. Cheap and dense.",
+    size: { w: 4, h: 3 },
+    cost: { wood: 70, stone: 12 }, buildEffort: 300, housingCapacity: 12, housingQuality: 1, storageCapacity: 30, social: false,
+    produces: null,
+  },
+  "guest-house": {
+    kind: "guest-house", name: "Guest House", blurb: "A small cottage for newcomers and travelers.",
+    size: { w: 3, h: 2 },
+    cost: { wood: 40, stone: 10 }, buildEffort: 160, housingCapacity: 4, housingQuality: 2, storageCapacity: 20, social: false,
+    produces: null,
+  },
+  "orphan-house": {
+    kind: "orphan-house", name: "Orphan House", blurb: "A safe roof for children with no family left.",
+    size: { w: 3, h: 3 },
+    cost: { wood: 60, stone: 20, fiber: 6 }, buildEffort: 260, housingCapacity: 8, housingQuality: 2, storageCapacity: 40, social: true,
+    produces: null,
+  },
+  "elder-house": {
+    kind: "elder-house", name: "Elder House", blurb: "A quiet home where the old ones see out their days.",
+    size: { w: 3, h: 3 },
+    cost: { wood: 55, stone: 18 }, buildEffort: 240, housingCapacity: 6, housingQuality: 3, storageCapacity: 40, social: true,
     produces: null,
   },
   campfire: {
@@ -179,7 +233,10 @@ export const BUILDINGS: Record<BuildingKind, BuildingDef> = {
 };
 
 export const BUILDABLE_KINDS: BuildingKind[] = [
-  "tent", "cabin", "house", "large-house",
+  "tent", "family-tent", "cabin", "family-cabin",
+  "house", "family-house", "large-house",
+  "manor", "founder-manor",
+  "bunkhouse", "guest-house", "orphan-house", "elder-house",
   "campfire", "stockpile", "workbench",
   "farm-plot", "foraging-camp", "well", "water-collector",
   "fence", "palisade", "stone-wall", "gate", "watchtower", "guard-post",

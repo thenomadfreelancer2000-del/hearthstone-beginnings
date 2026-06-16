@@ -259,7 +259,10 @@ export interface Family {
 
 // ── Buildings ────────────────────────────────────────────────────
 export type BuildingKind =
-  | "homestead" | "tent" | "cabin" | "house" | "large-house"
+  | "homestead" | "tent" | "family-tent" | "cabin" | "family-cabin"
+  | "house" | "family-house" | "large-house"
+  | "manor" | "founder-manor"
+  | "bunkhouse" | "guest-house" | "orphan-house" | "elder-house"
   | "campfire" | "stockpile"
   | "workbench" | "well" | "watchtower" | "field" | "farm-plot"
   | "water-collector" | "foraging-camp"

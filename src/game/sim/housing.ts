@@ -7,7 +7,12 @@
 import type { Building, BuildingKind, Survivor } from "../types";
 import { BUILDINGS } from "../data/content";
 
-export const HOME_KINDS: BuildingKind[] = ["homestead", "tent", "cabin", "house", "large-house"];
+export const HOME_KINDS: BuildingKind[] = [
+  "homestead", "tent", "family-tent", "cabin", "family-cabin",
+  "house", "family-house", "large-house",
+  "manor", "founder-manor",
+  "bunkhouse", "guest-house", "orphan-house", "elder-house",
+];
 
 export function isResidential(kind: BuildingKind): boolean {
   return HOME_KINDS.includes(kind);
