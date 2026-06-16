@@ -61,11 +61,12 @@ export function ZombieLayer() {
 }
 
 function ZombieDot() {
+  // Zoomed-out marker — punchy enough to spot at low zoom.
   return (
     <>
-      <ellipse cx={0} cy={6} rx={6} ry={2} fill="rgba(0,0,0,0.5)" />
-      <circle cx={0} cy={0} r={4.5} fill="#3a4a32" stroke="#1a1208" strokeWidth={1} />
-      <circle cx={0} cy={-1.5} r={2.2} fill="#8a9078" stroke="#1a1208" strokeWidth={0.8} />
+      <ellipse cx={0} cy={3} rx={3.2} ry={1} fill="rgba(0,0,0,0.55)" />
+      <circle cx={0} cy={0} r={2.6} fill="#3a4a32" stroke="#0a0604" strokeWidth={0.6} />
+      <circle cx={0} cy={-1.8} r={1.4} fill="#8a9078" stroke="#0a0604" strokeWidth={0.5} />
     </>
   );
 }
