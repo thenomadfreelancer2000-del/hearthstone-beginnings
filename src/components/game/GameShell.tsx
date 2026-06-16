@@ -40,6 +40,8 @@ export function GameShell() {
   const [factionsOpen, setFactionsOpen] = useState(false);
   const [expeditionsOpen, setExpeditionsOpen] = useState(false);
   const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
+  const [zoomHudOpen, setZoomHudOpen] = useState(true);
+  const [speedHudOpen, setSpeedHudOpen] = useState(true);
   const selectionKey = selection.kind === "survivor" || selection.kind === "building" || selection.kind === "family"
     ? `${selection.kind}:${selection.id}`
     : selection.kind === "tile"
@@ -84,7 +86,7 @@ export function GameShell() {
               exit={{ opacity: 0, y: 8, scale: 0.95 }}
               transition={{ duration: 0.22, ease: "easeOut" }}
             >
-              <LeaderProfile dockOpen={dockOpen} />
+              <LeaderProfile dockOpen={dockOpen} zoomOpen={zoomHudOpen} setZoomOpen={setZoomHudOpen} />
             </motion.div>
           )}
         </AnimatePresence>
@@ -97,7 +99,7 @@ export function GameShell() {
               exit={{ opacity: 0, y: 8, scale: 0.95 }}
               transition={{ duration: 0.22, ease: "easeOut" }}
             >
-              <SpeedControl dockOpen={dockOpen} inspectorOpen={!isMobile && !inspectorCollapsed} />
+              <SpeedControl dockOpen={dockOpen} inspectorOpen={!isMobile && !inspectorCollapsed} open={speedHudOpen} setOpen={setSpeedHudOpen} />
             </motion.div>
           )}
         </AnimatePresence>
