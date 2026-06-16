@@ -71,7 +71,7 @@ export function TopBar({ onToggleDock, dockOpen, onSettingsOpenChange }: Props) 
               {SEASON_LABEL[time.season].slice(0,3)} Y{time.year} · {stats.population} souls
             </span>
           </button>
-          <SettingsMenu compact />
+          <SettingsMenu compact onOpenChange={onSettingsOpenChange} />
           <button
             onClick={onToggleDock}
             className="btn-ranch btn-ranch-ghost text-[10px] !px-1.5 !py-1 shrink-0"
@@ -109,7 +109,7 @@ export function TopBar({ onToggleDock, dockOpen, onSettingsOpenChange }: Props) 
           </span>
           <button className="btn-ranch btn-ranch-ghost !py-0.5 !px-1.5 text-[10px]" onClick={() => save()} title="Save">Save</button>
           <button className="btn-ranch btn-ranch-ghost !py-0.5 !px-1.5 text-[10px]" onClick={() => setScreen("menu")} title="Menu">Menu</button>
-          <SettingsMenu />
+          <SettingsMenu onOpenChange={onSettingsOpenChange} />
         </div>
       </header>
       {resOpen && <ResourcesPanel />}
