@@ -53,6 +53,13 @@ export function GameShell() {
   }, [isMobile, selection.kind, selectionKey]);
 
   const showInspector = isMobile ? selection.kind !== "none" && inspectorOpen : true;
+  const anySidePanelOpen = livestockOpen || adminOpen || politicsOpen || factionsOpen || expeditionsOpen;
+  const mobileFocus = isMobile && (showInspector || anySidePanelOpen);
+
+  // Auto-collapse the bottom dock whenever a side panel takes focus on mobile.
+  useEffect(() => {
+    if (mobileFocus && dockOpen) setDockOpen(false);
+  }, [mobileFocus, dockOpen]);
 
 
   return (
@@ -65,22 +72,24 @@ export function GameShell() {
 
       <div className="flex-1 flex min-h-0 relative">
         <MapView />
-        <FoundingPanel />
-        <LeaderProfile dockOpen={dockOpen} />
+        {!mobileFocus && <FoundingPanel />}
+        {!mobileFocus && <LeaderProfile dockOpen={dockOpen} />}
         <MarriageProposalsPanel />
         <LivestockRequestsPanel />
         <MinisterRequestsPanel />
-        <div
-          className="absolute top-2 z-40 flex flex-col gap-1 items-stretch transition-all"
-          style={{ right: !isMobile && !inspectorCollapsed ? 348 : (!isMobile && inspectorCollapsed ? 40 : 8) }}
-        >
-          <SideButton onClick={() => setLivestockOpen(true)} label="Livestock" />
-          <SideButton onClick={() => setAdminOpen(true)} label="Ministers" />
-          <SideButton onClick={() => setPoliticsOpen(true)} label="Council" />
-          <SideButton onClick={() => setFactionsOpen(true)} label="Factions" />
-          <SideButton onClick={() => setExpeditionsOpen(true)} label="Expeditions" />
-          <SideButton onClick={() => setOverlay("tree")} label="Dynasty" />
-        </div>
+        {!mobileFocus && (
+          <div
+            className="absolute top-2 z-40 flex flex-col gap-1 items-stretch transition-all"
+            style={{ right: !isMobile && !inspectorCollapsed ? 348 : (!isMobile && inspectorCollapsed ? 40 : 8) }}
+          >
+            <SideButton onClick={() => setLivestockOpen(true)} label="Livestock" />
+            <SideButton onClick={() => setAdminOpen(true)} label="Ministers" />
+            <SideButton onClick={() => setPoliticsOpen(true)} label="Council" />
+            <SideButton onClick={() => setFactionsOpen(true)} label="Factions" />
+            <SideButton onClick={() => setExpeditionsOpen(true)} label="Expeditions" />
+            <SideButton onClick={() => setOverlay("tree")} label="Dynasty" />
+          </div>
+        )}
         {livestockOpen && <LivestockPanel onClose={() => setLivestockOpen(false)} />}
         {adminOpen && <AdministrationPanel onClose={() => setAdminOpen(false)} />}
         {politicsOpen && <PoliticsPanel onClose={() => setPoliticsOpen(false)} />}
@@ -104,19 +113,20 @@ export function GameShell() {
           )
         )}
 
-        {/* Mobile inspector as right drawer */}
+        {/* Mobile inspector as right drawer — narrow so part of the map stays visible. */}
         {isMobile && showInspector && (
           <>
             <div
               className="absolute inset-0 bg-black/40 z-30"
               onClick={() => { setInspectorOpen(false); clearSelection(); }}
             />
-            <div className="absolute right-0 top-0 bottom-0 z-40 w-[88vw] max-w-[360px] flex">
+            <div className="absolute right-0 top-0 bottom-0 z-40 w-[78vw] max-w-[300px] flex">
               <Inspector />
             </div>
           </>
         )}
       </div>
+
 
       {/* Desktop: dock always; Mobile: inline bottom tray so it never covers the leader portrait */}
       {!isMobile && <BottomDock />}
