@@ -981,3 +981,37 @@ function EducationPanel({ s }: { s: Survivor }) {
 }
 
 
+
+function LeaderHelpToggles() {
+  const leaderHelp = useGame((s) => s.leaderHelp);
+  const setLeaderHelp = useGame((s) => s.setLeaderHelp);
+  const Row = ({ id, label, hint }: { id: "build" | "farm"; label: string; hint: string }) => {
+    const on = leaderHelp[id];
+    return (
+      <button
+        type="button"
+        onClick={() => setLeaderHelp(id, !on)}
+        className={`w-full text-left border px-3 py-2 transition ${
+          on ? "border-amber bg-amber/15" : "border-amber/30 bg-coal/40 hover:border-amber/60"
+        }`}
+      >
+        <div className="flex items-center justify-between">
+          <span className="ranch-label text-xs text-amber">{label}</span>
+          <span className={`ranch-data text-[10px] ${on ? "text-success" : "text-dust"}`}>
+            {on ? "ON" : "OFF"}
+          </span>
+        </div>
+        <p className="ranch-handwritten text-[11px] text-dust-light mt-0.5">{hint}</p>
+      </button>
+    );
+  };
+  return (
+    <>
+      <h4 className="ranch-label mt-5 mb-2">Leader's Hands</h4>
+      <div className="space-y-2">
+        <Row id="build" label="Help Builders" hint="Pitches in at unfinished sites. Lifts opinion of those who see you work." />
+        <Row id="farm" label="Help Farmers" hint="Gathers food alongside the workers. Lifts opinion of those nearby." />
+      </div>
+    </>
+  );
+}
