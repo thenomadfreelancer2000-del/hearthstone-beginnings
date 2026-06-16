@@ -58,7 +58,17 @@ export interface SelectionTile { kind: "tile"; x: number; y: number }
 export interface SelectionFamily { kind: "family"; id: string }
 export type Selection = SelectionNone | SelectionSurvivor | SelectionBuilding | SelectionTile | SelectionFamily;
 
-export type BuildPlacement = { kind: BuildingKind } | null;
+export type BuildPlacement = {
+  kind: BuildingKind;
+  /** When set, the building is granted to a non-founder family. */
+  forFamilyId?: ID;
+  /** When true, skip resource cost (e.g. granted pens). */
+  free?: boolean;
+  /** When set, completing placement resolves this livestock request. */
+  livestockRequestId?: ID;
+  /** When set, seed a starter pair of this species inside the new pen. */
+  seedSpecies?: AnimalSpecies;
+} | null;
 
 interface GameState {
   screen: Screen;
@@ -448,14 +458,19 @@ export const useGame = create<GameState>((set, get) => ({
       }
     }
 
-    for (const [r, amt] of Object.entries(def.cost)) {
-      if ((st.resources as any)[r] < (amt ?? 0)) return false;
+    if (!bp.free) {
+      for (const [r, amt] of Object.entries(def.cost)) {
+        if ((st.resources as any)[r] < (amt ?? 0)) return false;
+      }
     }
     const newResources = { ...st.resources };
-    for (const [r, amt] of Object.entries(def.cost)) {
-      (newResources as any)[r] -= amt ?? 0;
+    if (!bp.free) {
+      for (const [r, amt] of Object.entries(def.cost)) {
+        (newResources as any)[r] -= amt ?? 0;
+      }
     }
-    const isInstant = def.buildEffort === 0;
+    const isGranted = !!bp.forFamilyId;
+    const isInstant = def.buildEffort === 0 || isGranted;
     const resourcesDelivered = Object.fromEntries(
       Object.entries(def.cost).map(([resource, amount]) => [resource, amount ?? 0]),
     ) as Partial<Record<ResourceKind, number>>;
@@ -465,7 +480,7 @@ export const useGame = create<GameState>((set, get) => ({
       x, y,
       w: def.size.w, h: def.size.h,
       builtProgress: isInstant ? 1 : 0,
-      effortRemaining: def.buildEffort,
+      effortRemaining: isInstant ? 0 : def.buildEffort,
       buildEffortTotal: def.buildEffort,
       completedYear: isInstant ? st.time.year : null,
       assignedBuilderId: null,
@@ -486,15 +501,65 @@ export const useGame = create<GameState>((set, get) => ({
             totalHarvests: 0,
           }
         : null,
+      livestockOwnerFamilyId: bp.forFamilyId ?? undefined,
     };
+    let animals = st.animals;
+    if (bp.seedSpecies) {
+      animals = [
+        ...animals,
+        makeAnimal(bp.seedSpecies, "f", bp.forFamilyId ?? st.survivors.find(s => s.id === st.founderId)!.familyId, b.id, st.time.tick, 40),
+        makeAnimal(bp.seedSpecies, "m", bp.forFamilyId ?? st.survivors.find(s => s.id === st.founderId)!.familyId, b.id, st.time.tick, 40),
+      ];
+    }
+    // Resolve a pending livestock request, if this placement was for one.
+    let livestockRequests = st.livestockRequests;
+    let survivors = st.survivors;
+    let families = st.families;
+    if (bp.livestockRequestId) {
+      const req = livestockRequests.find(r => r.id === bp.livestockRequestId);
+      if (req) {
+        livestockRequests = livestockRequests.map(r =>
+          r.id === bp.livestockRequestId
+            ? { ...r, status: "approved" as const, nextTributeTick: st.time.tick + 12 * 24 }
+            : r,
+        );
+        survivors = survivors.map(s => {
+          const inFam = s.familyId === req.familyId && s.health > 0;
+          if (!inFam) return s;
+          return {
+            ...s,
+            loyaltyToFounder: Math.min(100, s.loyaltyToFounder + (s.id === req.requesterId ? 10 : 4)),
+            mood: Math.min(100, s.mood + 4),
+            memories: s.id === req.requesterId ? [
+              {
+                id: nanoid(6), tick: st.time.tick, year: st.time.year, season: st.time.season, day: st.time.day,
+                text: `The Founder granted my wish to raise ${SPECIES_LABEL[req.species].toLowerCase()}.`,
+                emotion: "trust" as const, weight: 60, aboutSurvivorId: st.currentLeaderId,
+                kind: "livestock-approved", floor: 20, decayRate: 0.3,
+              },
+              ...s.memories,
+            ].slice(0, 64) : s.memories,
+          };
+        });
+        families = families.map(f =>
+          f.id === req.familyId ? { ...f, prestige: Math.min(200, f.prestige + 3) } : f,
+        );
+        const fam = families.find(f => f.id === req.familyId);
+        toast.success(`Granted House ${fam?.name ?? "—"}'s ${SPECIES_LABEL[req.species]} request`);
+      }
+    }
     set({
       buildings: [...st.buildings, b],
       resources: newResources,
+      animals,
+      livestockRequests,
+      survivors,
+      families,
       buildPlacement: null,
       // Open assignment modal only for buildings that actually need labor.
-      // If a Build Manager is appointed, they handle staffing automatically.
+      // Granted family pens skip this; the family handles them.
       pendingBuildAssignment:
-        isInstant || bp.kind === "farm-plot" ||
+        isInstant || isGranted || bp.kind === "farm-plot" ||
         st.ministers.some((m) => m.role === "head-builder")
           ? null
           : b.id,
@@ -1924,87 +1989,43 @@ export const useGame = create<GameState>((set, get) => ({
       return;
     }
     // approve
-    let buildings = st.buildings;
-    let animals = st.animals;
-    // For start-raising, place a pen if the family doesn't already have one,
-    // so the coop is actually visible on the map alongside the animals.
-    if (req.kind === "start-raising") {
-      const existingPen = buildings.find(b =>
-        b.builtProgress >= 1 && b.kind === SPECIES_BUILDING[req.species] &&
-        b.livestockOwnerFamilyId === fam?.id,
-      );
-      if (!existingPen) {
-        // fall through to pen placement below by treating as build-pen
-        req.kind = "build-pen";
-      } else {
-        const newAnimals: Animal[] = [
-          makeAnimal(req.species, "f", req.familyId, existingPen.id, st.time.tick, 40),
-          makeAnimal(req.species, "m", req.familyId, existingPen.id, st.time.tick, 40),
-        ];
-        animals = [...animals, ...newAnimals];
-      }
-    }
-    if (req.kind === "build-pen" || req.kind === "expand") {
-      // Place the family pen near the homestead in an empty spot.
-      const home = buildings.find(b => b.kind === "homestead");
-      const def = BUILDINGS[SPECIES_BUILDING[req.species]];
-      const isFree = (x: number, y: number, w: number, h: number) => {
-        if (x < 0 || y < 0 || x + w > st.mapW || y + h > st.mapH) return false;
-        for (const b of buildings) {
-          if (x + w <= b.x || y + h <= b.y || b.x + b.w <= x || b.y + b.h <= y) continue;
-          return false;
-        }
-        for (let dy = 0; dy < h; dy++) for (let dx = 0; dx < w; dx++) {
-          const t = st.tiles[(y + dy) * st.mapW + (x + dx)];
-          if (!t || t.kind === "water" || t.kind === "stone") return false;
-        }
-        if (st.territory && st.territory.radius > 0) {
-          const cx = x + w / 2, cy = y + h / 2;
-          const halfW = st.territory.halfW ?? st.territory.radius;
-          const halfH = st.territory.halfH ?? st.territory.radius;
-          if (Math.abs(cx - st.territory.cx) > halfW) return false;
-          if (Math.abs(cy - st.territory.cy) > halfH) return false;
-        }
-        return true;
-      };
-      const start = home ? { x: home.x + home.w + 1, y: home.y } : { x: 4, y: 4 };
-      let spot: { x: number; y: number } | null = null;
-      outer: for (let r = 1; r < 14 && !spot; r++) {
-        for (let dy = -r; dy <= r; dy++) {
-          for (let dx = -r; dx <= r; dx++) {
-            const x = start.x + dx, y = start.y + dy;
-            if (isFree(x, y, def.size.w, def.size.h)) { spot = { x, y }; break outer; }
-          }
-        }
-      }
-      if (spot) {
-        const newPen: Building = {
-          id: nanoid(10),
+    // Does the family already have a pen for this species? If so, "start-raising"
+    // and "expand" just add animals; no placement needed.
+    const existingPen = st.buildings.find(b =>
+      b.builtProgress >= 1 && b.kind === SPECIES_BUILDING[req.species] &&
+      b.livestockOwnerFamilyId === fam?.id,
+    );
+    const needsPlacement =
+      (req.kind === "build-pen") ||
+      (req.kind === "start-raising" && !existingPen);
+
+    if (needsPlacement) {
+      // Hand control to the player to pick a tile for the family's pen.
+      set({
+        buildPlacement: {
           kind: SPECIES_BUILDING[req.species],
-          x: spot.x, y: spot.y, w: def.size.w, h: def.size.h,
-          builtProgress: 1,
-          effortRemaining: 0,
-          buildEffortTotal: def.buildEffort,
-          completedYear: st.time.year,
-          assignedBuilderId: null,
-          resourcesDelivered: {},
-          lastWorkedTick: null,
-          stalledTicks: 0,
-          occupantIds: [],
-          stored: {},
-          farm: null,
-          livestockOwnerFamilyId: req.familyId,
-        };
-        buildings = [...buildings, newPen];
-        // Seed a starter pair so the pen isn't empty.
-        animals = [
-          ...animals,
-          makeAnimal(req.species, "f", req.familyId, newPen.id, st.time.tick, 40),
-          makeAnimal(req.species, "m", req.familyId, newPen.id, st.time.tick, 40),
-        ];
-      } else {
-        toast.warning("No room near the homestead for their pen — request still granted.");
-      }
+          forFamilyId: req.familyId,
+          free: true,
+          livestockRequestId: req.id,
+          seedSpecies: req.species,
+        },
+        selection: { kind: "none" },
+        livestockRequests: st.livestockRequests.map(r =>
+          r.id === id ? { ...r, status: "pending" as const } : r,
+        ),
+      });
+      toast(`Choose where House ${fam?.name ?? "—"} will build their ${SPECIES_LABEL[req.species]} pen — click on the map.`);
+      return;
+    }
+
+    // No placement needed — just seed animals (start-raising w/ existing pen, or expand).
+    let animals = st.animals;
+    if (existingPen) {
+      animals = [
+        ...animals,
+        makeAnimal(req.species, "f", req.familyId, existingPen.id, st.time.tick, 40),
+        makeAnimal(req.species, "m", req.familyId, existingPen.id, st.time.tick, 40),
+      ];
     }
     // Founder opinion + prestige bump for the family
     const survivors = st.survivors.map(s => {
@@ -2028,7 +2049,6 @@ export const useGame = create<GameState>((set, get) => ({
     const families = st.families.map(f =>
       f.id === req.familyId ? { ...f, prestige: Math.min(200, f.prestige + 3) } : f,
     );
-    // Keep the approved request around (with tribute schedule) instead of deleting it.
     const livestockRequests = st.livestockRequests.map(r =>
       r.id === id
         ? { ...r, status: "approved" as const, nextTributeTick: st.time.tick + 12 * 24 }
@@ -2036,7 +2056,6 @@ export const useGame = create<GameState>((set, get) => ({
     );
     set({
       livestockRequests,
-      buildings,
       animals,
       survivors,
       families,
