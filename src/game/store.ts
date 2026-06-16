@@ -968,6 +968,7 @@ export const useGame = create<GameState>((set, get) => ({
       buildPlacement: null,
       pendingArrival: null,
       pendingBuildAssignment: null,
+      leaderHelp: { build: false, farm: false },
       pendingFarmSetup: null,
       unlockedCrops: [...STARTER_CROP_IDS],
       reputation: 0,
