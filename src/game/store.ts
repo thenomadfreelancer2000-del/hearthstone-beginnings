@@ -552,6 +552,10 @@ export const useGame = create<GameState>((set, get) => ({
 
   closeBuildAssignment: () => set({ pendingBuildAssignment: null }),
 
+  setLeaderHelp: (mode, on) => set((st) => ({
+    leaderHelp: { ...st.leaderHelp, [mode]: on },
+  })),
+
   configureFarm: (buildingId, cropId, farmerId) => {
     const st = get();
     const finalCrop = isCropId(cropId) && st.unlockedCrops.includes(cropId) ? cropId : "corn";
