@@ -914,23 +914,38 @@ function ResidentialPanel({ b }: { b: Building }) {
       {candidates.length > 0 && occupants.length < cap && (
         <div className="mt-3">
           <div className="ranch-label text-[10px] text-amber mb-1">Move someone in</div>
-          <select
-            className="w-full bg-coal border border-amber/30 text-parchment text-xs px-2 py-1"
-            defaultValue=""
-            onChange={(e) => { if (e.target.value) assignSurvivorToHome(e.target.value, b.id); e.currentTarget.value = ""; }}
-          >
-            <option value="">— Pick someone —</option>
-            <optgroup label="Homeless">
-              {candidates.filter(s => !s.homeId).map(s => (
-                <option key={s.id} value={s.id}>{s.name} {s.surname} ({s.gender === "m" ? "M" : "F"}, {s.stage})</option>
-              ))}
-            </optgroup>
-            <optgroup label="Already housed (relocate)">
-              {candidates.filter(s => !!s.homeId).map(s => (
-                <option key={s.id} value={s.id}>{s.name} {s.surname} ({s.gender === "m" ? "M" : "F"}, {s.stage})</option>
-              ))}
-            </optgroup>
-          </select>
+          {(() => {
+            const homeless = candidates.filter(c => !c.homeId);
+            const housed = candidates.filter(c => !!c.homeId);
+            const Row = ({ c, note }: { c: Survivor; note?: string }) => (
+              <li key={c.id}>
+                <button
+                  type="button"
+                  onClick={() => assignSurvivorToHome(c.id, b.id)}
+                  className="w-full text-left border border-amber/30 hover:border-amber bg-coal/40 hover:bg-amber/10 px-2 py-1.5 transition"
+                >
+                  <div className="flex justify-between items-baseline">
+                    <span className="ranch-body text-xs text-parchment">
+                      {c.name} {c.surname} <span className="text-dust text-[10px]">({c.gender === "m" ? "M" : "F"}, {c.stage})</span>
+                    </span>
+                    {note && <span className="ranch-data text-[10px] text-dust">{note}</span>}
+                  </div>
+                </button>
+              </li>
+            );
+            return (
+              <ul className="space-y-1 max-h-56 overflow-auto scroll-amber pr-1">
+                {homeless.length > 0 && (
+                  <li className="ranch-label text-[9px] text-dust mt-1">Homeless</li>
+                )}
+                {homeless.map(c => <Row key={c.id} c={c} note="homeless" />)}
+                {housed.length > 0 && (
+                  <li className="ranch-label text-[9px] text-dust mt-2">Relocate (already housed)</li>
+                )}
+                {housed.map(c => <Row key={c.id} c={c} note="relocate" />)}
+              </ul>
+            );
+          })()}
         </div>
       )}
       <button
