@@ -497,6 +497,9 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
         else s.skills.forage = Math.min(30, s.skills.forage + 0.0015 * dt);
         s.state = "working";
         s.action = wants === "fiber" ? `Stripping fiber from ${node.kind}.` : `Working at ${node.kind}.`;
+        if (s.isFounder && wants === "food" && deps.leaderHelp?.farm) {
+          grantLeaderHelpOpinion(s, deps, dt, "farm");
+        }
         if ((s.carrying?.amount ?? 0) >= CARRY_CAP) {
           const sp = nearestStockpile(s, deps.buildings);
           if (sp) setTarget(s, sp.x + sp.w / 2, sp.y + sp.h / 2);
