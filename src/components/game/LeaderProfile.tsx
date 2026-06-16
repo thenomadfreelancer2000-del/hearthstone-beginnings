@@ -22,8 +22,9 @@ export function LeaderProfile({ dockOpen = false }: LeaderProfileProps) {
 
   // Anchor to bottom-left; minimal push when dock opens so the portrait stays grounded.
   const positionClass = isMobile && dockOpen ? "left-2 bottom-3" : "left-2 bottom-2 sm:left-3 sm:bottom-3";
-  const portraitSize = isMobile ? "w-[92px] h-[92px]" : "w-[120px] h-[120px] sm:w-[140px] sm:h-[140px]";
-  const widthClass = isMobile ? "w-[96px]" : "w-[124px] sm:w-[144px]";
+  const portraitSize = isMobile ? "w-[74px] h-[74px]" : "w-[96px] h-[96px] sm:w-[112px] sm:h-[112px]";
+  const widthClass = isMobile ? "w-[78px]" : "w-[100px] sm:w-[116px]";
+
   const iconBtn =
     "flex-1 min-w-0 h-full grid place-items-center text-amber/85 hover:bg-amber/10 disabled:opacity-30 disabled:hover:bg-transparent transition-colors";
 
