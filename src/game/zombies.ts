@@ -36,9 +36,9 @@ interface ZombieState {
   reset: () => void;
 }
 
-const MIN_COUNT = 90;
-const MAX_COUNT = 150;
-const SPAWN_COOLDOWN_MS = 500;
+const MIN_COUNT = 180;
+const MAX_COUNT = 300;
+const SPAWN_COOLDOWN_MS = 300;
 const FLAVOR_COOLDOWN_MS = 90_000;
 const WANDER_SPEED = 0.0004;
 const REDIRECT_MIN = 2500;
