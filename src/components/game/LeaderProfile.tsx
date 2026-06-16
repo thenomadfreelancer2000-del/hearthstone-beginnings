@@ -7,9 +7,11 @@ import { useView, MIN_ZOOM, MAX_ZOOM } from "@/game/viewStore";
 
 interface LeaderProfileProps {
   dockOpen?: boolean;
+  zoomOpen: boolean;
+  setZoomOpen: (v: boolean | ((p: boolean) => boolean)) => void;
 }
 
-export function LeaderProfile({ dockOpen = false }: LeaderProfileProps) {
+export function LeaderProfile({ dockOpen = false, zoomOpen, setZoomOpen }: LeaderProfileProps) {
   const leader = useGame((s) => s.survivors.find((x) => x.id === s.currentLeaderId));
   const selectSurvivor = useGame((s) => s.selectSurvivor);
   const isMobile = useIsMobile();
