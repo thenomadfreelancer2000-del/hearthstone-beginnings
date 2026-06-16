@@ -1406,29 +1406,68 @@ export function MapView() {
           );
         })}
 
-        {/* Ghost placement — green = valid, red = invalid */}
-        {ghost && (
-          <g pointerEvents="none">
-            <rect x={ghost.x * TILE} y={ghost.y * TILE}
-              width={ghost.w * TILE} height={ghost.h * TILE}
-              fill={ghost.valid ? "rgba(74,222,128,0.22)" : "rgba(248,113,113,0.25)"}
-              stroke={ghost.valid ? "#4ade80" : "#f87171"}
-              strokeDasharray="3 2"
-              strokeWidth="1.5" />
-            {/* Grid snap tick marks at corners */}
-            {[[0,0],[ghost.w,0],[0,ghost.h],[ghost.w,ghost.h]].map(([cx,cy],i) => (
-              <circle key={i} cx={(ghost.x + cx) * TILE} cy={(ghost.y + cy) * TILE} r={1.6}
-                fill={ghost.valid ? "#4ade80" : "#f87171"} />
-            ))}
-            {pendingPlacement && (
-              <text x={(ghost.x + ghost.w / 2) * TILE} y={ghost.y * TILE - 4}
-                textAnchor="middle" fontSize="7" fill={ghost.valid ? "#4ade80" : "#f87171"}
-                fontWeight="bold">
-                {ghost.valid ? "Tap again to confirm" : (ghost.reason || "Invalid")}
-              </text>
-            )}
-          </g>
-        )}
+        {/* Ghost placement — surveyor's stake, parchment-styled */}
+        {ghost && (() => {
+          const px = ghost.x * TILE;
+          const py = ghost.y * TILE;
+          const pw = ghost.w * TILE;
+          const ph = ghost.h * TILE;
+          const accent = ghost.valid ? "#c9a14a" : "#b14a3a";
+          const ink = ghost.valid ? "#3a2a12" : "#2a0e0a";
+          const bracket = Math.min(8, Math.min(pw, ph) * 0.32);
+          return (
+            <g pointerEvents="none">
+              {/* Hatched fill */}
+              <rect x={px} y={py} width={pw} height={ph}
+                fill={`url(#ghost-hatch-${ghost.valid ? "ok" : "bad"})`} />
+              {/* Dashed survey outline */}
+              <rect x={px + 0.5} y={py + 0.5} width={pw - 1} height={ph - 1}
+                fill="none" stroke={accent} strokeWidth="0.9"
+                strokeDasharray="2.5 1.8" opacity="0.95" />
+              {/* Inner ink shadow line for parchment feel */}
+              <rect x={px + 1.6} y={py + 1.6} width={pw - 3.2} height={ph - 3.2}
+                fill="none" stroke={ink} strokeWidth="0.4" opacity="0.45"
+                strokeDasharray="1 2" />
+              {/* Corner brackets (mirrors UI corner-brackets style) */}
+              {[
+                [px, py, 1, 1],
+                [px + pw, py, -1, 1],
+                [px, py + ph, 1, -1],
+                [px + pw, py + ph, -1, -1],
+              ].map(([cx, cy, sx, sy], i) => (
+                <g key={i}>
+                  <line x1={cx} y1={cy} x2={cx + sx * bracket} y2={cy}
+                    stroke={accent} strokeWidth="1.4" strokeLinecap="square" />
+                  <line x1={cx} y1={cy} x2={cx} y2={cy + sy * bracket}
+                    stroke={accent} strokeWidth="1.4" strokeLinecap="square" />
+                </g>
+              ))}
+              {/* Invalid: charcoal cross-out */}
+              {!ghost.valid && (
+                <>
+                  <line x1={px + 2} y1={py + 2} x2={px + pw - 2} y2={py + ph - 2}
+                    stroke={ink} strokeWidth="1.1" opacity="0.55" />
+                  <line x1={px + pw - 2} y1={py + 2} x2={px + 2} y2={py + ph - 2}
+                    stroke={ink} strokeWidth="1.1" opacity="0.55" />
+                </>
+              )}
+              {/* Surveyor's stake label */}
+              {pendingPlacement && (
+                <g>
+                  <rect x={px + pw / 2 - Math.max(28, pw * 0.6)} y={py - 11}
+                    width={Math.max(56, pw * 1.2)} height={9}
+                    fill="#1a1208" stroke={accent} strokeWidth="0.6" opacity="0.92" rx="0.5" />
+                  <text x={px + pw / 2} y={py - 4.5}
+                    textAnchor="middle" fontSize="5.5" fill={accent}
+                    fontFamily="ui-serif, Georgia, serif"
+                    style={{ letterSpacing: "0.06em", textTransform: "uppercase" }}>
+                    {ghost.valid ? "Tap again — break ground" : (ghost.reason || "No good")}
+                  </text>
+                </g>
+              )}
+            </g>
+          );
+        })()}
 
         <rect x={0} y={0} width={W} height={H} fill="url(#vignette)" pointerEvents="none" />
       </svg>
