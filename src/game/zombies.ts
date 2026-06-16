@@ -54,16 +54,11 @@ function inSettlement(x: number, y: number, t: Territory | null, buffer = 6): bo
 }
 
 function pickSpawnPoint(mapW: number, mapH: number, t: Territory | null): { x: number; y: number } | null {
-  // Try a handful of times to find a tile outside the settlement.
-  for (let i = 0; i < 12; i++) {
-    // Bias toward map edges.
-    const edge = rand();
-    let x: number, y: number;
-    if (edge < 0.25) { x = 2 + rand() * 8; y = 2 + rand() * (mapH - 4); }
-    else if (edge < 0.5) { x = mapW - 10 + rand() * 8; y = 2 + rand() * (mapH - 4); }
-    else if (edge < 0.75) { x = 2 + rand() * (mapW - 4); y = 2 + rand() * 8; }
-    else { x = 2 + rand() * (mapW - 4); y = mapH - 10 + rand() * 8; }
-    if (!inSettlement(x, y, t, 8)) return { x, y };
+  // Spawn anywhere on the map that isn't inside the ranch perimeter.
+  for (let i = 0; i < 20; i++) {
+    const x = 2 + rand() * (mapW - 4);
+    const y = 2 + rand() * (mapH - 4);
+    if (!inSettlement(x, y, t, 4)) return { x, y };
   }
   return null;
 }
