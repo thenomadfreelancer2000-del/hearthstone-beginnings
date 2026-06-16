@@ -452,6 +452,7 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
       s.occupation === "miner" ? ["stone"] :
       s.occupation === "farmer" ? ["food"] :
       s.occupation === "forager" ? ["fiber", "food"] :
+      s.isFounder && deps.leaderHelp?.farm ? ["food"] :
       s.isFounder ? [] :
       ["wood"];
     let node: ResourceNode | null = null;
