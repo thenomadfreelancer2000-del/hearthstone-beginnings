@@ -122,6 +122,10 @@ interface GameState {
   territory: Territory | null;
   borderMode: boolean;
 
+  // Leader auto-help toggles. When on, the founder pitches in on builds/farms
+  // when not already busy, and gains opinion with onlookers.
+  leaderHelp: { build: boolean; farm: boolean };
+
   // actions
   setScreen: (s: Screen) => void;
   setOverlay: (o: Overlay) => void;
