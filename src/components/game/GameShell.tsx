@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Toaster } from "sonner";
+import { AnimatePresence, motion } from "framer-motion";
 import { TopBar } from "./TopBar";
 import { MapView } from "./MapView";
 import { Inspector } from "./Inspector";
