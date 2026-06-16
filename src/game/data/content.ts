@@ -47,15 +47,15 @@ export const BUILDINGS: Record<BuildingKind, BuildingDef> = {
     produces: null,
   },
   cabin: {
-    kind: "cabin", name: "Log Cabin", blurb: "A real roof. Walls that hold the cold out.",
-    size: { w: 3, h: 3 },
-    cost: { wood: 30, stone: 8 }, buildEffort: 140, housingCapacity: 4, housingQuality: 2, storageCapacity: 40, social: false,
+    kind: "cabin", name: "Log Cabin", blurb: "A real roof. Walls that hold the cold out. Snug for one or two.",
+    size: { w: 2, h: 2 },
+    cost: { wood: 22, stone: 6 }, buildEffort: 110, housingCapacity: 2, housingQuality: 2, storageCapacity: 30, social: false,
     produces: null,
   },
   house: {
     kind: "house", name: "House", blurb: "Two rooms, a hearth, and a door that latches.",
     size: { w: 3, h: 3 },
-    cost: { wood: 60, stone: 20 }, buildEffort: 260, housingCapacity: 6, housingQuality: 3, storageCapacity: 60, social: false,
+    cost: { wood: 60, stone: 20 }, buildEffort: 260, housingCapacity: 4, housingQuality: 3, storageCapacity: 60, social: false,
     produces: null,
   },
   "family-tent": {
