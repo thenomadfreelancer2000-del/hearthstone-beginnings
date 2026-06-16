@@ -10,6 +10,7 @@ const SEASON_LABEL: Record<string, string> = {
 interface Props {
   onToggleDock?: () => void;
   dockOpen?: boolean;
+  onSettingsOpenChange?: (open: boolean) => void;
 }
 
 const RES_ORDER: { key: keyof ReturnType<typeof useGame.getState>["resources"]; label: string }[] = [
