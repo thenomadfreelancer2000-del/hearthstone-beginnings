@@ -106,17 +106,6 @@ export function TopBar({ onToggleDock, dockOpen }: Props) {
             <span className="text-dust/60"> · </span>
             <span className={stats.morale >= 0 ? "text-success" : "text-danger"}>{Math.round(stats.morale)}</span> mood
           </span>
-          <div className="flex border border-amber/30">
-            {[0, 1, 2, 3].map((s) => (
-              <button
-                key={s}
-                onClick={() => setSpeed(s as 0 | 1 | 2 | 3)}
-                className={`px-1.5 py-0.5 ranch-label text-[9px] ${speed === s ? "bg-amber text-ink" : "text-dust hover:text-amber"}`}
-              >
-                {s === 0 ? "▮▮" : `${s === 3 ? 4 : s}×`}
-              </button>
-            ))}
-          </div>
           <button className="btn-ranch btn-ranch-ghost !py-0.5 !px-1.5 text-[10px]" onClick={() => save()} title="Save">Save</button>
           <button className="btn-ranch btn-ranch-ghost !py-0.5 !px-1.5 text-[10px]" onClick={() => setScreen("menu")} title="Menu">Menu</button>
           <SettingsMenu />
