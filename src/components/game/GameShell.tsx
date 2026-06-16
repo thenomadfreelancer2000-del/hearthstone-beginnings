@@ -42,6 +42,7 @@ export function GameShell() {
   const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
   const [zoomHudOpen, setZoomHudOpen] = useState(true);
   const [speedHudOpen, setSpeedHudOpen] = useState(true);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const selectionKey = selection.kind === "survivor" || selection.kind === "building" || selection.kind === "family"
     ? `${selection.kind}:${selection.id}`
     : selection.kind === "tile"
