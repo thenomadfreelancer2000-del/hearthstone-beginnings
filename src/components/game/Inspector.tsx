@@ -2,7 +2,9 @@ import { useState } from "react";
 import { useGame } from "@/game/store";
 import { ArrangeMarriageModal } from "./ArrangeMarriageModal";
 import { BUILDINGS } from "@/game/data/content";
+import { getPortraitUrl } from "@/game/data/portraits";
 import { opinionLabel, opinionScore, opinionCategory } from "@/game/sim/ai";
+
 import {
   constructionEffortCompleted,
   constructionStatus,
