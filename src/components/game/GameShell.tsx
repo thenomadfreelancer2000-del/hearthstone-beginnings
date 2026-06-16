@@ -40,6 +40,8 @@ export function GameShell() {
   const [factionsOpen, setFactionsOpen] = useState(false);
   const [expeditionsOpen, setExpeditionsOpen] = useState(false);
   const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
+  const [zoomHudOpen, setZoomHudOpen] = useState(true);
+  const [speedHudOpen, setSpeedHudOpen] = useState(true);
   const selectionKey = selection.kind === "survivor" || selection.kind === "building" || selection.kind === "family"
     ? `${selection.kind}:${selection.id}`
     : selection.kind === "tile"
