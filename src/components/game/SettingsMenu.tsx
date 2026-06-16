@@ -2,12 +2,19 @@ import { useEffect, useRef, useState } from "react";
 import { AmbientSound, useAmbientToggle } from "./AmbientSound";
 import { useGame } from "@/game/store";
 
-export function SettingsMenu({ compact = false }: { compact?: boolean }) {
+export function SettingsMenu({ compact = false, onOpenChange }: { compact?: boolean; onOpenChange?: (open: boolean) => void }) {
   const { enabled, toggle } = useAmbientToggle();
   const setScreen = useGame((s) => s.setScreen);
   const save = useGame((s) => s.save);
-  const [open, setOpen] = useState(false);
+  const [open, setOpenState] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const setOpen = (v: boolean | ((p: boolean) => boolean)) => {
+    setOpenState((prev) => {
+      const next = typeof v === "function" ? (v as (p: boolean) => boolean)(prev) : v;
+      onOpenChange?.(next);
+      return next;
+    });
+  };
 
   useEffect(() => {
     if (!open) return;

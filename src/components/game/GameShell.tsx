@@ -42,6 +42,7 @@ export function GameShell() {
   const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
   const [zoomHudOpen, setZoomHudOpen] = useState(true);
   const [speedHudOpen, setSpeedHudOpen] = useState(true);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const selectionKey = selection.kind === "survivor" || selection.kind === "building" || selection.kind === "family"
     ? `${selection.kind}:${selection.id}`
     : selection.kind === "tile"
@@ -72,6 +73,7 @@ export function GameShell() {
       <TopBar
         onToggleDock={() => setDockOpen((v) => !v)}
         dockOpen={dockOpen}
+        onSettingsOpenChange={setSettingsOpen}
       />
 
       <div className="flex-1 flex min-h-0 relative">
@@ -106,7 +108,7 @@ export function GameShell() {
         <MarriageProposalsPanel />
         <LivestockRequestsPanel />
         <MinisterRequestsPanel />
-        {!mobileFocus && (
+        {!mobileFocus && !settingsOpen && (
           <div
             className="absolute top-2 z-40 flex flex-col gap-1 items-stretch transition-all"
             style={{ right: !isMobile && !inspectorCollapsed ? 348 : (!isMobile && inspectorCollapsed ? 40 : 8) }}
