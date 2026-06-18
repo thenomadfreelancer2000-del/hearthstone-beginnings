@@ -18,9 +18,9 @@ export function LeaderProfile({ dockOpen = false }: LeaderProfileProps) {
   const positionClass =
     isMobile && dockOpen ? "left-2 bottom-3" : "left-2 bottom-2 sm:left-3 sm:bottom-3";
   const portraitSize = isMobile
-    ? "w-[74px] h-[74px]"
-    : "w-[96px] h-[96px] sm:w-[112px] sm:h-[112px]";
-  const widthClass = isMobile ? "w-[78px]" : "w-[100px] sm:w-[116px]";
+    ? "w-[59px] h-[59px]"
+    : "w-[77px] h-[77px] sm:w-[90px] sm:h-[90px]";
+  const widthClass = isMobile ? "w-[63px]" : "w-[80px] sm:w-[93px]";
 
   return (
     <div
