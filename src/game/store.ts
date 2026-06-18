@@ -586,10 +586,20 @@ export const useGame = create<GameState>((set, get) => ({
     const st = get();
     set({
       buildings: st.buildings.map(b =>
-        b.id === buildingId ? { ...b, assignedBuilderId: survivorId } : b
+        b.id === buildingId ? { ...b, assignedBuilderId: survivorId, stalledTicks: 0 } : b
       ),
       survivors: survivorId
-        ? st.survivors.map(s => s.id === survivorId ? { ...s, occupation: "builder" as const } : s)
+        ? st.survivors.map(s => s.id === survivorId
+            ? {
+                ...s,
+                occupation: "builder" as const,
+                // Drop stale gather/haul state so they commit to the new site
+                // immediately instead of ping-ponging to the stockpile.
+                workTarget: { kind: "building" as const, id: buildingId },
+                carrying: null,
+                commitment: { kind: "construction" as const, buildingId, phase: "returning" as const, sinceTick: st.time.tick },
+              }
+            : s)
         : st.survivors,
       pendingBuildAssignment: st.pendingBuildAssignment === buildingId ? null : st.pendingBuildAssignment,
     });
@@ -602,7 +612,6 @@ export const useGame = create<GameState>((set, get) => ({
     const candidates = st.survivors.filter(s =>
       s.health > 0 && (s.stage === "adult" || s.stage === "youth" || s.stage === "elder" || s.isFounder)
     );
-    // Pick highest build skill; ties broken by closer to site, then non-leader preference.
     candidates.sort((a, b2) => {
       const sa = a.skills.build ?? 1;
       const sb = b2.skills.build ?? 1;
@@ -614,8 +623,19 @@ export const useGame = create<GameState>((set, get) => ({
     const pick = candidates[0];
     set({
       buildings: st.buildings.map(x =>
-        x.id === buildingId ? { ...x, assignedBuilderId: pick?.id ?? null } : x
+        x.id === buildingId ? { ...x, assignedBuilderId: pick?.id ?? null, stalledTicks: 0 } : x
       ),
+      survivors: pick
+        ? st.survivors.map(s => s.id === pick.id
+            ? {
+                ...s,
+                occupation: "builder" as const,
+                workTarget: { kind: "building" as const, id: buildingId },
+                carrying: null,
+                commitment: { kind: "construction" as const, buildingId, phase: "returning" as const, sinceTick: st.time.tick },
+              }
+            : s)
+        : st.survivors,
       pendingBuildAssignment: st.pendingBuildAssignment === buildingId ? null : st.pendingBuildAssignment,
     });
   },
