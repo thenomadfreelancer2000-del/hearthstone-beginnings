@@ -236,7 +236,16 @@ export function Inspector({ onHide }: { onHide?: () => void } = {}) {
             </>
           )}
 
-          {tab === "relationships" && (
+          {tab === "relationships" && (<>
+            {!isDead && !s.spouseId && !s.fianceId && s.familyId === survivors.find(x => x.id === founderId)?.familyId && (s.stage === "adult" || s.stage === "youth" || s.stage === "elder") && s.age >= 18 && (
+              <button
+                onClick={() => setArrangeFor(s.id)}
+                className="btn-ranch btn-ranch-ghost text-[9px] px-2 py-0.5 mb-2"
+              >
+                ♥ Arrange marriage
+              </button>
+            )}
+            {
             rels.length > 0 ? (() => {
               const groups: Record<string, { r: Relationship; other: Survivor; score: number }[]> = {
                 "best-friend": [], "friend": [], "rival": [], "enemy": [],
