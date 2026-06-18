@@ -3,7 +3,7 @@ import type {
 } from "../types";
 import { applyConstructionWork, hasConstructionResources, normalizeConstructionBuilding } from "./construction";
 import { traitPairBias, traitMarriageScore, traitWorkSpeed } from "../data/traits";
-import { learningRate, syncSkills } from "./skills";
+import { learningRate } from "./skills";
 
 export const TICKS_PER_DAY = 240;
 export const DAYS_PER_SEASON = 12;
