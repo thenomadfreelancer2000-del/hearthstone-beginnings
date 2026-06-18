@@ -3,6 +3,7 @@ import type {
 } from "../types";
 import { applyConstructionWork, hasConstructionResources, normalizeConstructionBuilding } from "./construction";
 import { traitPairBias, traitMarriageScore, traitWorkSpeed } from "../data/traits";
+import { learningRate, syncSkills } from "./skills";
 
 export const TICKS_PER_DAY = 240;
 export const DAYS_PER_SEASON = 12;
@@ -277,9 +278,11 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
     }
     s.action = s.stage === "child" ? "Playing in the dirt." : "Learning the work.";
     s.state = "idle";
-    // skill drift (slow learning)
-    s.skills.forage = Math.min(30, s.skills.forage + 0.0004 * dt);
-    s.skills.build = Math.min(30, s.skills.build + 0.0003 * dt);
+    // skill drift (slow learning) — boosted by Intelligence.
+    const lr = learningRate(s.skills);
+    s.skills.forage = Math.min(30, s.skills.forage + 0.0004 * dt * lr);
+    s.skills.build  = Math.min(30, s.skills.build  + 0.0003 * dt * lr);
+    s.skills.intelligence = Math.min(30, (s.skills.intelligence ?? 1) + 0.0002 * dt);
     return;
   }
 
@@ -427,7 +430,8 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
         const rivalMult = rivalryWorkMult(s, b, deps);
         const work = skillMult * roleMult * finishMult * traitMult * rivalMult * (dt / 24);
         applyConstructionWork(b, work, deps.tick);
-        s.skills.build = Math.min(30, (s.skills.build ?? 1) + 0.003 * dt);
+        s.skills.build = Math.min(30, (s.skills.build ?? 1) + 0.003 * dt * learningRate(s.skills));
+        s.skills.building = s.skills.build;
         s.state = "working";
         s.action = rivalMult < 1
           ? `Bickering through work on the ${b.kind}.`
@@ -492,9 +496,11 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
           resource: wants,
           amount: (s.carrying?.amount ?? 0) + yieldAmt,
         };
-        if (wants === "wood") s.skills.cut = Math.min(30, s.skills.cut + 0.0015 * dt);
-        else if (wants === "stone") s.skills.mine = Math.min(30, s.skills.mine + 0.0015 * dt);
-        else s.skills.forage = Math.min(30, s.skills.forage + 0.0015 * dt);
+        const lr2 = learningRate(s.skills);
+        if (wants === "wood") s.skills.cut = Math.min(30, s.skills.cut + 0.0015 * dt * lr2);
+        else if (wants === "stone") s.skills.mine = Math.min(30, s.skills.mine + 0.0015 * dt * lr2);
+        else s.skills.forage = Math.min(30, s.skills.forage + 0.0015 * dt * lr2);
+        s.skills.strength = Math.max(s.skills.cut, s.skills.mine, s.skills.forage);
         s.state = "working";
         s.action = wants === "fiber" ? `Stripping fiber from ${node.kind}.` : `Working at ${node.kind}.`;
         if (s.isFounder && wants === "food" && deps.leaderHelp?.farm) {
@@ -516,7 +522,7 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
       if (dist(s.x, s.y, cx, cy) < 1.4) {
         s.needs.belonging = Math.min(100, s.needs.belonging + 0.6);
         s.needs.purpose = Math.min(100, s.needs.purpose + 0.2);
-        s.skills.social = Math.min(30, (s.skills.social ?? 1) + 0.0015 * dt);
+        s.skills.social = Math.min(30, (s.skills.social ?? 1) + 0.0015 * dt * learningRate(s.skills));
         s.state = "socializing";
         s.action = "Sitting by the fire.";
         for (const o of deps.survivors) {
@@ -687,7 +693,8 @@ function handleBuildPhase(s: Survivor, dt: number, deps: SimDeps, b: Building, c
   const rivalMult = rivalryWorkMult(s, b, deps);
   const work = skillMult * 1.25 * finishMult * traitWorkSpeed(s.traits) * rivalMult * (dt / 24);
   applyConstructionWork(b, work, deps.tick);
-  s.skills.build = Math.min(30, (s.skills.build ?? 1) + 0.003 * dt);
+  s.skills.build = Math.min(30, (s.skills.build ?? 1) + 0.003 * dt * learningRate(s.skills));
+  s.skills.building = s.skills.build;
   s.state = "working";
   s.action = rivalMult < 1 ? "Bickering through work." : "Building.";
   if (b.builtProgress >= 1) s.commitment = null;
