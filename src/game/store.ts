@@ -680,8 +680,9 @@ export const useGame = create<GameState>((set, get) => ({
   configureFarm: (buildingId, cropId, farmerId) => {
     const st = get();
     const finalCrop = isCropId(cropId) && st.unlockedCrops.includes(cropId) ? cropId : "corn";
+    const cleared = farmerId ? releaseSurvivorFromAssignments(st.buildings, farmerId) : st.buildings;
     set({
-      buildings: st.buildings.map(b => {
+      buildings: cleared.map(b => {
         if (b.id !== buildingId) return b;
         const farm = b.farm ?? {
           cropId: finalCrop, stage: "empty" as const, growth: 0,
@@ -698,7 +699,9 @@ export const useGame = create<GameState>((set, get) => ({
         };
       }),
       survivors: farmerId
-        ? st.survivors.map(s => s.id === farmerId ? { ...s, occupation: "farmer" as const } : s)
+        ? st.survivors.map(s => s.id === farmerId
+            ? { ...clearSurvivorWorkState(s), occupation: "farmer" as const }
+            : s)
         : st.survivors,
       pendingFarmSetup: st.pendingFarmSetup === buildingId ? null : st.pendingFarmSetup,
     });
@@ -706,14 +709,17 @@ export const useGame = create<GameState>((set, get) => ({
 
   assignFarmer: (buildingId, farmerId) => {
     const st = get();
+    const cleared = farmerId ? releaseSurvivorFromAssignments(st.buildings, farmerId) : st.buildings;
     set({
-      buildings: st.buildings.map(b =>
+      buildings: cleared.map(b =>
         b.id === buildingId && b.farm
           ? { ...b, farm: { ...b.farm, assignedFarmerId: farmerId } }
           : b
       ),
       survivors: farmerId
-        ? st.survivors.map(s => s.id === farmerId ? { ...s, occupation: "farmer" as const } : s)
+        ? st.survivors.map(s => s.id === farmerId
+            ? { ...clearSurvivorWorkState(s), occupation: "farmer" as const }
+            : s)
         : st.survivors,
     });
   },
