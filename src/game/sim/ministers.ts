@@ -37,11 +37,68 @@ export const ROLE_OCCUPATION: Record<MinisterRole, Survivor["occupation"]> = {
 };
 
 export const ROLE_SKILL: Record<MinisterRole, keyof Survivor["skills"]> = {
-  "head-farmer": "farm",
-  "head-builder": "build",
-  "head-rancher": "ranch" as any,
-  "quartermaster": "lead",
+  "head-farmer": "farming",
+  "head-builder": "building",
+  "head-rancher": "farming",
+  "quartermaster": "finance",
 };
+
+/** Minimum primary-skill (or Leadership) required to even be eligible. */
+const ROLE_MIN_SKILL = 4;
+
+/**
+ * Composite role-fit score 0..100 used for manager candidate ranking.
+ * Combines the role's primary skill, Leadership, Intelligence, plus a Social
+ * bonus for the Quartermaster (negotiating with families). Healing rewards
+ * Healing skill; a future Head Medic slot will hook in here.
+ */
+export function roleScore(role: MinisterRole, s: Survivor): number {
+  const sk = s.skills as any;
+  const primary = sk[ROLE_SKILL[role]] ?? 0;
+  const lead    = sk.leadership ?? sk.lead ?? 0;
+  const intel   = sk.intelligence ?? 0;
+  const social  = sk.social ?? 0;
+  const finance = sk.finance ?? 0;
+
+  // Base mix: primary skill dominates, leadership matters everywhere,
+  // intelligence helps planning, plus a role-specific flavour.
+  let score = primary * 2.4 + lead * 1.6 + intel * 0.8;
+  if (role === "quartermaster")  score += finance * 1.4 + social * 0.6;
+  if (role === "head-farmer")    score += intel * 0.4;
+  if (role === "head-builder")   score += (sk.strength ?? 0) * 0.4;
+  if (role === "head-rancher")   score += (sk.strength ?? 0) * 0.3;
+
+  return Math.max(0, Math.min(100, score));
+}
+
+/** True if a survivor meets the minimum bar for a ministerial role. */
+export function isRoleEligible(role: MinisterRole, s: Survivor): boolean {
+  const sk = s.skills as any;
+  const primary = sk[ROLE_SKILL[role]] ?? 0;
+  const lead    = sk.leadership ?? sk.lead ?? 0;
+  return primary >= ROLE_MIN_SKILL || lead >= ROLE_MIN_SKILL + 4;
+}
+
+/**
+ * Worker-performance multiplier granted by a competent manager: a Leader
+ * with high Leadership and Intelligence makes their whole crew measurably
+ * more productive. Returns 1.0 when no minister holds the role.
+ */
+export function managerBonus(
+  role: MinisterRole,
+  ministers: Minister[],
+  survivors: Survivor[],
+): number {
+  const m = ministers.find((x) => x.role === role);
+  if (!m) return 1.0;
+  const s = survivors.find((x) => x.id === m.survivorId && x.health > 0);
+  if (!s) return 1.0;
+  const sk = s.skills as any;
+  const lead  = sk.leadership ?? sk.lead ?? 0;
+  const intel = sk.intelligence ?? 0;
+  // 0 → 1.0, 30/30 → ~1.45.
+  return 1 + (lead * 0.012) + (intel * 0.003);
+}
 
 export const ALL_ROLES: MinisterRole[] = [
   "head-farmer", "head-builder", "head-rancher", "quartermaster",
@@ -388,19 +445,14 @@ export function suggestMinisterCandidates(
   ministers: Minister[],
   founderId: ID,
 ): Survivor[] {
-  const skill = ROLE_SKILL[role];
   const taken = new Set(ministers.map((m) => m.survivorId));
   return survivors
     .filter((s) =>
       s.health > 0 &&
       (s.stage === "adult" || s.stage === "elder" || s.stage === "youth") &&
       !taken.has(s.id) &&
-      s.id !== founderId,
+      s.id !== founderId &&
+      isRoleEligible(role, s),
     )
-    .sort((a, b) => {
-      const sa = (a.skills as any)[skill] ?? 1;
-      const sb = (b.skills as any)[skill] ?? 1;
-      if (sa !== sb) return sb - sa;
-      return (b.skills.lead ?? 1) - (a.skills.lead ?? 1);
-    });
+    .sort((a, b) => roleScore(role, b) - roleScore(role, a));
 }

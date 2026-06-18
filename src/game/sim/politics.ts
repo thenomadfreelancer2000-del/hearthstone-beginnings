@@ -184,10 +184,16 @@ export function computePolitics(input: ComputeInput): PoliticsSnapshot {
       members.length > 0
         ? members.reduce((a, b) => a + b.loyaltyToFounder, 0) / members.length
         : 0;
-    const headSkill = head ? (head.skills.lead ?? 0) : 0;
+    // House head's personal sway: Leadership dominates, Social helps with
+    // negotiations, Intelligence rounds it out.
+    const hsk = head?.skills as any;
+    const headLead   = hsk?.leadership ?? hsk?.lead   ?? 0;
+    const headSocial = hsk?.social                    ?? 0;
+    const headIntel  = hsk?.intelligence              ?? 0;
+    const headSkill  = headLead + headSocial * 0.5 + headIntel * 0.3;
     let influence =
       30 +
-      Math.round(headSkill * 4) +
+      Math.round(headSkill * 3.0) +
       Math.round(avgLoyalty * 0.15) +
       offices.length * 8 +
       alliances * 4;

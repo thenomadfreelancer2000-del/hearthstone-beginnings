@@ -20,7 +20,7 @@ import { applyAgingEffects, applyLeadershipTransition, lifeStageLabel } from "./
 import { BUILDINGS } from "../data/content";
 import { enqueueProposalsForSeason, resolveProposalsDaily } from "./marriage";
 import { dailyLivestockTick } from "./livestock";
-import { dailyMinistersTick, autoAssignWorkers } from "./ministers";
+import { dailyMinistersTick, autoAssignWorkers, managerBonus } from "./ministers";
 
 export interface Engine {
   time: GameTime;
@@ -166,6 +166,7 @@ export function advance(eng: Engine, n: number, opts?: { onArrival?: (s: Survivo
       resources: eng.resources,
       survivors: eng.survivors,
       relationships: eng.relationships,
+      ministers: eng.ministers,
       leaderHelp: eng.leaderHelp ?? { build: false, farm: false },
       emitMemory: (s: Survivor, text: string, emotion: Memory["emotion"], weight: number) =>
         emitMem(eng, s, text, emotion, weight),
@@ -822,8 +823,9 @@ function processFarms(eng: Engine) {
       ? eng.survivors.find(s => s.id === farm.assignedFarmerId && s.health > 0)
       : null;
     const effectiveFarmer = assigned && assigned.occupation === "farmer" ? assigned : null;
-    const skill = effectiveFarmer?.skills.farm ?? 0;
-    const rate = growthRateMultiplier(skill);
+    const skill = effectiveFarmer?.skills.farming ?? effectiveFarmer?.skills.farm ?? 0;
+    const farmMgr = managerBonus("head-farmer", eng.ministers, eng.survivors);
+    const rate = growthRateMultiplier(skill) * farmMgr;
 
     // Empty → planted (needs the assigned farmer actively working)
     if (farm.stage === "empty") {
@@ -861,10 +863,11 @@ function processFarms(eng: Engine) {
       }
 
       if (harvester) {
-        const hSkill = harvester.skills.farm ?? 0;
+        const hSkill = harvester.skills.farming ?? harvester.skills.farm ?? 0;
         const base = expectedYield(crop, hSkill);
         const variance = 0.85 + Math.random() * 0.3;
-        const harvested = Math.max(1, Math.round(base * variance));
+        const mgr = managerBonus("head-farmer", eng.ministers, eng.survivors);
+        const harvested = Math.max(1, Math.round(base * variance * mgr));
         eng.resources.food += harvested;
         farm.lastYield = harvested;
         farm.lastHarvestYear = eng.time.year;
