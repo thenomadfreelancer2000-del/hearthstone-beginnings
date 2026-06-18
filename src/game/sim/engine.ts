@@ -235,6 +235,51 @@ function dailyTick(eng: Engine, opts?: { onArrival?: (s: Survivor) => Survivor |
     }
   }
 
+  // ── Education & Medical (settlement-wide bonuses) ─────────────
+  const eduTier = Math.max(
+    0,
+    ...eng.buildings
+      .filter((b) => b.builtProgress >= 1)
+      .map((b) =>
+        b.kind === "library" ? 4 :
+        b.kind === "academy" ? 3 :
+        b.kind === "schoolhouse" ? 2 :
+        b.kind === "learning-tent" ? 1 : 0,
+      ),
+  );
+  const medTier = Math.max(
+    0,
+    ...eng.buildings
+      .filter((b) => b.builtProgress >= 1)
+      .map((b) =>
+        b.kind === "hospital" ? 4 :
+        b.kind === "infirmary" ? 3 :
+        b.kind === "clinic" ? 2 :
+        b.kind === "medical-tent" ? 1 : 0,
+      ),
+  );
+  if (eduTier > 0 || medTier > 0) {
+    const skillKeys: (keyof Survivor["skills"])[] = ["forage","cut","mine","build","farm","medic","lead","social"];
+    for (const s of eng.survivors) {
+      if (s.health <= 0) continue;
+      // Education: children & teens learn faster when a school exists.
+      if (eduTier > 0 && (s.stage === "child" || s.stage === "teen")) {
+        const focus = s.educationFocus as keyof Survivor["skills"] | null | undefined;
+        const key = focus && (s.skills as any)[focus] != null
+          ? focus
+          : skillKeys[Math.floor(Math.random() * skillKeys.length)];
+        const cur = ((s.skills as any)[key] ?? 1) as number;
+        (s.skills as any)[key] = Math.min(30, cur + 0.04 * eduTier);
+        s.mood = Math.min(100, s.mood + 0.05 * eduTier);
+      }
+      // Medical: faster recovery when injured/sick.
+      if (medTier > 0 && s.health < 100) {
+        s.health = Math.min(100, s.health + 0.6 * medTier);
+      }
+    }
+  }
+
+
   processFarms(eng);
   dailyHousingTick({ buildings: eng.buildings, survivors: eng.survivors, tick: eng.time.tick });
   dailyFamilyTick({
