@@ -598,8 +598,13 @@ export const useGame = create<GameState>((set, get) => ({
 
   setOccupation: (id, occ) => {
     const st = get();
+    // Reassigning a job stops any prior building/farm/node task.
+    const buildings = releaseSurvivorFromAssignments(st.buildings, id);
     set({
-      survivors: st.survivors.map(s => s.id === id ? { ...s, occupation: occ } : s),
+      buildings,
+      survivors: st.survivors.map(s =>
+        s.id === id ? { ...clearSurvivorWorkState(s), occupation: occ } : s
+      ),
     });
   },
 
