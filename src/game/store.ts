@@ -278,6 +278,27 @@ function expandLiveWorld(st: GameState): Partial<GameState> | null {
 const ARRIVAL_CHECK_TICKS = 240 * 3; // every 3 days
 
 
+// Release a survivor from any prior building/farm/node assignment so a new
+// job assignment doesn't leave them oscillating between two tasks.
+function releaseSurvivorFromAssignments(
+  buildings: Building[],
+  survivorId: ID,
+): Building[] {
+  return buildings.map(b => {
+    let next = b;
+    if (b.assignedBuilderId === survivorId) next = { ...next, assignedBuilderId: null, stalledTicks: 0 };
+    if (b.assignedWorkerId === survivorId) next = { ...next, assignedWorkerId: null };
+    if (b.farm && b.farm.assignedFarmerId === survivorId) {
+      next = { ...next, farm: { ...b.farm, assignedFarmerId: null } };
+    }
+    return next;
+  });
+}
+
+function clearSurvivorWorkState(s: Survivor): Survivor {
+  return { ...s, workTarget: null, commitment: null, carrying: null };
+}
+
 export const useGame = create<GameState>((set, get) => ({
   screen: "menu",
   overlay: null,
@@ -577,15 +598,24 @@ export const useGame = create<GameState>((set, get) => ({
 
   setOccupation: (id, occ) => {
     const st = get();
+    // Reassigning a job stops any prior building/farm/node task.
+    const buildings = releaseSurvivorFromAssignments(st.buildings, id);
     set({
-      survivors: st.survivors.map(s => s.id === id ? { ...s, occupation: occ } : s),
+      buildings,
+      survivors: st.survivors.map(s =>
+        s.id === id ? { ...clearSurvivorWorkState(s), occupation: occ } : s
+      ),
     });
   },
 
   assignBuilder: (buildingId, survivorId) => {
     const st = get();
+    // First release the new survivor from any prior job (and clear any old builder of this site).
+    const cleared = survivorId
+      ? releaseSurvivorFromAssignments(st.buildings, survivorId)
+      : st.buildings;
     set({
-      buildings: st.buildings.map(b =>
+      buildings: cleared.map(b =>
         b.id === buildingId ? { ...b, assignedBuilderId: survivorId, stalledTicks: 0 } : b
       ),
       survivors: survivorId
@@ -621,8 +651,9 @@ export const useGame = create<GameState>((set, get) => ({
       return da - db;
     });
     const pick = candidates[0];
+    const cleared = pick ? releaseSurvivorFromAssignments(st.buildings, pick.id) : st.buildings;
     set({
-      buildings: st.buildings.map(x =>
+      buildings: cleared.map(x =>
         x.id === buildingId ? { ...x, assignedBuilderId: pick?.id ?? null, stalledTicks: 0 } : x
       ),
       survivors: pick
@@ -649,8 +680,9 @@ export const useGame = create<GameState>((set, get) => ({
   configureFarm: (buildingId, cropId, farmerId) => {
     const st = get();
     const finalCrop = isCropId(cropId) && st.unlockedCrops.includes(cropId) ? cropId : "corn";
+    const cleared = farmerId ? releaseSurvivorFromAssignments(st.buildings, farmerId) : st.buildings;
     set({
-      buildings: st.buildings.map(b => {
+      buildings: cleared.map(b => {
         if (b.id !== buildingId) return b;
         const farm = b.farm ?? {
           cropId: finalCrop, stage: "empty" as const, growth: 0,
@@ -667,7 +699,9 @@ export const useGame = create<GameState>((set, get) => ({
         };
       }),
       survivors: farmerId
-        ? st.survivors.map(s => s.id === farmerId ? { ...s, occupation: "farmer" as const } : s)
+        ? st.survivors.map(s => s.id === farmerId
+            ? { ...clearSurvivorWorkState(s), occupation: "farmer" as const }
+            : s)
         : st.survivors,
       pendingFarmSetup: st.pendingFarmSetup === buildingId ? null : st.pendingFarmSetup,
     });
@@ -675,14 +709,17 @@ export const useGame = create<GameState>((set, get) => ({
 
   assignFarmer: (buildingId, farmerId) => {
     const st = get();
+    const cleared = farmerId ? releaseSurvivorFromAssignments(st.buildings, farmerId) : st.buildings;
     set({
-      buildings: st.buildings.map(b =>
+      buildings: cleared.map(b =>
         b.id === buildingId && b.farm
           ? { ...b, farm: { ...b.farm, assignedFarmerId: farmerId } }
           : b
       ),
       survivors: farmerId
-        ? st.survivors.map(s => s.id === farmerId ? { ...s, occupation: "farmer" as const } : s)
+        ? st.survivors.map(s => s.id === farmerId
+            ? { ...clearSurvivorWorkState(s), occupation: "farmer" as const }
+            : s)
         : st.survivors,
     });
   },
@@ -729,12 +766,15 @@ export const useGame = create<GameState>((set, get) => ({
       "cattle-pasture": "rancher",
     };
     const occ = occMap[b.kind];
+    const cleared = survivorId ? releaseSurvivorFromAssignments(st.buildings, survivorId) : st.buildings;
     set({
-      buildings: st.buildings.map(x =>
+      buildings: cleared.map(x =>
         x.id === buildingId ? { ...x, assignedWorkerId: survivorId } : x
       ),
       survivors: survivorId && occ
-        ? st.survivors.map(s => s.id === survivorId ? { ...s, occupation: occ } : s)
+        ? st.survivors.map(s => s.id === survivorId
+            ? { ...clearSurvivorWorkState(s), occupation: occ }
+            : s)
         : st.survivors,
     });
   },
@@ -748,8 +788,12 @@ export const useGame = create<GameState>((set, get) => ({
       node.kind === "rocks" ? "miner" :
       node.kind === "berries" ? "forager" :
       node.kind === "fiber-grass" ? "forager" : "hauler";
+    const buildings = releaseSurvivorFromAssignments(st.buildings, survivorId);
     set({
-      survivors: st.survivors.map(s => s.id === survivorId ? { ...s, occupation: occ, workTarget: { kind: "node", id: nodeId } } : s),
+      buildings,
+      survivors: st.survivors.map(s => s.id === survivorId
+        ? { ...s, occupation: occ, workTarget: { kind: "node", id: nodeId }, commitment: null, carrying: null }
+        : s),
     });
 
     const who = st.survivors.find(s => s.id === survivorId);
@@ -1493,6 +1537,7 @@ export const useGame = create<GameState>((set, get) => ({
       ministerRequests: st.ministerRequests.map(r => ({ ...r })),
       ministerReports: st.ministerReports.map(r => ({ ...r })),
       foundingPhase: st.foundingPhase,
+      leaderHelp: { ...st.leaderHelp },
     };
 
     const prevTick = st.time.tick;
@@ -2581,7 +2626,7 @@ export function computeFoundingObjectives(st: GameState): FoundingObjective[] {
   const has = (kinds: BuildingKind[]) =>
     st.buildings.some(b => kinds.includes(b.kind) && b.builtProgress >= 1);
   return [
-    { id: "home",   label: "Build a home (Tent or Cabin)",            done: has(["tent", "cabin"]) },
+    { id: "home",   label: "Build a home (Tent or Cabin)",            done: has(["tent", "family-tent", "cabin", "family-cabin"]) },
     { id: "water",  label: "Secure water (Well or Water Collector)",  done: has(["well", "water-collector"]) },
     { id: "food",   label: "Secure food (Farm Plot or Foraging Camp)", done: has(["farm-plot", "foraging-camp"]) },
     { id: "fence",  label: "Build a fence to mark the ranch",         done: has(["fence"]) },
