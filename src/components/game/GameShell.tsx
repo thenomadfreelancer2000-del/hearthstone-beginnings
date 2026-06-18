@@ -13,7 +13,7 @@ import { AssignBuilderModal } from "./AssignBuilderModal";
 import { FarmSetupModal } from "./FarmSetupModal";
 import { FoundingPanel } from "./FoundingPanel";
 import { LeaderProfile } from "./LeaderProfile";
-import { HudBar } from "./HudBar";
+
 import { MarriageProposalsPanel } from "./MarriageProposalsPanel";
 import { LivestockRequestsPanel } from "./LivestockRequestsPanel";
 import { LivestockPanel } from "./LivestockPanel";
@@ -89,19 +89,6 @@ export function GameShell() {
               transition={{ duration: 0.22, ease: "easeOut" }}
             >
               <LeaderProfile dockOpen={dockOpen} />
-            </motion.div>
-          )}
-        </AnimatePresence>
-        <AnimatePresence>
-          {!(isMobile && (mobileFocus || dockOpen)) && (
-            <motion.div
-              key="hud-bar"
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 8 }}
-              transition={{ duration: 0.22, ease: "easeOut" }}
-            >
-              <HudBar dockOpen={dockOpen} inspectorOpen={!isMobile && !inspectorCollapsed} />
             </motion.div>
           )}
         </AnimatePresence>

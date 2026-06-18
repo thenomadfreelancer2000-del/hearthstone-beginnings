@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useGame } from "@/game/store";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SettingsMenu } from "./SettingsMenu";
+import { HudInline } from "./HudInline";
 
 const SEASON_LABEL: Record<string, string> = {
   spring: "Spring", summer: "Summer", autumn: "Autumn", winter: "Winter",
@@ -71,6 +72,7 @@ export function TopBar({ onToggleDock, dockOpen, onSettingsOpenChange }: Props) 
               {SEASON_LABEL[time.season].slice(0,3)} Y{time.year} · {stats.population} souls
             </span>
           </button>
+          <HudInline />
           <SettingsMenu compact onOpenChange={onSettingsOpenChange} />
           <button
             onClick={onToggleDock}
@@ -107,6 +109,7 @@ export function TopBar({ onToggleDock, dockOpen, onSettingsOpenChange }: Props) 
             <span className="text-dust/60"> · </span>
             <span className={stats.morale >= 0 ? "text-success" : "text-danger"}>{Math.round(stats.morale)}</span> mood
           </span>
+          <HudInline />
           <button className="btn-ranch btn-ranch-ghost !py-0.5 !px-1.5 text-[10px]" onClick={() => save()} title="Save">Save</button>
           <button className="btn-ranch btn-ranch-ghost !py-0.5 !px-1.5 text-[10px]" onClick={() => setScreen("menu")} title="Menu">Menu</button>
           <SettingsMenu onOpenChange={onSettingsOpenChange} />
