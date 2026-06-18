@@ -278,6 +278,27 @@ function expandLiveWorld(st: GameState): Partial<GameState> | null {
 const ARRIVAL_CHECK_TICKS = 240 * 3; // every 3 days
 
 
+// Release a survivor from any prior building/farm/node assignment so a new
+// job assignment doesn't leave them oscillating between two tasks.
+function releaseSurvivorFromAssignments(
+  buildings: Building[],
+  survivorId: ID,
+): Building[] {
+  return buildings.map(b => {
+    let next = b;
+    if (b.assignedBuilderId === survivorId) next = { ...next, assignedBuilderId: null, stalledTicks: 0 };
+    if (b.assignedWorkerId === survivorId) next = { ...next, assignedWorkerId: null };
+    if (b.farm && b.farm.assignedFarmerId === survivorId) {
+      next = { ...next, farm: { ...b.farm, assignedFarmerId: null } };
+    }
+    return next;
+  });
+}
+
+function clearSurvivorWorkState(s: Survivor): Survivor {
+  return { ...s, workTarget: null, commitment: null, carrying: null };
+}
+
 export const useGame = create<GameState>((set, get) => ({
   screen: "menu",
   overlay: null,
