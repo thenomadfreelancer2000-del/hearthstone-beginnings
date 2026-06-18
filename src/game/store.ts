@@ -315,6 +315,8 @@ export const useGame = create<GameState>((set, get) => ({
   reputation: 0,
   reputationProfile: { compassionate: 0, ruthless: 0, builder: 0, provider: 0, honest: 0 },
   lastChronicleId: null,
+  lastStabilityScore: null,
+  lastStabilityLabel: null,
   foundingPhase: false,
   territory: null,
   borderMode: false,
