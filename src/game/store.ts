@@ -1696,7 +1696,7 @@ export const useGame = create<GameState>((set, get) => ({
           id: nanoid(8),
           tick: eng.time.tick,
           year: eng.time.year, season: eng.time.season, day: eng.time.day,
-          category: "council",
+          category: "event",
           title,
           body: desc,
         });
