@@ -1,4 +1,6 @@
 import type { SaveGame } from "./types";
+import { syncSkills } from "./sim/skills";
+
 
 const KEY = "the-ranch-save-v2";
 const LEGACY_KEY_V1 = "the-ranch-save-v1";
@@ -44,11 +46,8 @@ export function loadFromLocal(): SaveGame | null {
       (data as SaveGame).expeditions = [];
       (data as SaveGame).version = 6;
     }
-    // Always re-normalize the new skill schema (Leadership/Building/Farming/
-    // Healing/Strength/Intelligence/Finance/Social) on load. Older saves
-    // store only the legacy fields; syncSkills mirrors them across.
+    // Always re-normalize the new skill schema on load.
     try {
-      const { syncSkills } = await import("./sim/skills");
       for (const sv of data.survivors ?? []) {
         if (sv.skills) syncSkills(sv.skills);
       }
