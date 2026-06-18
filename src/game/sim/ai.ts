@@ -4,6 +4,7 @@ import type {
 import { applyConstructionWork, hasConstructionResources, normalizeConstructionBuilding } from "./construction";
 import { traitPairBias, traitMarriageScore, traitWorkSpeed } from "../data/traits";
 import { learningRate } from "./skills";
+import { managerBonus } from "./ministers";
 
 export const TICKS_PER_DAY = 240;
 export const DAYS_PER_SEASON = 12;
@@ -182,6 +183,7 @@ export interface SimDeps {
   resources: Record<ResourceKind, number>;
   survivors: Survivor[];
   relationships: Relationship[];
+  ministers?: import("../types").Minister[];
   leaderHelp?: { build: boolean; farm: boolean };
   emitMemory: (s: Survivor, text: string, emotion: import("../types").Memory["emotion"], weight: number) => void;
 }
@@ -428,7 +430,8 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
         const finishMult = nearDone ? 1.4 : 1.0;
         const traitMult = traitWorkSpeed(s.traits);
         const rivalMult = rivalryWorkMult(s, b, deps);
-        const work = skillMult * roleMult * finishMult * traitMult * rivalMult * (dt / 24);
+        const mgrMult = managerBonus("head-builder", deps.ministers ?? [], deps.survivors);
+        const work = skillMult * roleMult * finishMult * traitMult * rivalMult * mgrMult * (dt / 24);
         applyConstructionWork(b, work, deps.tick);
         s.skills.build = Math.min(30, (s.skills.build ?? 1) + 0.003 * dt * learningRate(s.skills));
         s.skills.building = s.skills.build;
@@ -691,7 +694,8 @@ function handleBuildPhase(s: Survivor, dt: number, deps: SimDeps, b: Building, c
   const skillMult = 1 + (s.skills.build ?? 1) * 0.18;
   const finishMult = b.builtProgress >= 0.75 ? 1.4 : 1.0;
   const rivalMult = rivalryWorkMult(s, b, deps);
-  const work = skillMult * 1.25 * finishMult * traitWorkSpeed(s.traits) * rivalMult * (dt / 24);
+  const mgrMult = managerBonus("head-builder", deps.ministers ?? [], deps.survivors);
+  const work = skillMult * 1.25 * finishMult * traitWorkSpeed(s.traits) * rivalMult * mgrMult * (dt / 24);
   applyConstructionWork(b, work, deps.tick);
   s.skills.build = Math.min(30, (s.skills.build ?? 1) + 0.003 * dt * learningRate(s.skills));
   s.skills.building = s.skills.build;
