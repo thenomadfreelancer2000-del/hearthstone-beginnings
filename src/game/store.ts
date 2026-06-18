@@ -1493,6 +1493,7 @@ export const useGame = create<GameState>((set, get) => ({
       ministerRequests: st.ministerRequests.map(r => ({ ...r })),
       ministerReports: st.ministerReports.map(r => ({ ...r })),
       foundingPhase: st.foundingPhase,
+      leaderHelp: { ...st.leaderHelp },
     };
 
     const prevTick = st.time.tick;
