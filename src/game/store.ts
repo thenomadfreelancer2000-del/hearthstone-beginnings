@@ -766,12 +766,15 @@ export const useGame = create<GameState>((set, get) => ({
       "cattle-pasture": "rancher",
     };
     const occ = occMap[b.kind];
+    const cleared = survivorId ? releaseSurvivorFromAssignments(st.buildings, survivorId) : st.buildings;
     set({
-      buildings: st.buildings.map(x =>
+      buildings: cleared.map(x =>
         x.id === buildingId ? { ...x, assignedWorkerId: survivorId } : x
       ),
       survivors: survivorId && occ
-        ? st.survivors.map(s => s.id === survivorId ? { ...s, occupation: occ } : s)
+        ? st.survivors.map(s => s.id === survivorId
+            ? { ...clearSurvivorWorkState(s), occupation: occ }
+            : s)
         : st.survivors,
     });
   },
@@ -785,8 +788,12 @@ export const useGame = create<GameState>((set, get) => ({
       node.kind === "rocks" ? "miner" :
       node.kind === "berries" ? "forager" :
       node.kind === "fiber-grass" ? "forager" : "hauler";
+    const buildings = releaseSurvivorFromAssignments(st.buildings, survivorId);
     set({
-      survivors: st.survivors.map(s => s.id === survivorId ? { ...s, occupation: occ, workTarget: { kind: "node", id: nodeId } } : s),
+      buildings,
+      survivors: st.survivors.map(s => s.id === survivorId
+        ? { ...s, occupation: occ, workTarget: { kind: "node", id: nodeId }, commitment: null, carrying: null }
+        : s),
     });
 
     const who = st.survivors.find(s => s.id === survivorId);
