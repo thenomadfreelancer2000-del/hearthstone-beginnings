@@ -610,8 +610,12 @@ export const useGame = create<GameState>((set, get) => ({
 
   assignBuilder: (buildingId, survivorId) => {
     const st = get();
+    // First release the new survivor from any prior job (and clear any old builder of this site).
+    const cleared = survivorId
+      ? releaseSurvivorFromAssignments(st.buildings, survivorId)
+      : st.buildings;
     set({
-      buildings: st.buildings.map(b =>
+      buildings: cleared.map(b =>
         b.id === buildingId ? { ...b, assignedBuilderId: survivorId, stalledTicks: 0 } : b
       ),
       survivors: survivorId
@@ -647,8 +651,9 @@ export const useGame = create<GameState>((set, get) => ({
       return da - db;
     });
     const pick = candidates[0];
+    const cleared = pick ? releaseSurvivorFromAssignments(st.buildings, pick.id) : st.buildings;
     set({
-      buildings: st.buildings.map(x =>
+      buildings: cleared.map(x =>
         x.id === buildingId ? { ...x, assignedBuilderId: pick?.id ?? null, stalledTicks: 0 } : x
       ),
       survivors: pick
