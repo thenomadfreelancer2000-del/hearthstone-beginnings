@@ -329,6 +329,54 @@ export const BUILDINGS: Record<BuildingKind, BuildingDef> = {
     cost: { stone: 60, wood: 18 }, buildEffort: 340, housingCapacity: 0, storageCapacity: 600, social: false,
     produces: null,
   },
+  "learning-tent": {
+    kind: "learning-tent", name: "Learning Tent", blurb: "A canvas roof, a slate, and a teacher. The first letters.",
+    size: { w: 2, h: 2 },
+    cost: { wood: 8, fiber: 4 }, buildEffort: 40, housingCapacity: 0, storageCapacity: 0, social: true,
+    produces: null,
+  },
+  schoolhouse: {
+    kind: "schoolhouse", name: "Schoolhouse", blurb: "Benches, a chalkboard, real walls. Lessons through the seasons.",
+    size: { w: 3, h: 3 },
+    cost: { wood: 50, stone: 16 }, buildEffort: 220, housingCapacity: 0, storageCapacity: 0, social: true,
+    produces: null,
+  },
+  academy: {
+    kind: "academy", name: "Academy", blurb: "Halls of learning. Where future leaders and scholars are shaped.",
+    size: { w: 4, h: 4 },
+    cost: { wood: 110, stone: 60, tools: 6 }, buildEffort: 480, housingCapacity: 0, storageCapacity: 40, social: true,
+    produces: null,
+  },
+  library: {
+    kind: "library", name: "Library", blurb: "Shelves of salvaged books. Knowledge preserved across generations.",
+    size: { w: 3, h: 3 },
+    cost: { wood: 70, stone: 40, tools: 4 }, buildEffort: 320, housingCapacity: 0, storageCapacity: 0, social: true,
+    produces: null,
+  },
+  "medical-tent": {
+    kind: "medical-tent", name: "Medical Tent", blurb: "Cots, bandages, boiled water. The first line against fever.",
+    size: { w: 2, h: 2 },
+    cost: { wood: 8, fiber: 6 }, buildEffort: 45, housingCapacity: 0, storageCapacity: 10, social: false,
+    produces: null,
+  },
+  clinic: {
+    kind: "clinic", name: "Clinic", blurb: "A proper room for the sick. Salves, stitches, and a watchful healer.",
+    size: { w: 3, h: 2 },
+    cost: { wood: 40, stone: 12, tools: 3 }, buildEffort: 180, housingCapacity: 0, storageCapacity: 20, social: false,
+    produces: null,
+  },
+  infirmary: {
+    kind: "infirmary", name: "Infirmary", blurb: "Rows of beds, trained hands. Few die here that don't have to.",
+    size: { w: 4, h: 3 },
+    cost: { wood: 70, stone: 28, tools: 6 }, buildEffort: 300, housingCapacity: 0, storageCapacity: 40, social: false,
+    produces: null,
+  },
+  hospital: {
+    kind: "hospital", name: "Hospital", blurb: "A full hall of healing. The settlement's bulwark against death.",
+    size: { w: 5, h: 4 },
+    cost: { wood: 140, stone: 80, tools: 12 }, buildEffort: 600, housingCapacity: 0, storageCapacity: 80, social: true,
+    produces: null,
+  },
 };
 
 export const BUILDABLE_KINDS: BuildingKind[] = [
@@ -343,6 +391,8 @@ export const BUILDABLE_KINDS: BuildingKind[] = [
   "chicken-coop", "goat-pen", "sheep-pen", "cattle-pasture",
   "dairy-barn", "breeding-barn", "livestock-shelter",
   "food-stockpile", "warehouse", "granary", "root-cellar", "cold-storage",
+  "learning-tent", "schoolhouse", "academy", "library",
+  "medical-tent", "clinic", "infirmary", "hospital",
 ];
 
 export const CHRONICLE_OPENERS = [

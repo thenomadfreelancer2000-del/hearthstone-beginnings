@@ -49,6 +49,8 @@ const BUILD_CATEGORIES: { id: string; label: string; kinds: import("@/game/types
   { id: "social",    label: "Social",    kinds: ["campfire"] },
   { id: "defense",   label: "Defense",   kinds: ["fence", "palisade", "stone-wall", "gate", "watchtower", "guard-post"] },
   { id: "livestock", label: "Livestock", kinds: ["chicken-coop", "goat-pen", "sheep-pen", "cattle-pasture", "dairy-barn", "breeding-barn", "livestock-shelter"] },
+  { id: "education", label: "Education", kinds: ["learning-tent", "schoolhouse", "academy", "library"] },
+  { id: "medical",   label: "Medical",   kinds: ["medical-tent", "clinic", "infirmary", "hospital"] },
 ];
 
 function BuildMenu() {
