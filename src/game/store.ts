@@ -40,6 +40,7 @@ import {
   TICKS_PER_DAY,
   type Expedition, type ExpeditionPlanInput,
 } from "./sim/expeditions";
+import { computePolitics } from "./sim/politics";
 
 export type Screen = "menu" | "founder" | "game";
 export type Overlay = "tree" | "family" | "chronicle" | null;
