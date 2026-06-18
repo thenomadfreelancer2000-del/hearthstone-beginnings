@@ -1,4 +1,6 @@
 import type { SaveGame } from "./types";
+import { syncSkills } from "./sim/skills";
+
 
 const KEY = "the-ranch-save-v2";
 const LEGACY_KEY_V1 = "the-ranch-save-v1";
@@ -43,6 +45,14 @@ export function loadFromLocal(): SaveGame | null {
       // Migrate v5 → v6: add empty expeditions array.
       (data as SaveGame).expeditions = [];
       (data as SaveGame).version = 6;
+    }
+    // Always re-normalize the new skill schema on load.
+    try {
+      for (const sv of data.survivors ?? []) {
+        if (sv.skills) syncSkills(sv.skills);
+      }
+    } catch {
+      /* ignore — UI falls back to legacy fields if sync fails */
     }
     return data;
   } catch {

@@ -10,6 +10,7 @@ import {
 } from "../data/content";
 import { pickTraits } from "../data/traits";
 import { getPortrait, defaultPortraitFor } from "../data/portraits";
+import { syncSkills } from "./skills";
 
 export const MAP_W = 180;
 export const MAP_H = 140;
@@ -147,7 +148,12 @@ export interface FounderInput {
 
 
 function emptySkills(): Skills {
-  return { forage: 1, cut: 1, mine: 1, build: 1, farm: 1, medic: 1, lead: 1, social: 1 };
+  const s: Skills = {
+    forage: 1, cut: 1, mine: 1, build: 1, farm: 1, medic: 1, lead: 1, social: 1,
+    leadership: 1, building: 1, farming: 1, healing: 1, strength: 1,
+    intelligence: 1, finance: 1, ranch: 1,
+  };
+  return s;
 }
 
 function applyBackground(s: Skills, bg: Background): Skills {
@@ -155,9 +161,13 @@ function applyBackground(s: Skills, bg: Background): Skills {
   if (!def) return s;
   const out = { ...s };
   for (const [k, v] of Object.entries(def.skills)) {
-    (out as any)[k] = Math.max((out as any)[k], v);
+    (out as any)[k] = Math.max((out as any)[k] ?? 0, v);
   }
-  return out;
+  // Scholars/medics get a head-start in Intelligence; leaders in Leadership.
+  if (bg === "scholar") out.intelligence = Math.max(out.intelligence ?? 1, 6);
+  if (bg === "medic")   out.intelligence = Math.max(out.intelligence ?? 1, 4);
+  if (bg === "soldier" || bg === "rancher") out.leadership = Math.max(out.leadership ?? 1, (out as any).lead ?? 1);
+  return syncSkills(out);
 }
 
 export function stageFromAge(age: number): LifeStage {
@@ -312,12 +322,21 @@ export function makeChild(
   const values = Array.from(valSet).slice(0, 2);
   if (values.length < 2) values.push("Family");
 
-  // Skill inheritance: average parent skills * 0.3 (start lower than parents)
+  // Skill inheritance: average parent skills * 0.3 (start lower than parents).
+  // A child raised by farmers tends toward Farming, by scholars toward
+  // Intelligence, by leaders toward Leadership — so we use the higher of
+  // the two parents (not the average) as a soft "environment" pull.
   const skills = emptySkills();
   (Object.keys(skills) as (keyof Skills)[]).forEach((k) => {
-    const avg = ((parents[0].skills[k] ?? 0) + (parents[1].skills[k] ?? 0)) / 2;
-    skills[k] = Math.max(1, avg * 0.3 + rng() * 0.5);
+    const a = (parents[0].skills as any)[k] ?? 0;
+    const b = (parents[1].skills as any)[k] ?? 0;
+    const avg = (a + b) / 2;
+    const hi  = Math.max(a, b);
+    // Skew slightly toward the stronger parent — children of specialists
+    // inherit a noticeable head-start in that field.
+    (skills as any)[k] = Math.max(1, avg * 0.25 + hi * 0.1 + rng() * 0.5);
   });
+  syncSkills(skills);
 
   return {
     id: nanoid(10),

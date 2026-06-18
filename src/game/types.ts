@@ -64,6 +64,17 @@ export interface Needs {
 }
 
 export interface Skills {
+  // ── Modern, player-facing skills (0..30) ────────────────────
+  // Kept in sync with the legacy fields below via syncSkills().
+  leadership?: number;
+  building?: number;
+  farming?: number;
+  healing?: number;
+  strength?: number;
+  intelligence?: number;
+  finance?: number;
+
+  // ── Legacy fields (still consumed by the simulation) ────────
   forage: number; cut: number; mine: number;
   build: number; farm: number; medic: number; lead: number;
   social: number;
