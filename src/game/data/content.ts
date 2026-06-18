@@ -15,6 +15,16 @@ export const SURNAMES = [
   "Hollow", "Greer", "Vance", "Marrow", "Ashby", "Crane", "Whitlock",
   "Pike", "Holloway", "Thorne", "Crowder", "Beckett", "Stark", "Quill",
   "Reyes", "Okafor", "Sato", "Calder", "Mendel", "Voss",
+  // +50
+  "Bramble", "Cordell", "Dunmore", "Eastwood", "Fairburn", "Garrick",
+  "Hatcher", "Ironside", "Jessup", "Kettle", "Larkin", "Mosley",
+  "Norwood", "Ostler", "Penrose", "Quarles", "Ridley", "Sutter",
+  "Tindall", "Underhill", "Varnell", "Wexler", "Yardley", "Zimmer",
+  "Alder", "Brockman", "Caldwell", "Drummond", "Ellery", "Fenwick",
+  "Goodrow", "Hargrave", "Inman", "Jericho", "Kessler", "Lockhart",
+  "Maddox", "Nash", "Orman", "Pruitt", "Renfield", "Shaw",
+  "Tully", "Usher", "Vance-Hill", "Whitfield", "Yates", "Zane",
+  "Carrow", "Doss",
 ];
 
 // Re-export the trait catalog for back-compat with existing imports.
