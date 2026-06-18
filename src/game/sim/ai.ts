@@ -311,11 +311,20 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
   const hungerLimit = engagedInBuild ? CRIT_FOOD : 24;
   const restLimit   = engagedInBuild ? CRIT_REST  : 16;
 
-  if (s.needs.water < thirstLimit) {
+  // Latch: once a survivor starts eating/drinking/resting, keep them at it
+  // until they're well-recovered (RESUME_* thresholds). This prevents the
+  // work→rest→work→rest jitter that happens when the trigger threshold is
+  // crossed by a single tick of recovery.
+  const thirsty = s.needs.water < thirstLimit || (s.state === "drinking" && s.needs.water < RESUME_WATER);
+  const hungry  = s.needs.food  < hungerLimit || (s.state === "eating"   && s.needs.food  < RESUME_FOOD);
+  const tired   = s.needs.rest  < restLimit   || (s.state === "resting"  && s.needs.rest  < RESUME_REST);
+
+  if (thirsty) {
     const w = nearestWater(s, deps.tiles, deps.mapW);
     if (w) {
       if (dist(s.x, s.y, w.x, w.y) < 1.2) {
-        s.needs.water = Math.min(100, s.needs.water + 90);
+        // Big single-gulp recovery so one trip suffices.
+        s.needs.water = Math.min(100, s.needs.water + 100);
         s.lastDrinkTick = deps.tick;
         s.state = "drinking";
         s.action = "Drinking at the water's edge.";
@@ -327,12 +336,14 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
     }
   }
 
-  if (s.needs.food < hungerLimit && deps.resources.food > 0) {
+  if (hungry && deps.resources.food > 0) {
     const sp = nearestStockpile(s, deps.buildings);
     if (sp) {
       const cx = sp.x + sp.w / 2, cy = sp.y + sp.h / 2;
       if (dist(s.x, s.y, cx, cy) < 1.5) {
-        const eat = Math.min(deps.resources.food, 6);
+        // Eat a proper meal in one sitting (enough to fill from low hunger).
+        const want = Math.max(1, Math.ceil((100 - s.needs.food) / 14));
+        const eat = Math.min(deps.resources.food, want);
         deps.resources.food -= eat;
         s.needs.food = Math.min(100, s.needs.food + eat * 14);
         s.lastMealTick = deps.tick;
@@ -346,13 +357,14 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
     }
   }
 
-  if (s.needs.rest < restLimit) {
+  if (tired) {
     const sh = nearestShelter(s, deps.buildings);
     if (sh) {
       const cx = sh.x + sh.w / 2, cy = sh.y + sh.h / 2;
       if (dist(s.x, s.y, cx, cy) < 1.0) {
-        s.needs.rest = Math.min(100, s.needs.rest + 6);
-        s.needs.shelter = Math.min(100, s.needs.shelter + 3);
+        // Faster recovery while at shelter so a rest period is short and complete.
+        s.needs.rest = Math.min(100, s.needs.rest + 18);
+        s.needs.shelter = Math.min(100, s.needs.shelter + 6);
         s.state = "resting";
         s.action = "Resting indoors.";
       } else {
@@ -361,7 +373,7 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
       }
       return;
     } else {
-      s.needs.rest = Math.min(100, s.needs.rest + 3);
+      s.needs.rest = Math.min(100, s.needs.rest + 10);
       s.state = "resting";
       s.action = "Sleeping on the ground.";
       return;
