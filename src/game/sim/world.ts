@@ -10,6 +10,7 @@ import {
 } from "../data/content";
 import { pickTraits } from "../data/traits";
 import { getPortrait, defaultPortraitFor } from "../data/portraits";
+import { syncSkills } from "./skills";
 
 export const MAP_W = 180;
 export const MAP_H = 140;
@@ -166,10 +167,6 @@ function applyBackground(s: Skills, bg: Background): Skills {
   if (bg === "scholar") out.intelligence = Math.max(out.intelligence ?? 1, 6);
   if (bg === "medic")   out.intelligence = Math.max(out.intelligence ?? 1, 4);
   if (bg === "soldier" || bg === "rancher") out.leadership = Math.max(out.leadership ?? 1, (out as any).lead ?? 1);
-  // Sync legacy <-> modern fields.
-  // Local import to avoid circular issues with types-only ref above.
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const { syncSkills } = require("./skills") as typeof import("./skills");
   return syncSkills(out);
 }
 
