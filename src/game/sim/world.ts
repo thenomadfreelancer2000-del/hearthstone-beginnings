@@ -322,12 +322,21 @@ export function makeChild(
   const values = Array.from(valSet).slice(0, 2);
   if (values.length < 2) values.push("Family");
 
-  // Skill inheritance: average parent skills * 0.3 (start lower than parents)
+  // Skill inheritance: average parent skills * 0.3 (start lower than parents).
+  // A child raised by farmers tends toward Farming, by scholars toward
+  // Intelligence, by leaders toward Leadership — so we use the higher of
+  // the two parents (not the average) as a soft "environment" pull.
   const skills = emptySkills();
   (Object.keys(skills) as (keyof Skills)[]).forEach((k) => {
-    const avg = ((parents[0].skills[k] ?? 0) + (parents[1].skills[k] ?? 0)) / 2;
-    skills[k] = Math.max(1, avg * 0.3 + rng() * 0.5);
+    const a = (parents[0].skills as any)[k] ?? 0;
+    const b = (parents[1].skills as any)[k] ?? 0;
+    const avg = (a + b) / 2;
+    const hi  = Math.max(a, b);
+    // Skew slightly toward the stronger parent — children of specialists
+    // inherit a noticeable head-start in that field.
+    (skills as any)[k] = Math.max(1, avg * 0.25 + hi * 0.1 + rng() * 0.5);
   });
+  syncSkills(skills);
 
   return {
     id: nanoid(10),

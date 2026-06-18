@@ -44,6 +44,17 @@ export function loadFromLocal(): SaveGame | null {
       (data as SaveGame).expeditions = [];
       (data as SaveGame).version = 6;
     }
+    // Always re-normalize the new skill schema (Leadership/Building/Farming/
+    // Healing/Strength/Intelligence/Finance/Social) on load. Older saves
+    // store only the legacy fields; syncSkills mirrors them across.
+    try {
+      const { syncSkills } = await import("./sim/skills");
+      for (const sv of data.survivors ?? []) {
+        if (sv.skills) syncSkills(sv.skills);
+      }
+    } catch {
+      /* ignore — UI falls back to legacy fields if sync fails */
+    }
     return data;
   } catch {
     return null;
