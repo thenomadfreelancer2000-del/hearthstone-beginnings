@@ -1649,6 +1649,74 @@ export const useGame = create<GameState>((set, get) => ({
       }
     }
 
+    // ── Stability monitor ──────────────────────────────────────
+    // Once per year, recompute stability; warn the player when it
+    // drops sharply or slips into a worse band, naming the causes.
+    let nextStabScore = st.lastStabilityScore;
+    let nextStabLabel = st.lastStabilityLabel;
+    if (crossedYear && !st.foundingPhase) {
+      const snap = computePolitics({
+        survivors: eng.survivors,
+        families: eng.families,
+        buildings: eng.buildings,
+        animals: eng.animals,
+        ministers: eng.ministers,
+        resources: eng.resources,
+        currentLeaderId: eng.currentLeaderId,
+        founderId: eng.founderId,
+        currentYear: eng.time.year,
+      });
+      const cur = snap.stability.score;
+      const curLabel = snap.stability.label;
+      const prev = st.lastStabilityScore;
+      const prevLabel = st.lastStabilityLabel;
+      const BAND_ORDER = ["Unstable", "Restive", "Tense", "Mostly Stable", "Stable"];
+      const bandWorsened =
+        prevLabel !== null &&
+        BAND_ORDER.indexOf(curLabel) < BAND_ORDER.indexOf(prevLabel);
+      const dropped = prev !== null && prev - cur >= 10;
+      const lowAbsolute = cur < 40;
+      if (prev !== null && (bandWorsened || dropped || (lowAbsolute && cur < (prev ?? 100)))) {
+        const causes = snap.stability.factors
+          .filter((f) => f.weight < 0)
+          .sort((a, b) => a.weight - b.weight)
+          .slice(0, 3)
+          .map((f) => f.label);
+        const desc = causes.length
+          ? `Stability ${prev}→${cur} (${curLabel}). Causes: ${causes.join("; ")}.`
+          : `Stability ${prev}→${cur} (${curLabel}).`;
+        const title =
+          cur < 25 ? "The Ranch teeters on revolt"
+          : cur < 45 ? "Unrest spreads across the Ranch"
+          : "Stability is slipping";
+        if (cur < 25) toast.error(title, { description: desc });
+        else if (cur < 45) toast.warning(title, { description: desc });
+        else toast(title, { description: desc });
+        eng.chronicle.unshift({
+          id: nanoid(8),
+          tick: eng.time.tick,
+          year: eng.time.year, season: eng.time.season, day: eng.time.day,
+          category: "council",
+          title,
+          body: desc,
+        });
+      } else if (prev !== null && cur - prev >= 12 && cur >= 60) {
+        const wins = snap.stability.factors
+          .filter((f) => f.weight > 0)
+          .sort((a, b) => b.weight - a.weight)
+          .slice(0, 2)
+          .map((f) => f.label);
+        toast.success("The Ranch finds its footing", {
+          description: wins.length
+            ? `Stability ${prev}→${cur} (${curLabel}). ${wins.join("; ")}.`
+            : `Stability ${prev}→${cur} (${curLabel}).`,
+        });
+      }
+      nextStabScore = cur;
+      nextStabLabel = curLabel;
+    }
+
+
     set({
       time: eng.time,
       nodes: eng.nodes,
