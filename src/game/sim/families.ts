@@ -50,9 +50,16 @@ export function headOfFamily(family: Family, survivors: Survivor[]): Survivor | 
         .find((s): s is Survivor => !!s && s.health > 0) ?? null
     );
   }
+  // House Head: oldest with the strongest Leadership wins. Social and
+  // Intelligence are tiebreakers so charisma + wisdom matter at the top.
   alive.sort((a, b) => {
     if (b.age !== a.age) return b.age - a.age;
-    return (b.skills.lead ?? 0) - (a.skills.lead ?? 0);
+    const lb = (b.skills as any).leadership ?? b.skills.lead ?? 0;
+    const la = (a.skills as any).leadership ?? a.skills.lead ?? 0;
+    if (lb !== la) return lb - la;
+    const sb = (b.skills as any).social ?? 0;
+    const sa = (a.skills as any).social ?? 0;
+    return sb - sa;
   });
   return alive[0];
 }

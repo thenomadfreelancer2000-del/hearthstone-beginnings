@@ -14,7 +14,13 @@ export function CouncilVoteModal() {
 
   if (!ev) return null;
 
-  const leadSkill = leader?.skills.lead ?? 0;
+  // Council weight blends the leader's Leadership, Social, and Intelligence —
+  // a charismatic, sharp leader sways the vote far more than a brute.
+  const lsk = leader?.skills as any;
+  const leadSkill =
+    (lsk?.leadership ?? lsk?.lead ?? 0) +
+    (lsk?.social ?? 0) * 0.5 +
+    (lsk?.intelligence ?? 0) * 0.3;
   const safeIdx = Math.min(activeIdx, Math.max(0, demands.length - 1));
   const activeDemand = demands[safeIdx];
 
