@@ -290,6 +290,7 @@ export function Inspector({ onHide }: { onHide?: () => void } = {}) {
             })() : (
               <p className="ranch-handwritten text-xs text-dust-light italic">No bonds beyond kin yet.</p>
             )}
+            {arrangeFor && <ArrangeMarriageModal initiatorId={arrangeFor} onClose={() => setArrangeFor(null)} />}
           </>)}
 
           {tab === "family" && (
