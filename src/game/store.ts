@@ -127,6 +127,8 @@ interface GameState {
   reputation: number; // -100..100, affects future arrivals
   reputationProfile: import("./sim/reputation").ReputationProfile;
   lastChronicleId: ID | null;
+  lastStabilityScore: number | null;
+  lastStabilityLabel: string | null;
 
   // ── Founding Phase ────────────────────────────────────────────
   foundingPhase: boolean;
