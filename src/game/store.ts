@@ -1740,6 +1740,8 @@ export const useGame = create<GameState>((set, get) => ({
       pendingFoundingCharter,
       hasHeldFirstCouncil,
       lastChronicleId: lastId,
+      lastStabilityScore: nextStabScore,
+      lastStabilityLabel: nextStabLabel,
     });
 
     // Resolve any expeditions that returned during this advance.
