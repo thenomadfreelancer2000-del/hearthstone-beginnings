@@ -450,6 +450,45 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
     }
   }
 
+  // ── Farmer behavior: walk to the assigned farm plot and tend it visibly.
+  // The engine handles plant/grow/harvest; this just shows the farmer on
+  // their plot instead of wandering off to forage wild food nodes.
+  if (s.occupation === "farmer") {
+    let plot: Building | null =
+      deps.buildings.find(b =>
+        b.kind === "farm-plot" && b.builtProgress >= 1 && b.farm?.assignedFarmerId === s.id,
+      ) ?? null;
+    if (!plot) {
+      // Fall back to any nearby farm plot that has no assigned farmer.
+      let bestD = Infinity;
+      for (const b of deps.buildings) {
+        if (b.kind !== "farm-plot" || b.builtProgress < 1 || !b.farm) continue;
+        if (b.farm.assignedFarmerId && b.farm.assignedFarmerId !== s.id) continue;
+        const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+        const d = dist(s.x, s.y, cx, cy);
+        if (d < bestD) { bestD = d; plot = b; }
+      }
+    }
+    if (plot && plot.farm) {
+      const cx = plot.x + plot.w / 2, cy = plot.y + plot.h / 2;
+      s.workTarget = { kind: "building", id: plot.id };
+      if (dist(s.x, s.y, cx, cy) >= 1.4) {
+        setTarget(s, cx, cy);
+        s.action = `Walking to the ${plot.farm.cropId} plot.`;
+      } else {
+        s.state = "working";
+        s.skills.farm = Math.min(30, (s.skills.farm ?? 1) + 0.0012 * dt * learningRate(s.skills));
+        s.skills.farming = s.skills.farm;
+        s.action =
+          plot.farm.stage === "empty"   ? `Tilling and sowing ${plot.farm.cropId}.` :
+          plot.farm.stage === "growing" ? `Tending the ${plot.farm.cropId}.` :
+          plot.farm.stage === "mature"  ? `Harvesting the ${plot.farm.cropId}.` :
+                                          `Working the field.`;
+      }
+      return;
+    }
+  }
+
 
   {
     // Occupation drives work. "Leader" is a title (currentLeaderId), not a job.
