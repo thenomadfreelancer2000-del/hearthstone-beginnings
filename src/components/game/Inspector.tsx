@@ -236,7 +236,16 @@ export function Inspector({ onHide }: { onHide?: () => void } = {}) {
             </>
           )}
 
-          {tab === "relationships" && (
+          {tab === "relationships" && (<>
+            {!isDead && !s.spouseId && !s.fianceId && s.familyId === survivors.find(x => x.id === founderId)?.familyId && (s.stage === "adult" || s.stage === "youth" || s.stage === "elder") && s.age >= 18 && (
+              <button
+                onClick={() => setArrangeFor(s.id)}
+                className="btn-ranch btn-ranch-ghost text-[9px] px-2 py-0.5 mb-2"
+              >
+                ♥ Arrange marriage
+              </button>
+            )}
+            {
             rels.length > 0 ? (() => {
               const groups: Record<string, { r: Relationship; other: Survivor; score: number }[]> = {
                 "best-friend": [], "friend": [], "rival": [], "enemy": [],
@@ -280,8 +289,9 @@ export function Inspector({ onHide }: { onHide?: () => void } = {}) {
               );
             })() : (
               <p className="ranch-handwritten text-xs text-dust-light italic">No bonds beyond kin yet.</p>
-            )
-          )}
+            )}
+            {arrangeFor && <ArrangeMarriageModal initiatorId={arrangeFor} onClose={() => setArrangeFor(null)} />}
+          </>)}
 
           {tab === "family" && (
             <>
@@ -293,11 +303,6 @@ export function Inspector({ onHide }: { onHide?: () => void } = {}) {
                 </div>
               ) : (
                 <p className="ranch-handwritten text-xs text-dust-light italic">No close kin recorded.</p>
-              )}
-              {!isDead && !s.spouseId && !s.fianceId && s.familyId === survivors.find(x => x.id === founderId)?.familyId && (s.stage === "adult" || s.stage === "youth" || s.stage === "elder") && s.age >= 18 && (
-                <button onClick={() => setArrangeFor(s.id)} className="btn-ranch btn-ranch-ghost w-full text-[10px] mt-3">
-                  Arrange a marriage…
-                </button>
               )}
               {arrangeFor && <ArrangeMarriageModal initiatorId={arrangeFor} onClose={() => setArrangeFor(null)} />}
             </>
