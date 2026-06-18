@@ -216,14 +216,14 @@ export function Inspector({ onHide }: { onHide?: () => void } = {}) {
             <>
               <h4 className="ranch-label mb-1.5">Skills</h4>
               <div className="grid grid-cols-2 gap-x-3 gap-y-1 ranch-data text-[10px]">
-                <SkillRow label="Building" v={s.skills.build} />
-                <SkillRow label="Farming" v={s.skills.farm} />
-                <SkillRow label="Gathering" v={s.skills.forage} />
-                <SkillRow label="Cutting" v={s.skills.cut} />
-                <SkillRow label="Mining" v={s.skills.mine} />
-                <SkillRow label="Medicine" v={s.skills.medic} />
-                <SkillRow label="Leadership" v={s.skills.lead} />
-                <SkillRow label="Social" v={s.skills.social ?? 1} />
+                <SkillRow label="Leadership"   v={s.skills.leadership   ?? s.skills.lead}  />
+                <SkillRow label="Building"     v={s.skills.building     ?? s.skills.build} />
+                <SkillRow label="Farming"      v={s.skills.farming      ?? s.skills.farm}  />
+                <SkillRow label="Healing"      v={s.skills.healing      ?? s.skills.medic} />
+                <SkillRow label="Strength"     v={s.skills.strength     ?? Math.max(s.skills.cut, s.skills.mine, s.skills.forage)} />
+                <SkillRow label="Intelligence" v={s.skills.intelligence ?? 1} />
+                <SkillRow label="Finance"      v={s.skills.finance      ?? 1} />
+                <SkillRow label="Social"       v={s.skills.social       ?? 1} />
               </div>
               {s.achievements && s.achievements.length > 0 && (
                 <>

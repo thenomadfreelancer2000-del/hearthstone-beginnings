@@ -147,7 +147,12 @@ export interface FounderInput {
 
 
 function emptySkills(): Skills {
-  return { forage: 1, cut: 1, mine: 1, build: 1, farm: 1, medic: 1, lead: 1, social: 1 };
+  const s: Skills = {
+    forage: 1, cut: 1, mine: 1, build: 1, farm: 1, medic: 1, lead: 1, social: 1,
+    leadership: 1, building: 1, farming: 1, healing: 1, strength: 1,
+    intelligence: 1, finance: 1, ranch: 1,
+  };
+  return s;
 }
 
 function applyBackground(s: Skills, bg: Background): Skills {
@@ -155,9 +160,17 @@ function applyBackground(s: Skills, bg: Background): Skills {
   if (!def) return s;
   const out = { ...s };
   for (const [k, v] of Object.entries(def.skills)) {
-    (out as any)[k] = Math.max((out as any)[k], v);
+    (out as any)[k] = Math.max((out as any)[k] ?? 0, v);
   }
-  return out;
+  // Scholars/medics get a head-start in Intelligence; leaders in Leadership.
+  if (bg === "scholar") out.intelligence = Math.max(out.intelligence ?? 1, 6);
+  if (bg === "medic")   out.intelligence = Math.max(out.intelligence ?? 1, 4);
+  if (bg === "soldier" || bg === "rancher") out.leadership = Math.max(out.leadership ?? 1, (out as any).lead ?? 1);
+  // Sync legacy <-> modern fields.
+  // Local import to avoid circular issues with types-only ref above.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { syncSkills } = require("./skills") as typeof import("./skills");
+  return syncSkills(out);
 }
 
 export function stageFromAge(age: number): LifeStage {
