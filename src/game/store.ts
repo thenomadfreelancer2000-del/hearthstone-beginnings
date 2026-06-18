@@ -2581,7 +2581,7 @@ export function computeFoundingObjectives(st: GameState): FoundingObjective[] {
   const has = (kinds: BuildingKind[]) =>
     st.buildings.some(b => kinds.includes(b.kind) && b.builtProgress >= 1);
   return [
-    { id: "home",   label: "Build a home (Tent or Cabin)",            done: has(["tent", "cabin"]) },
+    { id: "home",   label: "Build a home (Tent or Cabin)",            done: has(["tent", "family-tent", "cabin", "family-cabin"]) },
     { id: "water",  label: "Secure water (Well or Water Collector)",  done: has(["well", "water-collector"]) },
     { id: "food",   label: "Secure food (Farm Plot or Foraging Camp)", done: has(["farm-plot", "foraging-camp"]) },
     { id: "fence",  label: "Build a fence to mark the ranch",         done: has(["fence"]) },
