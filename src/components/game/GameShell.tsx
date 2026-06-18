@@ -13,7 +13,7 @@ import { AssignBuilderModal } from "./AssignBuilderModal";
 import { FarmSetupModal } from "./FarmSetupModal";
 import { FoundingPanel } from "./FoundingPanel";
 import { LeaderProfile } from "./LeaderProfile";
-import { SpeedControl } from "./SpeedControl";
+import { HudBar } from "./HudBar";
 import { MarriageProposalsPanel } from "./MarriageProposalsPanel";
 import { LivestockRequestsPanel } from "./LivestockRequestsPanel";
 import { LivestockPanel } from "./LivestockPanel";
@@ -41,8 +41,6 @@ export function GameShell() {
   const [factionsOpen, setFactionsOpen] = useState(false);
   const [expeditionsOpen, setExpeditionsOpen] = useState(false);
   const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
-  const [zoomHudOpen, setZoomHudOpen] = useState(true);
-  const [speedHudOpen, setSpeedHudOpen] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const selectionKey = selection.kind === "survivor" || selection.kind === "building" || selection.kind === "family"
     ? `${selection.kind}:${selection.id}`
@@ -90,20 +88,20 @@ export function GameShell() {
               exit={{ opacity: 0, y: 8, scale: 0.95 }}
               transition={{ duration: 0.22, ease: "easeOut" }}
             >
-              <LeaderProfile dockOpen={dockOpen} zoomOpen={zoomHudOpen} setZoomOpen={setZoomHudOpen} />
+              <LeaderProfile dockOpen={dockOpen} />
             </motion.div>
           )}
         </AnimatePresence>
         <AnimatePresence>
           {!(isMobile && (mobileFocus || dockOpen)) && (
             <motion.div
-              key="speed-control"
-              initial={{ opacity: 0, y: 8, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 8, scale: 0.95 }}
+              key="hud-bar"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 8 }}
               transition={{ duration: 0.22, ease: "easeOut" }}
             >
-              <SpeedControl dockOpen={dockOpen} inspectorOpen={!isMobile && !inspectorCollapsed} open={speedHudOpen} setOpen={setSpeedHudOpen} />
+              <HudBar dockOpen={dockOpen} inspectorOpen={!isMobile && !inspectorCollapsed} />
             </motion.div>
           )}
         </AnimatePresence>
