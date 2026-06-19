@@ -19,6 +19,7 @@ import { AuthorityPanel } from "./AuthorityPanel";
 import { FamilyPanel } from "./FamilyPanel";
 import { rankHeirs, heirRating, EDUCATION_LABEL, type EducationFocus } from "@/game/sim/heirs";
 import { lifeStageLabel } from "@/game/sim/legacy";
+import { MoodFace } from "./MoodFace";
 
 const OCCUPATIONS: Occupation[] = [
   "idle", "forager", "woodcutter", "miner", "farmer", "builder", "hauler",
@@ -129,6 +130,13 @@ export function Inspector({ onHide }: { onHide?: () => void } = {}) {
             <div className="truncate"><span className="text-dust">Prestige:</span> <span className="text-parchment">{Math.round(fam.prestige)}</span> · Gen {s.generation + 1}</div>
           )}
         </div>
+
+        {!isDead && (
+          <div className="mt-2 flex items-center gap-2">
+            <span className="ranch-label text-[10px] text-dust">Mood:</span>
+            <MoodFace survivor={s} size="md" />
+          </div>
+        )}
 
         {!isDead && (
           <p className="ranch-body italic text-dust-light text-xs mt-2 leading-snug">{s.action}</p>

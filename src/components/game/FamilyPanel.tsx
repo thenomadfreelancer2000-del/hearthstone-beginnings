@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useGame } from "@/game/store";
 import { computeFamilyStanding } from "@/game/sim/families";
 import type { Survivor } from "@/game/types";
+import { MoodFace, MoodFaceAvg } from "./MoodFace";
 
 export function FamilyPanel({ familyId }: { familyId: string }) {
   const families = useGame((s) => s.families);
@@ -34,10 +35,8 @@ export function FamilyPanel({ familyId }: { familyId: string }) {
     standing.avgLoyalty >= 25 ? "text-success"
     : standing.avgLoyalty <= -25 ? "text-danger"
     : "text-dust-light";
-  const moodColor =
-    standing.avgMood >= 15 ? "text-success"
-    : standing.avgMood <= -15 ? "text-danger"
-    : "text-dust-light";
+
+
 
   return (
     <aside className="parchment-panel w-full sm:w-[340px] p-4 border-l border-amber/20 overflow-auto scroll-amber">
@@ -63,9 +62,12 @@ export function FamilyPanel({ familyId }: { familyId: string }) {
         </div>
 
         <div className="grid grid-cols-3 gap-2 mt-3 text-center">
-          <Stat label="Living" v={standing.living} tone="text-amber" />
-          <Stat label="Loyalty" v={Math.round(standing.avgLoyalty)} tone={loyaltyColor} />
-          <Stat label="Mood" v={Math.round(standing.avgMood)} tone={moodColor} />
+          <Stat label="Living" v={String(standing.living)} tone="text-amber" />
+          <Stat label="Loyalty" v={String(Math.round(standing.avgLoyalty))} tone={loyaltyColor} />
+          <div className="border border-amber/20 p-1 flex flex-col items-center justify-center">
+            <MoodFaceAvg avg={standing.avgMood} size="sm" showLabel={false} />
+            <div className="ranch-label text-[8px] text-dust mt-0.5">Mood</div>
+          </div>
         </div>
 
         <ul className="ranch-data text-[10px] text-dust mt-3 space-y-0.5">
@@ -172,7 +174,6 @@ export function FamilyPanel({ familyId }: { familyId: string }) {
 }
 
 function MemberRow({ s, isHead, isLeader, onClick }: { s: Survivor; isHead: boolean; isLeader: boolean; onClick: () => void }) {
-  const moodTone = s.mood >= 10 ? "text-success" : s.mood <= -20 ? "text-danger" : "text-dust";
   return (
     <button onClick={onClick} className="w-full text-left hover:bg-amber/5 px-1 py-0.5">
       <div className="flex justify-between items-baseline gap-2">
@@ -181,18 +182,18 @@ function MemberRow({ s, isHead, isLeader, onClick }: { s: Survivor; isHead: bool
         </span>
         <span className="ranch-data text-[10px] text-dust">{cap(s.stage)} · {Math.floor(s.age)}</span>
       </div>
-      <div className="flex justify-between ranch-data text-[9px] mt-0.5">
+      <div className="flex justify-between items-center ranch-data text-[9px] mt-0.5">
         <span className="text-amber">{isHead ? "head" : s.spouseId ? "wed" : "—"}</span>
-        <span>
-          <span className={moodTone}>mood {Math.round(s.mood)}</span>
-          <span className="text-dust ml-2">loyalty {Math.round(s.loyaltyToFounder)}</span>
+        <span className="flex items-center gap-2">
+          <MoodFace survivor={s} size="xs" showLabel={false} />
+          <span className="text-dust">loyalty {Math.round(s.loyaltyToFounder)}</span>
         </span>
       </div>
     </button>
   );
 }
 
-function Stat({ label, v, tone }: { label: string; v: number; tone: string }) {
+function Stat({ label, v, tone }: { label: string; v: string | number; tone: string }) {
   return (
     <div className="border border-amber/20 p-1">
       <div className={`ranch-data text-base ${tone}`}>{v}</div>
