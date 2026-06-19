@@ -13,28 +13,19 @@ export function ZombieLoop() {
 
   useEffect(() => {
     if (screen !== "game") { reset(); return; }
-    // Throttle zombie sim to ~10Hz to avoid re-rendering the zombie SVG
-    // layer every animation frame. Positions are interpolated visually
-    // via the SVG transform / bob, so 10Hz is plenty for the sim itself.
-    const TICK_MS = 100;
     let last = performance.now();
-    let acc = 0;
     let raf = 0;
     const loop = (now: number) => {
       const dt = Math.min(120, now - last);
       last = now;
-      acc += dt;
-      if (acc >= TICK_MS) {
-        const st = useGame.getState();
-        tick(acc, {
-          mapW: st.mapW,
-          mapH: st.mapH,
-          territory: st.territory,
-          speed: st.speed,
-          screen: st.screen,
-        });
-        acc = 0;
-      }
+      const st = useGame.getState();
+      tick(dt, {
+        mapW: st.mapW,
+        mapH: st.mapH,
+        territory: st.territory,
+        speed: st.speed,
+        screen: st.screen,
+      });
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);

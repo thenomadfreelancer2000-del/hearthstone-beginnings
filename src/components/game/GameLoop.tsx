@@ -11,22 +11,11 @@ export function GameLoop() {
 
   useEffect(() => {
     if (screen !== "game") return;
-    // Throttle simulation ticks to ~10Hz so a 60fps RAF doesn't trigger
-    // a full MapView re-render every frame. Accumulate elapsed time and
-    // hand the simulation the actual dt so speeds/timings stay correct.
-    const TICK_MS = 100;
-    let acc = 0;
     const loop = (now: number) => {
       if (last.current == null) last.current = now;
       const dt = Math.min(120, now - last.current);
       last.current = now;
-      if (speed > 0) {
-        acc += dt;
-        if (acc >= TICK_MS) {
-          tickReal(acc);
-          acc = 0;
-        }
-      }
+      if (speed > 0) tickReal(dt);
       rafRef.current = requestAnimationFrame(loop);
     };
     rafRef.current = requestAnimationFrame(loop);
