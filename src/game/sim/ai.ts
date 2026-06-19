@@ -624,7 +624,7 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
         s.state = "idle";
         return;
       }
-      if (dist(s.x, s.y, cx, cy) < 1.6) {
+      if (distToBuilding(b, s.x, s.y) < 1.2) {
         const isBuilder = s.occupation === "builder";
         const nearDone = b.builtProgress >= 0.75;
         const skillMult = 1 + (s.skills.build ?? 1) * 0.18;
@@ -645,9 +645,14 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
         // The founder personally lending a hand earns goodwill from onlookers.
         if (s.isFounder) grantLeaderHelpOpinion(s, deps, dt, "build");
       } else {
-        setTarget(s, cx, cy);
+        const p = nearestPointOn(b, s.x, s.y);
+        // Step a little outside the footprint so we don't aim into a wall corner.
+        const ox = p.x === b.x ? -0.4 : p.x === b.x + b.w ? 0.4 : 0;
+        const oy = p.y === b.y ? -0.4 : p.y === b.y + b.h ? 0.4 : 0;
+        setTarget(s, p.x + ox, p.y + oy);
         s.action = `Walking to the ${b.kind} build site.`;
       }
+
       return;
     }
   }
