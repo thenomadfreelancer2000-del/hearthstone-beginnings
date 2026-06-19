@@ -91,7 +91,12 @@ function BuildMenu({ onOpenWorkshop }: { onOpenWorkshop: () => void }) {
   const startBuild = useGame((s) => s.startBuild);
   const cancelBuild = useGame((s) => s.cancelBuild);
   const resources = useGame((s) => s.resources);
-  const workshopActive = useWorkshop((s) => s.activeBuildings());
+  const wsPacks = useWorkshop((s) => s.packs);
+  const wsEnabled = useWorkshop((s) => s.enabled);
+  const workshopActive = wsPacks.flatMap((p) =>
+    wsEnabled[p.id] ? p.buildings.map((building) => ({ pack: p, building })) : [],
+  );
+
   const [cat, setCat] = useState<string>("food");
 
   // Workshop kinds bucketed into their target dock category, plus a
