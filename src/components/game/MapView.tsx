@@ -1885,7 +1885,30 @@ const StaticTileLayers = React.memo(function StaticTileLayers({ tiles, width, he
         }
         ctx.globalAlpha = 1;
 
-        // ── Pass 2b: shoreline — sandy rim where ground meets water
+        // ── Pass 2b: shoreline — irregular sandy/shallow edge so water
+        // doesn't look like a square swimming pool. We draw on BOTH sides:
+        // bumpy sand on the land tile, and a shallow-water lighter band
+        // (with land-colored nibbles) on the water tile.
+        const drawShoreEdge = (
+          px: number, py: number, dir: "n" | "s" | "e" | "w",
+          color: string, alpha: number, baseDepth: number, jitterSeed: number,
+          tx: number, ty: number,
+        ) => {
+          ctx.fillStyle = color;
+          ctx.globalAlpha = alpha;
+          const steps = 8;
+          const step = TILE / steps;
+          for (let i = 0; i < steps; i++) {
+            const j = rand(tx + i * 0.37, ty + jitterSeed, jitterSeed + i);
+            const depth = Math.max(0.6, baseDepth + (j - 0.5) * baseDepth * 1.6);
+            if (dir === "n")      ctx.fillRect(px + i * step, py,                       step + 0.5, depth);
+            else if (dir === "s") ctx.fillRect(px + i * step, py + TILE - depth,        step + 0.5, depth);
+            else if (dir === "e") ctx.fillRect(px + TILE - depth, py + i * step,        depth,      step + 0.5);
+            else                  ctx.fillRect(px,                py + i * step,        depth,      step + 0.5);
+          }
+        };
+
+        // Land-side: bumpy sand rim
         for (const t of chunkTiles) {
           if (t.kind === "water") continue;
           const px = t.x * TILE;
@@ -1897,13 +1920,31 @@ const StaticTileLayers = React.memo(function StaticTileLayers({ tiles, width, he
           for (const [nx, ny, dir] of edges) {
             const nb = at(nx, ny);
             if (!nb || nb.kind !== "water") continue;
-            ctx.fillStyle = "#d6c184"; // sand
-            ctx.globalAlpha = 0.85;
-            const rim = 2;
-            if (dir === "n") ctx.fillRect(px, py, TILE, rim);
-            else if (dir === "s") ctx.fillRect(px, py + TILE - rim, TILE, rim);
-            else if (dir === "e") ctx.fillRect(px + TILE - rim, py, rim, TILE);
-            else ctx.fillRect(px, py, rim, TILE);
+            drawShoreEdge(px, py, dir, "#d6c184", 0.9, 2.2, 11, t.x, t.y);
+            drawShoreEdge(px, py, dir, "#b89868", 0.55, 1.1, 23, t.x, t.y);
+          }
+        }
+
+        // Water-side: shallow lighter band + nibbles of land color so the
+        // shoreline reads as an organic edge instead of a straight tile seam.
+        for (const t of chunkTiles) {
+          if (t.kind !== "water") continue;
+          const px = t.x * TILE;
+          const py = t.y * TILE;
+          const edges: [number, number, "n" | "s" | "e" | "w"][] = [
+            [t.x, t.y - 1, "n"], [t.x, t.y + 1, "s"],
+            [t.x + 1, t.y, "e"], [t.x - 1, t.y, "w"],
+          ];
+          for (const [nx, ny, dir] of edges) {
+            const nb = at(nx, ny);
+            if (!nb || nb.kind === "water") continue;
+            if (!nb) continue;
+            // shallow water band (lighter)
+            drawShoreEdge(px, py, dir, TILE_PAL.water.detail, 0.45, 2.6, 31, t.x, t.y);
+            // a few irregular nibbles of the land color biting into the water
+            drawShoreEdge(px, py, dir, TILE_PAL[nb.kind].base, 0.85, 1.2, 47, t.x, t.y);
+            // tiny sand fleck on top
+            drawShoreEdge(px, py, dir, "#d6c184", 0.6, 0.8, 59, t.x, t.y);
           }
         }
         ctx.globalAlpha = 1;
