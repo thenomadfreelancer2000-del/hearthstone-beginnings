@@ -8,6 +8,39 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { ZombieLayer } from "./ZombieLayer";
 import { IsoBuilding } from "./IsoBuilding";
 import type { ResourceNode, Tile } from "@/game/types";
+import tileGrassAsset from "@/assets/tile-grass.png.asset.json";
+import tileTallGrassAsset from "@/assets/tile-tallgrass.png.asset.json";
+import tileDirtAsset from "@/assets/tile-dirt.png.asset.json";
+import tileStoneAsset from "@/assets/tile-stone.png.asset.json";
+import nodeTreeAsset from "@/assets/node-tree.png.asset.json";
+
+const TILE_IMAGE_SRC: Partial<Record<Tile["kind"], string>> = {
+  grass: tileGrassAsset.url,
+  "tall-grass": tileTallGrassAsset.url,
+  dirt: tileDirtAsset.url,
+  stone: tileStoneAsset.url,
+};
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+const TILE_IMAGE_CACHE: Partial<Record<Tile["kind"], HTMLImageElement>> = {};
+async function loadTileImages() {
+  await Promise.all(
+    (Object.entries(TILE_IMAGE_SRC) as [Tile["kind"], string][]).map(async ([k, src]) => {
+      if (!TILE_IMAGE_CACHE[k]) {
+        try { TILE_IMAGE_CACHE[k] = await loadImage(src); } catch { /* keep fallback */ }
+      }
+    })
+  );
+}
 
 const TILE = 28;
 const LAYER_CHUNK = 1024;
