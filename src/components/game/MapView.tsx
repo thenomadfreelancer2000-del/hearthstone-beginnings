@@ -4,6 +4,7 @@ import { useView } from "@/game/viewStore";
 import { BUILDINGS } from "@/game/data/content";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { ZombieLayer } from "./ZombieLayer";
+import { IsoBuilding } from "./IsoBuilding";
 import type { ResourceNode, Tile } from "@/game/types";
 
 const TILE = 28;
