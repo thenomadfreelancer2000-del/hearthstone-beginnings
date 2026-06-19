@@ -2892,7 +2892,10 @@ export function MapView() {
           const hasFence = (tx: number, ty: number) => fenceAt.has(`${tx},${ty}`);
           const hasRoad = (tx: number, ty: number) => roadAt.has(`${tx},${ty}`);
           // Painter's order: sum of south-east corner coords approximates
-          // depth in iso space.
+          // depth in iso space. Fences are NOT sorted as one big sprite —
+          // each fence tile becomes its own sortable entry so trees and
+          // other small props that sit in front of a long fence run
+          // render on top of it instead of being covered.
           const ordered = [...buildings].sort(
             (a, b) => (a.x + a.w + a.y + a.h) - (b.x + b.w + b.y + b.h),
           );
