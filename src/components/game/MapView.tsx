@@ -1297,46 +1297,68 @@ function BuildingArt({ kind, w, h, farmStage, farmGrowth }: { kind: string; w: n
 function NodeArt({ kind, size, seed }: { kind: string; size: number; seed: number }) {
   const s = size;
   if (kind === "trees") {
-    // Stylized pine — triangular tiers
+    // Stylized tree — shaded canopy with NW highlight + SE shadow + trunk
     const variant = seed % 3;
     return (
       <g>
-        <ellipse cx={s / 2} cy={s * 0.92} rx={s * 0.28} ry={s * 0.06} fill={PAL.shadow} />
+        <ellipse cx={s / 2} cy={s * 0.92} rx={s * 0.32} ry={s * 0.07} fill={PAL.shadow} />
         <rect x={s * 0.46} y={s * 0.62} width={s * 0.08} height={s * 0.3} fill="#3d2810" stroke={PAL.ink} strokeWidth={0.6} />
+        <rect x={s * 0.46} y={s * 0.62} width={s * 0.025} height={s * 0.3} fill="#5a3820" opacity={0.7} />
         {variant === 0 ? (
-          <>
-            <polygon points={`${s/2},${s*0.08} ${s*0.18},${s*0.55} ${s*0.82},${s*0.55}`} fill="#3d5226" stroke={PAL.ink} strokeWidth={0.8} />
+          <g>
+            {/* layered pine tiers — darker base, lighter top, lit crescent */}
+            <polygon points={`${s/2},${s*0.08} ${s*0.18},${s*0.55} ${s*0.82},${s*0.55}`} fill="#2f4220" stroke={PAL.ink} strokeWidth={0.8} />
+            <polygon points={`${s/2},${s*0.12} ${s*0.22},${s*0.5} ${s*0.78},${s*0.5}`} fill="#3d5226" />
             <polygon points={`${s/2},${s*0.22} ${s*0.24},${s*0.65} ${s*0.76},${s*0.65}`} fill="#4a6235" stroke={PAL.ink} strokeWidth={0.8} />
-          </>
+            <polygon points={`${s/2},${s*0.26} ${s*0.28},${s*0.6} ${s*0.72},${s*0.6}`} fill="#5e7842" />
+            {/* NW lit edge */}
+            <polygon points={`${s/2},${s*0.08} ${s*0.18},${s*0.55} ${s*0.36},${s*0.55} ${s*0.46},${s*0.18}`} fill="#7a9c52" opacity={0.45} />
+          </g>
         ) : variant === 1 ? (
-          <>
-            <polygon points={`${s/2},${s*0.05} ${s*0.16},${s*0.45} ${s*0.84},${s*0.45}`} fill="#3d5226" stroke={PAL.ink} strokeWidth={0.8} />
-            <polygon points={`${s/2},${s*0.2} ${s*0.2},${s*0.6} ${s*0.8},${s*0.6}`} fill="#4a6235" stroke={PAL.ink} strokeWidth={0.8} />
-            <polygon points={`${s/2},${s*0.35} ${s*0.24},${s*0.7} ${s*0.76},${s*0.7}`} fill="#566e3e" stroke={PAL.ink} strokeWidth={0.8} />
-          </>
+          <g>
+            <polygon points={`${s/2},${s*0.05} ${s*0.16},${s*0.45} ${s*0.84},${s*0.45}`} fill="#2f4220" stroke={PAL.ink} strokeWidth={0.8} />
+            <polygon points={`${s/2},${s*0.2} ${s*0.2},${s*0.6} ${s*0.8},${s*0.6}`} fill="#3d5226" stroke={PAL.ink} strokeWidth={0.8} />
+            <polygon points={`${s/2},${s*0.35} ${s*0.24},${s*0.7} ${s*0.76},${s*0.7}`} fill="#4a6235" stroke={PAL.ink} strokeWidth={0.8} />
+            <polygon points={`${s/2},${s*0.05} ${s*0.16},${s*0.45} ${s*0.32},${s*0.45} ${s*0.45},${s*0.15}`} fill="#7a9c52" opacity={0.5} />
+            <polygon points={`${s/2},${s*0.35} ${s*0.24},${s*0.7} ${s*0.4},${s*0.7} ${s*0.46},${s*0.42}`} fill="#88a85a" opacity={0.4} />
+          </g>
         ) : (
-          <>
+          <g>
+            {/* broadleaf — shadow + body + NW highlight + small accent leaves */}
+            <circle cx={s * 0.52} cy={s * 0.46} r={s * 0.34} fill="#2f4220" opacity={0.7} />
             <circle cx={s/2} cy={s * 0.4} r={s * 0.32} fill="#3d5226" stroke={PAL.ink} strokeWidth={0.8} />
             <circle cx={s * 0.4} cy={s * 0.5} r={s * 0.18} fill="#4a6235" />
             <circle cx={s * 0.62} cy={s * 0.48} r={s * 0.16} fill="#566e3e" />
-          </>
+            <circle cx={s * 0.4} cy={s * 0.32} r={s * 0.14} fill="#7a9c52" opacity={0.7} />
+            <circle cx={s * 0.55} cy={s * 0.28} r={s * 0.08} fill="#9ab86a" opacity={0.6} />
+          </g>
         )}
       </g>
     );
   }
+
   if (kind === "rocks") {
     return (
       <g>
-        <ellipse cx={s / 2} cy={s * 0.88} rx={s * 0.32} ry={s * 0.06} fill={PAL.shadow} />
-        <polygon points={`${s*0.2},${s*0.8} ${s*0.3},${s*0.4} ${s*0.55},${s*0.3} ${s*0.78},${s*0.45} ${s*0.82},${s*0.8}`}
-          fill="#8a8175" stroke={PAL.ink} strokeWidth={1} />
-        <polygon points={`${s*0.3},${s*0.4} ${s*0.55},${s*0.3} ${s*0.5},${s*0.55} ${s*0.35},${s*0.6}`}
-          fill="#aaa094" />
-        <polygon points={`${s*0.55},${s*0.3} ${s*0.78},${s*0.45} ${s*0.65},${s*0.6} ${s*0.5},${s*0.55}`}
-          fill="#766c61" />
+        <ellipse cx={s / 2} cy={s * 0.9} rx={s * 0.36} ry={s * 0.07} fill={PAL.shadow} />
+        {/* base mass — dark silhouette */}
+        <polygon points={`${s*0.18},${s*0.82} ${s*0.28},${s*0.38} ${s*0.55},${s*0.28} ${s*0.8},${s*0.44} ${s*0.84},${s*0.82}`}
+          fill="#5e564c" stroke={PAL.ink} strokeWidth={1} />
+        {/* lit NW facet */}
+        <polygon points={`${s*0.28},${s*0.38} ${s*0.55},${s*0.28} ${s*0.5},${s*0.55} ${s*0.32},${s*0.6}`}
+          fill="#b8aea0" />
+        <polygon points={`${s*0.28},${s*0.38} ${s*0.4},${s*0.34} ${s*0.36},${s*0.5}`} fill="#d4ccc0" opacity={0.8} />
+        {/* shadow SE facet */}
+        <polygon points={`${s*0.55},${s*0.28} ${s*0.8},${s*0.44} ${s*0.68},${s*0.65} ${s*0.5},${s*0.55}`}
+          fill="#3a342c" />
+        {/* cracks */}
+        <line x1={s*0.4} y1={s*0.45} x2={s*0.46} y2={s*0.62} stroke={PAL.ink} strokeWidth={0.4} opacity={0.6} />
+        {/* small pebble at base */}
+        <ellipse cx={s*0.72} cy={s*0.82} rx={s*0.08} ry={s*0.05} fill="#7a7164" stroke={PAL.ink} strokeWidth={0.4} />
       </g>
     );
   }
+
   if (kind === "fiber-grass") {
     // Tall reedy stalks with seed-tufts — flax/hemp hint
     return (
@@ -2012,63 +2034,103 @@ const StaticTileLayers = React.memo(function StaticTileLayers({ tiles, width, he
             }
             ctx.globalAlpha = 1;
           } else if (t.kind === "grass" || t.kind === "tall-grass") {
-            const n = t.kind === "tall-grass" ? 6 : 4;
-            const len = t.kind === "tall-grass" ? 4.5 : 3;
-            ctx.globalAlpha = 0.9;
+            const n = t.kind === "tall-grass" ? 7 : 5;
+            const len = t.kind === "tall-grass" ? 4.8 : 3.2;
+            // Paired blades: darker shadow blade offset behind a brighter lit
+            // blade — produces depth instead of flat scribbles.
             ctx.lineWidth = 0.8;
             for (let i = 0; i < n; i++) {
               const rx = px + rand(t.x, t.y, i) * (TILE - 4) + 2;
               const ry = py + rand(t.x, t.y, i + 10) * (TILE - 4) + 2;
+              ctx.strokeStyle = "#3d4f1f";
+              ctx.globalAlpha = 0.55;
+              ctx.beginPath();
+              ctx.moveTo(rx + 0.5, ry + 0.4); ctx.lineTo(rx - 0.5, ry - len + 0.4);
+              ctx.moveTo(rx + 0.5, ry + 0.4); ctx.lineTo(rx + 0.5, ry - len - 0.1);
+              ctx.moveTo(rx + 0.5, ry + 0.4); ctx.lineTo(rx + 1.5, ry - len + 0.4);
+              ctx.stroke();
+              ctx.strokeStyle = pal.detail;
+              ctx.globalAlpha = 0.95;
               ctx.beginPath();
               ctx.moveTo(rx, ry); ctx.lineTo(rx - 1, ry - len);
               ctx.moveTo(rx, ry); ctx.lineTo(rx, ry - len - 0.5);
               ctx.moveTo(rx, ry); ctx.lineTo(rx + 1, ry - len);
               ctx.stroke();
+              ctx.fillStyle = "#b8d878";
+              ctx.globalAlpha = 0.7;
+              ctx.fillRect(rx - 0.3, ry - len - 0.8, 0.6, 0.6);
             }
-            // Tiny wildflower dot occasionally
-            if (rand(t.x, t.y, 99) > 0.88) {
-              ctx.fillStyle = rand(t.x, t.y, 100) > 0.5 ? "#e8c060" : "#d97474";
+            if (rand(t.x, t.y, 99) > 0.82) {
+              const fx = px + rand(t.x, t.y, 101) * (TILE - 6) + 3;
+              const fy = py + rand(t.x, t.y, 102) * (TILE - 6) + 3;
+              ctx.strokeStyle = "#3d4f1f";
+              ctx.globalAlpha = 0.7;
+              ctx.lineWidth = 0.5;
+              ctx.beginPath(); ctx.moveTo(fx, fy + 1.4); ctx.lineTo(fx, fy); ctx.stroke();
+              const palette = ["#e8c060", "#d97474", "#e8d8ec", "#c890e0"];
+              ctx.fillStyle = palette[Math.floor(rand(t.x, t.y, 103) * palette.length)];
               ctx.globalAlpha = 0.95;
-              ctx.beginPath();
-              ctx.arc(px + rand(t.x, t.y, 101) * (TILE - 6) + 3, py + rand(t.x, t.y, 102) * (TILE - 6) + 3, 0.9, 0, Math.PI * 2);
-              ctx.fill();
+              ctx.beginPath(); ctx.arc(fx, fy, 1.0, 0, Math.PI * 2); ctx.fill();
+              ctx.fillStyle = "#fff4c0";
+              ctx.globalAlpha = 0.9;
+              ctx.fillRect(fx - 0.3, fy - 0.3, 0.6, 0.6);
             }
           } else if (t.kind === "dirt" || t.kind === "road") {
-            // Multiple pebbles + darker speck for soil texture
-            for (let i = 0; i < 3; i++) {
-              if (rand(t.x, t.y, i) < 0.45) continue;
+            // Curved scuff strokes + pebbles + dark speck — looks tilled
+            ctx.strokeStyle = "#5e3a18";
+            ctx.globalAlpha = 0.4;
+            ctx.lineWidth = 0.5;
+            for (let i = 0; i < 2; i++) {
+              const sx = px + rand(t.x, t.y, i * 7 + 1) * (TILE - 8) + 4;
+              const sy = py + rand(t.x, t.y, i * 7 + 2) * (TILE - 8) + 4;
+              const sl = 3 + rand(t.x, t.y, i * 7 + 3) * 4;
+              ctx.beginPath();
+              ctx.moveTo(sx, sy);
+              ctx.quadraticCurveTo(sx + sl * 0.5, sy + 0.8, sx + sl, sy + 0.3);
+              ctx.stroke();
+            }
+            for (let i = 0; i < 4; i++) {
+              if (rand(t.x, t.y, i) < 0.4) continue;
               ctx.fillStyle = i === 2 ? "#5e3a18" : pal.detail;
-              ctx.globalAlpha = i === 2 ? 0.5 : 0.8;
+              ctx.globalAlpha = i === 2 ? 0.55 : 0.85;
               ctx.beginPath();
               ctx.arc(px + rand(t.x, t.y, i * 2) * (TILE - 6) + 3, py + rand(t.x, t.y, i * 2 + 1) * (TILE - 6) + 3, 0.8, 0, Math.PI * 2);
               ctx.fill();
             }
           } else if (t.kind === "stone") {
-            // Two clustered rocks
-            for (let i = 0; i < 2; i++) {
-              if (rand(t.x, t.y, i) < 0.35) continue;
+            // Clustered pebbles with shadow + lit highlight
+            for (let i = 0; i < 3; i++) {
+              if (rand(t.x, t.y, i) < 0.3) continue;
               const cx = px + rand(t.x, t.y, i * 3 + 2) * (TILE - 8) + 4;
               const cy = py + rand(t.x, t.y, i * 3 + 3) * (TILE - 8) + 4;
+              const r = 1.2 + rand(t.x, t.y, i * 5) * 0.8;
+              ctx.fillStyle = "#3a342c";
+              ctx.globalAlpha = 0.55;
+              ctx.beginPath(); ctx.arc(cx + 0.4, cy + 0.6, r, 0, Math.PI * 2); ctx.fill();
               ctx.fillStyle = pal.detail;
-              ctx.globalAlpha = 0.9;
-              ctx.beginPath(); ctx.arc(cx, cy, 1.4, 0, Math.PI * 2); ctx.fill();
-              ctx.strokeStyle = PAL.ink;
+              ctx.globalAlpha = 0.95;
+              ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+              ctx.fillStyle = "#d4ccc0";
               ctx.globalAlpha = 0.8;
-              ctx.lineWidth = 0.35;
-              ctx.stroke();
+              ctx.beginPath(); ctx.arc(cx - r * 0.35, cy - r * 0.4, r * 0.45, 0, Math.PI * 2); ctx.fill();
             }
           } else if (t.kind === "forest") {
-            // Dense canopy: several overlapping circles per tile
+            // Canopy with under-shadow + northwest highlight crescent
             for (let i = 0; i < 4; i++) {
-              const cx = px + rand(t.x, t.y, i * 2) * (TILE - 6) + 3;
-              const cy = py + rand(t.x, t.y, i * 2 + 1) * (TILE - 6) + 3;
-              const r = 1.6 + rand(t.x, t.y, i + 50) * 1.2;
+              const ccx = px + rand(t.x, t.y, i * 2) * (TILE - 6) + 3;
+              const ccy = py + rand(t.x, t.y, i * 2 + 1) * (TILE - 6) + 3;
+              const r = 1.8 + rand(t.x, t.y, i + 50) * 1.4;
+              ctx.fillStyle = "#1f2e15";
+              ctx.globalAlpha = 0.55;
+              ctx.beginPath(); ctx.arc(ccx + 0.5, ccy + 0.7, r, 0, Math.PI * 2); ctx.fill();
               ctx.fillStyle = i % 2 === 0 ? pal.detail : "#6f9148";
-              ctx.globalAlpha = 0.7;
-              ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+              ctx.globalAlpha = 0.9;
+              ctx.beginPath(); ctx.arc(ccx, ccy, r, 0, Math.PI * 2); ctx.fill();
+              ctx.fillStyle = "#a4c878";
+              ctx.globalAlpha = 0.55;
+              ctx.beginPath(); ctx.arc(ccx - r * 0.3, ccy - r * 0.35, r * 0.55, 0, Math.PI * 2); ctx.fill();
             }
           } else if (t.kind === "ruin") {
-            // Broken stone bits
             ctx.globalAlpha = 0.75;
             ctx.lineWidth = 0.8;
             ctx.strokeStyle = pal.detail;
@@ -2084,6 +2146,25 @@ const StaticTileLayers = React.memo(function StaticTileLayers({ tiles, width, he
           }
         }
         ctx.globalAlpha = 1;
+
+        // ── Pass 4: ambient film-grain speckle — breaks the per-tile grid
+        // at distance so the map reads as one painted board.
+        for (const t of chunkTiles) {
+          if (t.kind === "water") continue;
+          const px = t.x * TILE;
+          const py = t.y * TILE;
+          for (let i = 0; i < 5; i++) {
+            const r = rand(t.x, t.y, 130 + i);
+            if (r < 0.5) continue;
+            const sx = px + rand(t.x, t.y, 140 + i) * TILE;
+            const sy = py + rand(t.x, t.y, 150 + i) * TILE;
+            ctx.fillStyle = r > 0.85 ? "#ffe8b4" : "#140c04";
+            ctx.globalAlpha = r > 0.85 ? 0.09 : 0.10;
+            ctx.fillRect(sx, sy, 1, 1);
+          }
+        }
+        ctx.globalAlpha = 1;
+
 
 
         const url = await canvasToObjectUrl(canvas);
