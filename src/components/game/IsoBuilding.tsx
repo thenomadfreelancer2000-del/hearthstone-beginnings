@@ -93,13 +93,14 @@ function Roof({ corners, wallH, style, T }: {
           fill={style.shade} stroke={INK} strokeWidth={0.9} strokeLinejoin="round" />
         {/* SW slope (mid) */}
         <polygon points={poly(Su, Wu, apex)}
-          fill={style.color} stroke={INK} strokeWidth={0.9} strokeLinejoin="round" opacity={0.92} />
+          fill={style.color} stroke={INK} strokeWidth={0.9} strokeLinejoin="round" />
+
         {/* NW slope (lit) */}
         <polygon points={poly(Wu, Nu, apex)}
           fill={style.color} stroke={INK} strokeWidth={0.9} strokeLinejoin="round" />
         {/* NE slope (lit-mid) */}
         <polygon points={poly(Nu, Eu, apex)}
-          fill={style.color} stroke={INK} strokeWidth={0.9} strokeLinejoin="round" opacity={0.96} />
+          fill={style.color} stroke={INK} strokeWidth={0.9} strokeLinejoin="round" />
         {/* shingle hint lines on SW slope */}
         {[0.3, 0.55, 0.8].map((t, i) => (
           <line key={i}
@@ -135,7 +136,8 @@ function Roof({ corners, wallH, style, T }: {
             fill={style.shade} stroke={INK} strokeWidth={0.9} strokeLinejoin="round" />
           {/* Gable triangles (end walls) */}
           <polygon points={poly(Wu, Su, ridgeB, ridgeA)}
-            fill={gableFill} stroke={INK} strokeWidth={0.8} opacity={0.85} />
+            fill={gableFill} stroke={INK} strokeWidth={0.8} />
+
           {/* Ridge line */}
           <line x1={ridgeA[0]} y1={ridgeA[1]} x2={ridgeB[0]} y2={ridgeB[1]}
             stroke={INK} strokeWidth={1} />
@@ -151,7 +153,7 @@ function Roof({ corners, wallH, style, T }: {
         <polygon points={poly(Nu, Eu, ridgeA)}
           fill={style.color} stroke={INK} strokeWidth={0.9} strokeLinejoin="round" />
         <polygon points={poly(Eu, ridgeB, ridgeA)}
-          fill={style.color} stroke={INK} strokeWidth={0.9} strokeLinejoin="round" opacity={0.92} />
+          fill={style.color} stroke={INK} strokeWidth={0.9} strokeLinejoin="round" />
         {/* SW slope (shaded) */}
         <polygon points={poly(Wu, Nu, ridgeA, ridgeB)}
           fill={style.shade} stroke={INK} strokeWidth={0.9} strokeLinejoin="round" />
@@ -159,7 +161,7 @@ function Roof({ corners, wallH, style, T }: {
           fill={style.shade} stroke={INK} strokeWidth={0.9} strokeLinejoin="round" />
         {/* Gable triangle */}
         <polygon points={poly(Eu, Su, ridgeB, ridgeA)}
-          fill={gableFill} stroke={INK} strokeWidth={0.8} opacity={0.85} />
+          fill={gableFill} stroke={INK} strokeWidth={0.8} />
         <line x1={ridgeA[0]} y1={ridgeA[1]} x2={ridgeB[0]} y2={ridgeB[1]}
           stroke={INK} strokeWidth={1} />
       </g>
@@ -1812,6 +1814,96 @@ function RanchYard({
   const benchA = lerp(inner.S, inner.W, 0.30);
   const benchB = lerp(inner.S, inner.W, 0.70);
 
+  // Wood porch stairs — 3 stepped planks at the foot of the porch,
+  // running parallel to the SW face of the house.
+  const porchFoot = mid(inner.S, inner.W);
+  const swEdgeDir: P = [(inner.W[0] - inner.S[0]), (inner.W[1] - inner.S[1])];
+  const swLen = Math.hypot(swEdgeDir[0], swEdgeDir[1]) || 1;
+  const along: P = [swEdgeDir[0] / swLen, swEdgeDir[1] / swLen];
+  // perpendicular pointing OUT (away from building center)
+  const outDir: P = [porchFoot[0] - inner.C[0], porchFoot[1] - inner.C[1]];
+  const outLen2 = Math.hypot(outDir[0], outDir[1]) || 1;
+  const perp: P = [outDir[0] / outLen2, outDir[1] / outLen2];
+  const stairW = T * 0.95;
+  const stepDepth = T * 0.16;
+  const stairs = (
+    <g>
+      {[0, 1, 2].map((i) => {
+        const off = (2 - i) * stepDepth; // outer step is at the largest outward push
+        const cx = porchFoot[0] + perp[0] * off;
+        const cy = porchFoot[1] + perp[1] * off;
+        const lift1 = i * 1.2; // each step a bit higher
+        // four corners of a step plank, in iso-aligned strip along SW face
+        const halfL = stairW / 2;
+        const halfD = stepDepth / 2 + 0.2;
+        const p1: P = [cx + along[0] * halfL - perp[0] * halfD, cy + along[1] * halfL - perp[1] * halfD - lift1];
+        const p2: P = [cx - along[0] * halfL - perp[0] * halfD, cy - along[1] * halfL - perp[1] * halfD - lift1];
+        const p3: P = [cx - along[0] * halfL + perp[0] * halfD, cy - along[1] * halfL + perp[1] * halfD - lift1];
+        const p4: P = [cx + along[0] * halfL + perp[0] * halfD, cy + along[1] * halfL + perp[1] * halfD - lift1];
+        // riser shadow under each plank
+        const r1: P = [p4[0], p4[1] + 1.5];
+        const r2: P = [p3[0], p3[1] + 1.5];
+        return (
+          <g key={i}>
+            <polygon points={poly(p3, p4, r1, r2)}
+              fill="#3a2210" stroke={INK} strokeWidth={0.3} />
+            <polygon points={poly(p1, p2, p3, p4)}
+              fill={i === 2 ? "#a87a3e" : "#8a5a2c"} stroke={INK} strokeWidth={0.4} />
+            <line x1={p1[0]} y1={p1[1]} x2={p4[0]} y2={p4[1]}
+              stroke="#5a3a18" strokeWidth={0.3} />
+          </g>
+        );
+      })}
+    </g>
+  );
+
+  // Little flower garden — small diamond bed beside the front steps
+  // (slightly to the S of the path), with bright bloom dots.
+  const gardenBed = (() => {
+    const anchor: P = [
+      porchFoot[0] + along[0] * T * 0.85 + perp[0] * T * 0.18,
+      porchFoot[1] + along[1] * T * 0.85 + perp[1] * T * 0.18,
+    ];
+    const w = T * 0.55;
+    const corners: P[] = [
+      [anchor[0],     anchor[1]],
+      [anchor[0] + w, anchor[1] - w / 2],
+      [anchor[0],     anchor[1] - w],
+      [anchor[0] - w, anchor[1] - w / 2],
+    ];
+    const blooms = ["#e94a6a", "#f6c64a", "#e57ab3", "#7eb84a", "#a86ad6", "#f08a3a"];
+    return (
+      <g>
+        <polygon points={poly(...corners)}
+          fill="#4a3320" stroke={INK} strokeWidth={0.45} />
+        {/* mulch flecks */}
+        {[0.3, 0.7].map((tt, i) => {
+          const a = lerp(corners[0], corners[1], tt);
+          const b = lerp(corners[3], corners[2], tt);
+          return <line key={`m${i}`} x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]}
+            stroke="#5a3e1e" strokeWidth={0.3} opacity={0.7} />;
+        })}
+        {/* blooms */}
+        {Array.from({ length: 7 }).map((_, i) => {
+          const u = ((i * 53 + 11) % 90) / 100 + 0.05;
+          const v = ((i * 37 + 23) % 90) / 100 + 0.05;
+          const top = lerp(corners[0], corners[1], u);
+          const bot = lerp(corners[3], corners[2], u);
+          const p = lerp(top, bot, v);
+          const col = blooms[i % blooms.length];
+          return (
+            <g key={i}>
+              <line x1={p[0]} y1={p[1]} x2={p[0]} y2={p[1] - 1.6}
+                stroke="#3a5a2a" strokeWidth={0.45} />
+              <circle cx={p[0]} cy={p[1] - 1.9} r={0.9} fill={col} stroke={INK} strokeWidth={0.25} />
+              <circle cx={p[0]} cy={p[1] - 1.9} r={0.3} fill="#fff5cc" />
+            </g>
+          );
+        })}
+      </g>
+    );
+  })();
+
   return (
     <g>
       {/* path first so fence + benches sit on top */}
@@ -1826,6 +1918,10 @@ function RanchYard({
       {/* benches flanking the porch */}
       {bench([benchA[0], benchA[1] - 1], "sw")}
       {bench([benchB[0], benchB[1] - 1], "se")}
+      {/* little flower garden by the steps */}
+      {gardenBed}
+      {/* wood porch steps */}
+      {stairs}
       {/* flower boxes along the front fence */}
       {flowerBox(sw_q1, T * 0.36, ["#d94a4a", "#f1c64a", "#e57ab3", "#f08a3a"])}
       {flowerBox(sw_q2, T * 0.36, ["#e57ab3", "#d94a4a", "#f1c64a", "#a86ad6"])}

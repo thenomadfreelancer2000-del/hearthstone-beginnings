@@ -3015,8 +3015,27 @@ export function MapView() {
             // footprint on the ground); the art itself is counter-rotated
             // to screen-upright and anchored at the south corner of the
             // iso footprint so the building "sits" on its plot.
+            // A black "paved" foundation tile is rendered under every
+            // built building so the ground under it always reads as a
+            // solid platform — this also lifts the building above water
+            // tiles by hiding the water behind an opaque diamond.
+            const foundationKinds = new Set<string>([
+              "dirt-path", "dirt-road", "gravel-road", "paved-road", "stone-road",
+              "fence", "palisade", "stone-wall", "gate",
+              "farm-plot", "field", "large-field", "orchard",
+            ]);
+            const showFoundation = !foundationKinds.has(b.kind);
             return (
               <g key={b.id}>
+                {showFoundation && (
+                  <g>
+                    <rect x={x} y={y} width={w} height={h}
+                      fill="#0d0a06" />
+                    <rect x={x + 0.6} y={y + 0.6}
+                      width={w - 1.2} height={h - 1.2}
+                      fill="#1a140d" stroke="#2a2014" strokeWidth={0.5} />
+                  </g>
+                )}
                 {sel && (
                   <rect x={x + 1} y={y + 1} width={w - 2} height={h - 2}
                     fill="none" stroke={PAL.gold} strokeWidth={1.5} strokeDasharray="3 2" />
