@@ -1857,10 +1857,10 @@ function RanchYard({
   // (slightly to the S of the path), with bright bloom dots.
   const gardenBed = (() => {
     const anchor: P = [
-      porchFoot[0] + along[0] * T * 0.85 + perp[0] * T * 0.18,
-      porchFoot[1] + along[1] * T * 0.85 + perp[1] * T * 0.18,
+      porchFoot[0] + along[0] * T * 0.62 - perp[0] * T * 0.04,
+      porchFoot[1] + along[1] * T * 0.62 - perp[1] * T * 0.04,
     ];
-    const w = T * 0.55;
+    const w = T * 0.36;
     const corners: P[] = [
       [anchor[0],     anchor[1]],
       [anchor[0] + w, anchor[1] - w / 2],
