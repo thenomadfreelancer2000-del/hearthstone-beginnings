@@ -387,6 +387,37 @@ export const BUILDINGS: Record<BuildingKind, BuildingDef> = {
     cost: { wood: 140, stone: 80, tools: 12 }, buildEffort: 600, housingCapacity: 0, storageCapacity: 80, social: true,
     produces: null,
   },
+  // ── Roads & paths ─────────────────────────────────
+  "dirt-path": {
+    kind: "dirt-path", name: "Dirt Path", blurb: "A narrow walking trail. Cheap, forms quickly underfoot.",
+    size: { w: 1, h: 1 },
+    cost: {}, buildEffort: 0, housingCapacity: 0, storageCapacity: 0, social: false,
+    produces: null,
+  },
+  "dirt-road": {
+    kind: "dirt-road", name: "Dirt Road", blurb: "A wider, packed dirt road. The early main route.",
+    size: { w: 1, h: 1 },
+    cost: { wood: 1 }, buildEffort: 0, housingCapacity: 0, storageCapacity: 0, social: false,
+    produces: null,
+  },
+  "gravel-road": {
+    kind: "gravel-road", name: "Gravel Road", blurb: "Well-maintained gravel. Faster footing, less mud.",
+    size: { w: 1, h: 1 },
+    cost: { stone: 2 }, buildEffort: 0, housingCapacity: 0, storageCapacity: 0, social: false,
+    produces: null,
+  },
+  "paved-road": {
+    kind: "paved-road", name: "Paved Road", blurb: "Flat-laid pavers. Quick travel through built-up districts.",
+    size: { w: 1, h: 1 },
+    cost: { stone: 4, wood: 1 }, buildEffort: 0, housingCapacity: 0, storageCapacity: 0, social: false,
+    produces: null,
+  },
+  "stone-road": {
+    kind: "stone-road", name: "Stone Road", blurb: "Cut and fitted stone. Premium roadway — districts look wealthy.",
+    size: { w: 1, h: 1 },
+    cost: { stone: 6, tools: 1 }, buildEffort: 0, housingCapacity: 0, storageCapacity: 0, social: false,
+    produces: null,
+  },
 };
 
 export const BUILDABLE_KINDS: BuildingKind[] = [
@@ -403,7 +434,23 @@ export const BUILDABLE_KINDS: BuildingKind[] = [
   "food-stockpile", "warehouse", "granary", "root-cellar", "cold-storage",
   "learning-tent", "schoolhouse", "academy", "library",
   "medical-tent", "clinic", "infirmary", "hospital",
+  "dirt-path", "dirt-road", "gravel-road", "paved-road", "stone-road",
 ];
+
+export const ROAD_KINDS: BuildingKind[] = [
+  "dirt-path", "dirt-road", "gravel-road", "paved-road", "stone-road",
+];
+
+/** Movement speed multiplier when a survivor is standing on a road tile.
+ *  1.0 = normal off-road speed. Higher tiers carry a real travel bonus. */
+export const ROAD_SPEED_BONUS: Partial<Record<BuildingKind, number>> = {
+  "dirt-path": 1.10,
+  "dirt-road": 1.20,
+  "gravel-road": 1.35,
+  "paved-road": 1.55,
+  "stone-road": 1.75,
+};
+
 
 export const CHRONICLE_OPENERS = [
   "And so it was written",
