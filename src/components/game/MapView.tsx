@@ -280,6 +280,109 @@ function FenceArt({ w, h, connections, style }: { w: number; h: number; connecti
   );
 }
 
+// ── Road tile renderer ─────────────────────────────────────────
+// Draws a single 1×1 road segment in world space (the parent iso
+// transform shears it into a diamond). The look is chosen by `kind`,
+// neighbor connections decide where the strip extends, and a darker
+// "shoulder" rim is drawn on edges without a neighbor so isolated tiles
+// read as a finished slab instead of bleeding into the grass.
+type RoadConn = { n: boolean; e: boolean; s: boolean; w: boolean };
+function RoadTile({
+  x, y, t, kind, tier, connections,
+}: {
+  x: number; y: number; t: number;
+  kind: string; tier: number; connections: RoadConn;
+}) {
+  // Palette per tier (1=dirt-path .. 5=stone-road)
+  const PAL_ROAD: Record<string, { base: string; alt: string; rim: string; stripe?: string }> = {
+    "dirt-path":   { base: "#8a6b3e", alt: "#7a5a30", rim: "#5a3e1e" },
+    "dirt-road":   { base: "#7a5b2a", alt: "#684b22", rim: "#4a3414" },
+    "gravel-road": { base: "#9a907c", alt: "#7e7461", rim: "#4a4438", stripe: "#bcb29c" },
+    "paved-road":  { base: "#8e8a82", alt: "#74706a", rim: "#3a3833", stripe: "#d9d5cb" },
+    "stone-road":  { base: "#a8a098", alt: "#7e756a", rim: "#3a342c", stripe: "#cfc7b8" },
+  };
+  const p = PAL_ROAD[kind] ?? PAL_ROAD["dirt-path"];
+  const { n, e, s, w } = connections;
+  const inset = 1.4;
+  // Width of the road strip — paths are narrower than full roads.
+  const narrow = tier <= 1 ? 0.40 : tier === 2 ? 0.65 : 0.85;
+  const half = (t * narrow) / 2;
+  const cx = t / 2, cy = t / 2;
+  // Compute the extent of the strip in each direction; if a neighbor
+  // exists we stretch out to the tile edge so the joint is seamless.
+  const left   = w ? 0 : cx - half;
+  const right  = e ? t : cx + half;
+  const top    = n ? 0 : cy - half;
+  const bottom = s ? t : cy + half;
+  const hasAny = n || e || s || w;
+  return (
+    <g>
+      {/* base slab (full tile) — slight inset so adjacent grass is visible */}
+      <rect x={inset} y={inset} width={t - inset * 2} height={t - inset * 2}
+        fill={p.alt} opacity={0.0} />
+      {/* horizontal strip (E-W) */}
+      {(e || w || !hasAny) && (
+        <rect x={left} y={cy - half} width={Math.max(0, right - left)} height={half * 2}
+          fill={p.base} stroke={p.rim} strokeWidth={0.6} />
+      )}
+      {/* vertical strip (N-S) */}
+      {(n || s) && (
+        <rect x={cx - half} y={top} width={half * 2} height={Math.max(0, bottom - top)}
+          fill={p.base} stroke={p.rim} strokeWidth={0.6} />
+      )}
+      {/* center cap for junctions / single tiles */}
+      {(!hasAny || (n || s) && (e || w)) && (
+        <rect x={cx - half} y={cy - half} width={half * 2} height={half * 2}
+          fill={p.base} stroke={p.rim} strokeWidth={0.4} />
+      )}
+      {/* surface detail: gravel speckle / paving lines / stone plates */}
+      {tier === 1 && Array.from({ length: 6 }).map((_, i) => {
+        const u = ((i * 23 + 11) % 100) / 100;
+        const v = ((i * 41 + 17) % 100) / 100;
+        const px = (e || w ? left + u * (right - left) : cx - half + u * half * 2);
+        const py = (n || s ? top + v * (bottom - top) : cy - half + v * half * 2);
+        return <circle key={i} cx={px} cy={py} r={0.6} fill={p.alt} opacity={0.6} />;
+      })}
+      {tier === 2 && Array.from({ length: 5 }).map((_, i) => {
+        const u = (i + 0.5) / 5;
+        if (e || w) return <line key={i} x1={left + (right - left) * u} y1={cy - half * 0.7} x2={left + (right - left) * u} y2={cy + half * 0.7} stroke={p.alt} strokeWidth={0.5} opacity={0.7} />;
+        if (n || s) return <line key={i} x1={cx - half * 0.7} y1={top + (bottom - top) * u} x2={cx + half * 0.7} y2={top + (bottom - top) * u} stroke={p.alt} strokeWidth={0.5} opacity={0.7} />;
+        return null;
+      })}
+      {tier === 3 && Array.from({ length: 10 }).map((_, i) => {
+        const u = ((i * 37) % 100) / 100;
+        const v = ((i * 73) % 100) / 100;
+        const px = (e || w ? left + u * (right - left) : cx - half + u * half * 2);
+        const py = (n || s ? top + v * (bottom - top) : cy - half + v * half * 2);
+        return <circle key={i} cx={px} cy={py} r={0.55} fill={p.stripe ?? p.alt} opacity={0.85} />;
+      })}
+      {tier === 4 && p.stripe && ((e || w) ? (
+        <line x1={left + 2} y1={cy} x2={right - 2} y2={cy} stroke={p.stripe} strokeWidth={0.6} strokeDasharray="3 2" opacity={0.85} />
+      ) : (n || s) ? (
+        <line x1={cx} y1={top + 2} x2={cx} y2={bottom - 2} stroke={p.stripe} strokeWidth={0.6} strokeDasharray="3 2" opacity={0.85} />
+      ) : null)}
+      {tier === 5 && (
+        <g>
+          {/* stone plates — small interior rectangles arranged in a grid */}
+          {Array.from({ length: 3 }).map((_, r) =>
+            Array.from({ length: 3 }).map((_, c) => {
+              const u = (c + 0.5) / 3, v = (r + 0.5) / 3;
+              const px = (e || w ? left + u * (right - left) : cx - half + u * half * 2) - 1.6;
+              const py = (n || s ? top + v * (bottom - top) : cy - half + v * half * 2) - 1.6;
+              return <rect key={`${r}${c}`} x={px} y={py} width={3.2} height={3.2}
+                fill={p.alt} stroke={p.rim} strokeWidth={0.3} opacity={0.85} />;
+            }),
+          )}
+        </g>
+      )}
+    </g>
+  );
+}
+
+// ── Hand-drawn building renderers — keep below ──────────────────
+function _RoadTileSpacer(){return null;}
+
+
 // ── Hand-drawn building renderers (unified style) ────────────────
 function BuildingArt({ kind, w, h, farmStage, farmGrowth }: { kind: string; w: number; h: number; farmStage?: string; farmGrowth?: number }) {
   // All buildings share: dark ink outline, warm wood tones, simple silhouettes.
