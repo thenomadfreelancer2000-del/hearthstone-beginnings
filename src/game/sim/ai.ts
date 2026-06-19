@@ -174,8 +174,25 @@ function moveToward(s: Survivor, dt: number, deps?: SimDeps) {
       }
     }
   }
+  // Record foot traffic on the new tile — long-used routes auto-form
+  // visible dirt paths over time. Skip if we're already on a road
+  // (the road handles the look) or on water/stone.
+  if (deps?.bumpWear) {
+    const tx = Math.floor(nx);
+    const ty = Math.floor(ny);
+    const ptx = Math.floor(s.x);
+    const pty = Math.floor(s.y);
+    if (tx !== ptx || ty !== pty) {
+      const tile = tileAt(deps.tiles, deps.mapW, tx, ty);
+      if (tile && tile.kind !== "water" && tile.kind !== "stone") {
+        const onRoad = roadSpeedAt(nx, ny, deps.buildings) > 1;
+        if (!onRoad) deps.bumpWear(`${tx},${ty}`, 1);
+      }
+    }
+  }
   s.x = nx; s.y = ny;
 }
+
 
 
 function nearestNode(s: Survivor, nodes: ResourceNode[], wants: ResourceKind): ResourceNode | null {
