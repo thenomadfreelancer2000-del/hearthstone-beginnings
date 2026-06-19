@@ -70,18 +70,53 @@ const BUILD_CATEGORIES: { id: string; label: string; kinds: import("@/game/types
 
 ];
 
-function BuildMenu() {
+// Maps a workshop category to the existing build menu category id so
+// custom buildings show up next to their vanilla cousins.
+const WORKSHOP_TO_DOCK: Record<WorkshopCategory, string> = {
+  housing: "shelter",
+  homestead: "shelter",
+  farm: "farming",
+  livestock: "livestock",
+  storage: "storage",
+  water: "water",
+  school: "education",
+  medical: "medical",
+  decoration: "social",
+  road: "roads",
+  fence: "defense",
+};
+
+function BuildMenu({ onOpenWorkshop }: { onOpenWorkshop: () => void }) {
   const buildPlacement = useGame((s) => s.buildPlacement);
   const startBuild = useGame((s) => s.startBuild);
   const cancelBuild = useGame((s) => s.cancelBuild);
   const resources = useGame((s) => s.resources);
+  const workshopActive = useWorkshop((s) => s.activeBuildings());
   const [cat, setCat] = useState<string>("food");
 
-  const active = BUILD_CATEGORIES.find(c => c.id === cat) ?? BUILD_CATEGORIES[0];
-  // Surface any kinds not yet bucketed so nothing is hidden.
-  const known = new Set(BUILD_CATEGORIES.flatMap(c => c.kinds));
-  const orphans = BUILDABLE_KINDS.filter(k => !known.has(k));
-  const kinds = cat === "other" ? orphans : active.kinds;
+  // Workshop kinds bucketed into their target dock category, plus a
+  // dedicated "workshop" category that shows them all together.
+  const workshopKindsByDockCat = new Map<string, BuildingKind[]>();
+  const allWorkshopKinds: BuildingKind[] = [];
+  for (const { pack, building } of workshopActive) {
+    const k = workshopKindOf(pack.id, building.id);
+    allWorkshopKinds.push(k);
+    const dockCat = WORKSHOP_TO_DOCK[building.category];
+    const arr = workshopKindsByDockCat.get(dockCat) ?? [];
+    arr.push(k);
+    workshopKindsByDockCat.set(dockCat, arr);
+  }
+
+  const active = BUILD_CATEGORIES.find((c) => c.id === cat) ?? BUILD_CATEGORIES[0];
+  const known = new Set(BUILD_CATEGORIES.flatMap((c) => c.kinds));
+  const orphans = BUILDABLE_KINDS.filter((k) => !known.has(k));
+  const kinds =
+    cat === "workshop"
+      ? allWorkshopKinds
+      : cat === "other"
+      ? orphans
+      : [...active.kinds, ...(workshopKindsByDockCat.get(active.id) ?? [])];
+
 
   return (
     <div>
