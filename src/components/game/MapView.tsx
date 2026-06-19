@@ -1049,6 +1049,245 @@ function BuildingArt({ kind, w, h, farmStage, farmGrowth }: { kind: string; w: n
       );
     }
 
+    // ── Livestock pens: grassy yard + plank fence + corner shed/trough ─
+    case "chicken-coop":
+    case "goat-pen":
+    case "sheep-pen":
+    case "cattle-pasture": {
+      const pad = Math.max(1.2, w * 0.04);
+      const yx = pad, yy = pad;
+      const yw = w - pad * 2, yh = h - pad * 2;
+      const grass = kind === "chicken-coop" ? "#8aa64a"
+        : kind === "goat-pen" ? "#94a648"
+        : kind === "sheep-pen" ? "#9bb058"
+        : "#7d9a3e";
+      const grassDark = "#5e7a2e";
+      // shed dims (top-left corner)
+      const shedW = Math.max(6, yw * (kind === "chicken-coop" ? 0.45 : kind === "cattle-pasture" ? 0.28 : 0.34));
+      const shedH = Math.max(5, yh * (kind === "chicken-coop" ? 0.55 : 0.42));
+      const shedRoofY = yy + shedH * 0.42;
+      // trough dims (opposite corner)
+      const trW = Math.max(4, yw * 0.28);
+      const trH = Math.max(1.6, yh * 0.10);
+      const trX = yx + yw - trW - 1;
+      const trY = yy + yh - trH - 1.5;
+      // posts at corners + midpoints
+      const posts: [number, number][] = [
+        [yx, yy], [yx + yw, yy], [yx, yy + yh], [yx + yw, yy + yh],
+        [yx + yw / 2, yy], [yx + yw / 2, yy + yh],
+        [yx, yy + yh / 2], [yx + yw, yy + yh / 2],
+      ];
+      // grass tufts deterministic
+      const tufts: { x: number; y: number; r: number }[] = [];
+      const seedN = kind.charCodeAt(0) + Math.floor(w * 7 + h * 13);
+      const tuftCount = Math.floor(yw * yh / 9);
+      for (let i = 0; i < tuftCount; i++) {
+        const r1 = ((seedN * (i + 1) * 9301 + 49297) % 233280) / 233280;
+        const r2 = ((seedN * (i + 1) * 1597 + 51749) % 233280) / 233280;
+        const x = yx + 2 + r1 * (yw - 4);
+        const y = yy + 2 + r2 * (yh - 4);
+        // skip if under shed or trough
+        if (x < yx + shedW && y < yy + shedH) continue;
+        if (x > trX - 1 && y > trY - 1) continue;
+        tufts.push({ x, y, r: 0.35 + r1 * 0.5 });
+      }
+      return (
+        <g>
+          <ellipse cx={cx} cy={h - 1.5} rx={w * 0.47} ry={3} fill={PAL.shadow} />
+          {/* grassy yard */}
+          <rect x={yx} y={yy} width={yw} height={yh} fill={grass} stroke={PAL.ink} strokeWidth={0.8} />
+          {/* tufts */}
+          {tufts.map((t, i) => (
+            <circle key={`t${i}`} cx={t.x} cy={t.y} r={t.r} fill={grassDark} opacity={0.7} />
+          ))}
+          {/* trough (water for goats/cattle/sheep) or feed for chickens */}
+          <rect x={trX} y={trY} width={trW} height={trH}
+            fill={kind === "chicken-coop" ? "#8a5a30" : "#4a3018"}
+            stroke={PAL.ink} strokeWidth={0.5} />
+          {kind !== "chicken-coop" && (
+            <rect x={trX + 0.6} y={trY + 0.4} width={trW - 1.2} height={trH - 0.8}
+              fill="#5589a6" opacity={0.85} />
+          )}
+          {kind === "chicken-coop" && (
+            <line x1={trX + 0.6} y1={trY + trH / 2} x2={trX + trW - 0.6} y2={trY + trH / 2}
+              stroke="#d4a83a" strokeWidth={0.6} />
+          )}
+          {/* shed: wood walls + pitched dark roof */}
+          <rect x={yx + 0.5} y={shedRoofY} width={shedW} height={yy + shedH - shedRoofY}
+            fill="#8a5a30" stroke={PAL.ink} strokeWidth={0.7} />
+          <polygon points={`${yx + 0.5},${shedRoofY + 0.4} ${yx + shedW * 0.18},${yy + 0.6} ${yx + shedW * 0.85},${yy + 0.6} ${yx + shedW + 0.5},${shedRoofY + 0.4}`}
+            fill="#4a2818" stroke={PAL.ink} strokeWidth={0.8} />
+          {/* shed door */}
+          <rect x={yx + shedW * 0.42} y={shedRoofY + (yy + shedH - shedRoofY) * 0.35}
+            width={shedW * 0.22} height={(yy + shedH - shedRoofY) * 0.65}
+            fill="#3d2810" stroke={PAL.ink} strokeWidth={0.3} />
+          {/* species accent on shed (small icon) */}
+          {kind === "chicken-coop" && (
+            <circle cx={yx + shedW * 0.78} cy={shedRoofY + 1.2} r={0.6} fill="#3d2810" />
+          )}
+          {/* fence rails (two horizontal-ish on each side) */}
+          {[yy, yy + yh].map((py, i) => (
+            <g key={`hr${i}`}>
+              <line x1={yx} y1={py} x2={yx + yw} y2={py} stroke="#8a5a30" strokeWidth={0.9} />
+              <line x1={yx} y1={py + (i === 0 ? 0.9 : -0.9)} x2={yx + yw} y2={py + (i === 0 ? 0.9 : -0.9)}
+                stroke="#8a5a30" strokeWidth={0.7} opacity={0.8} />
+            </g>
+          ))}
+          {[yx, yx + yw].map((px, i) => (
+            <g key={`vr${i}`}>
+              <line x1={px} y1={yy} x2={px} y2={yy + yh} stroke="#8a5a30" strokeWidth={0.9} />
+              <line x1={px + (i === 0 ? 0.9 : -0.9)} y1={yy} x2={px + (i === 0 ? 0.9 : -0.9)} y2={yy + yh}
+                stroke="#8a5a30" strokeWidth={0.7} opacity={0.8} />
+            </g>
+          ))}
+          {/* gate gap on bottom edge */}
+          <line x1={yx + yw * 0.45} y1={yy + yh} x2={yx + yw * 0.55} y2={yy + yh}
+            stroke={grass} strokeWidth={2} />
+          {/* fence posts */}
+          {posts.map(([px, py], i) => (
+            <rect key={`p${i}`} x={px - 0.7} y={py - 0.7} width={1.4} height={1.4}
+              fill="#4a2f18" stroke={PAL.ink} strokeWidth={0.3} />
+          ))}
+        </g>
+      );
+    }
+
+    // ── Orchard: rows of fruit trees, stage-aware via farmGrowth ─────
+    case "orchard": {
+      const pad = Math.max(1.2, w * 0.04);
+      const yx = pad, yy = pad;
+      const yw = w - pad * 2, yh = h - pad * 2;
+      const stage = farmStage ?? "growing";
+      const growth = Math.max(0, Math.min(1, farmGrowth ?? 0.5));
+      const cols = Math.max(3, Math.round(w / 8));
+      const rows = Math.max(3, Math.round(h / 8));
+      const trees: { x: number; y: number }[] = [];
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          trees.push({
+            x: yx + (yw / cols) * (c + 0.5),
+            y: yy + (yh / rows) * (r + 0.5),
+          });
+        }
+      }
+      const canopyR = Math.min(yw / cols, yh / rows) * 0.36 * (0.55 + growth * 0.45);
+      const hasFruit = stage === "mature" || stage === "harvesting";
+      return (
+        <g>
+          <ellipse cx={cx} cy={h - 1.5} rx={w * 0.47} ry={3} fill={PAL.shadow} />
+          <rect x={yx} y={yy} width={yw} height={yh} fill="#7a9947" stroke={PAL.ink} strokeWidth={0.7} />
+          {/* tilled rows between trees */}
+          {Array.from({ length: rows + 1 }).map((_, i) => (
+            <line key={`row${i}`} x1={yx + 1} y1={yy + (yh / rows) * i}
+              x2={yx + yw - 1} y2={yy + (yh / rows) * i}
+              stroke="#5e7a2e" strokeWidth={0.4} opacity={0.65} />
+          ))}
+          {trees.map((t, i) => (
+            <g key={`tr${i}`}>
+              {/* trunk shadow */}
+              <ellipse cx={t.x} cy={t.y + canopyR * 0.85} rx={canopyR * 0.9} ry={canopyR * 0.25}
+                fill={PAL.shadow} />
+              {/* trunk */}
+              <rect x={t.x - 0.5} y={t.y - canopyR * 0.2} width={1} height={canopyR * 0.9}
+                fill="#4a2f18" />
+              {/* canopy */}
+              <circle cx={t.x} cy={t.y - canopyR * 0.1} r={canopyR}
+                fill={stage === "empty" || stage === "planting" ? "#5e7a2e" : "#4a6235"}
+                stroke={PAL.ink} strokeWidth={0.45} />
+              <circle cx={t.x - canopyR * 0.3} cy={t.y - canopyR * 0.35} r={canopyR * 0.5}
+                fill="#566e3e" opacity={0.85} />
+              {/* fruit dots */}
+              {hasFruit && (
+                <>
+                  <circle cx={t.x + canopyR * 0.35} cy={t.y - canopyR * 0.05} r={0.7} fill="#c44a3a" />
+                  <circle cx={t.x - canopyR * 0.2} cy={t.y - canopyR * 0.25} r={0.6} fill="#d96a3a" />
+                  <circle cx={t.x + canopyR * 0.1} cy={t.y - canopyR * 0.45} r={0.55} fill="#c44a3a" />
+                </>
+              )}
+            </g>
+          ))}
+          {/* fence */}
+          <rect x={yx} y={yy} width={yw} height={yh} fill="none" stroke="#5a3a1c" strokeWidth={0.6} />
+        </g>
+      );
+    }
+
+    // ── Large field: many furrows + crop rows, stage-aware ───────────
+    case "large-field": {
+      const pad = Math.max(1.2, w * 0.03);
+      const yx = pad, yy = pad;
+      const yw = w - pad * 2, yh = h - pad * 2;
+      const stage = farmStage ?? "growing";
+      const growth = Math.max(0, Math.min(1, farmGrowth ?? 0.5));
+      const rows = Math.max(6, Math.round(h / 4));
+      const cropColor = stage === "mature" ? "#d4a83a"
+        : stage === "harvesting" ? "#a7843a"
+        : "#566e3e";
+      return (
+        <g>
+          <ellipse cx={cx} cy={h - 1.5} rx={w * 0.47} ry={3} fill={PAL.shadow} />
+          <rect x={yx} y={yy} width={yw} height={yh}
+            fill={stage === "empty" ? "#6e4920" : "#5a3818"} stroke={PAL.ink} strokeWidth={0.8} />
+          {Array.from({ length: rows }).map((_, i) => {
+            const ry = yy + (yh / rows) * (i + 0.5);
+            return (
+              <g key={`fr${i}`}>
+                <line x1={yx + 1} y1={ry} x2={yx + yw - 1} y2={ry}
+                  stroke="#3d2810" strokeWidth={0.9} />
+                {stage !== "empty" && stage !== "planting" && (
+                  <line x1={yx + 1} y1={ry - 0.6 - growth * 0.6} x2={yx + yw - 1} y2={ry - 0.6 - growth * 0.6}
+                    stroke={cropColor} strokeWidth={0.7 + growth * 0.6} opacity={0.9} />
+                )}
+              </g>
+            );
+          })}
+          {/* corner posts */}
+          {[[yx, yy], [yx + yw, yy], [yx, yy + yh], [yx + yw, yy + yh]].map(([px, py], i) => (
+            <rect key={i} x={px - 0.7} y={py - 0.7} width={1.4} height={1.4} fill="#3d2810" />
+          ))}
+        </g>
+      );
+    }
+
+    // ── Greenhouse: glass pitched roof over rows ─────────────────────
+    case "greenhouse": {
+      const pad = Math.max(1.2, w * 0.05);
+      const yx = pad, yy = pad;
+      const yw = w - pad * 2, yh = h - pad * 2;
+      return (
+        <g>
+          <ellipse cx={cx} cy={h - 1.5} rx={w * 0.47} ry={3} fill={PAL.shadow} />
+          {/* base soil */}
+          <rect x={yx} y={yy} width={yw} height={yh} fill="#5a3818" stroke={PAL.ink} strokeWidth={0.8} />
+          {/* glass roof panes */}
+          <rect x={yx + 0.5} y={yy + 0.5} width={yw - 1} height={yh - 1}
+            fill="#a8d4d6" opacity={0.55} stroke={PAL.ink} strokeWidth={0.5} />
+          {/* roof ridge */}
+          <line x1={yx + yw / 2} y1={yy + 0.5} x2={yx + yw / 2} y2={yy + yh - 0.5}
+            stroke="#3d2810" strokeWidth={1} />
+          {/* mullions */}
+          {[0.2, 0.4, 0.6, 0.8].map((t, i) => (
+            <g key={`m${i}`}>
+              <line x1={yx + yw * t} y1={yy + 0.5} x2={yx + yw * t} y2={yy + yh - 0.5}
+                stroke="#3d2810" strokeWidth={0.4} opacity={0.7} />
+            </g>
+          ))}
+          {[0.33, 0.66].map((t, i) => (
+            <line key={`mh${i}`} x1={yx + 0.5} y1={yy + yh * t} x2={yx + yw - 0.5} y2={yy + yh * t}
+              stroke="#3d2810" strokeWidth={0.4} opacity={0.7} />
+          ))}
+          {/* highlight glints */}
+          <line x1={yx + yw * 0.15} y1={yy + yh * 0.15} x2={yx + yw * 0.3} y2={yy + yh * 0.3}
+            stroke="#ffffff" strokeWidth={0.6} opacity={0.55} />
+          <line x1={yx + yw * 0.6} y1={yy + yh * 0.1} x2={yx + yw * 0.72} y2={yy + yh * 0.2}
+            stroke="#ffffff" strokeWidth={0.5} opacity={0.45} />
+          {/* door */}
+          <rect x={yx + yw * 0.44} y={yy + yh - 2.2} width={yw * 0.12} height={2}
+            fill="#4a2f18" stroke={PAL.ink} strokeWidth={0.4} />
+        </g>
+      );
+    }
+
     default:
       return <rect x={2} y={2} width={w - 4} height={h - 4} fill="#6b4a24" stroke={PAL.ink} strokeWidth={1} />;
   }
