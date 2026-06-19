@@ -316,7 +316,8 @@ function RoadTile({
   const bottom = s ? t : cy + half;
   const hasAny = n || e || s || w;
   return (
-    <g>
+    <g transform={`translate(${x}, ${y})`}>
+
       {/* base slab (full tile) — slight inset so adjacent grass is visible */}
       <rect x={inset} y={inset} width={t - inset * 2} height={t - inset * 2}
         fill={p.alt} opacity={0.0} />
