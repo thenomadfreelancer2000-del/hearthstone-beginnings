@@ -43,7 +43,7 @@ export const BACKGROUNDS: { id: Background; name: string; blurb: string; skills:
   { id: "native-born", name: "Born on the Ranch", blurb: "Knows no other world but this one.", skills: { farm: 2, build: 2, forage: 2 } },
 ];
 
-export const BUILDINGS: Record<BuildingKind, BuildingDef> = {
+const _BUILDINGS_RAW: Record<string, BuildingDef> = {
   homestead: {
     kind: "homestead", name: "Homestead", blurb: "The original house. Where it all began.",
     size: { w: 6, h: 6 },
