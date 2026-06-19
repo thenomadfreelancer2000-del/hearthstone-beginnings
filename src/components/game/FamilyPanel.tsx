@@ -64,9 +64,12 @@ export function FamilyPanel({ familyId }: { familyId: string }) {
         </div>
 
         <div className="grid grid-cols-3 gap-2 mt-3 text-center">
-          <Stat label="Living" v={standing.living} tone="text-amber" />
-          <Stat label="Loyalty" v={Math.round(standing.avgLoyalty)} tone={loyaltyColor} />
-          <Stat label="Mood" v={Math.round(standing.avgMood)} tone={moodColor} />
+          <Stat label="Living" v={String(standing.living)} tone="text-amber" />
+          <Stat label="Loyalty" v={String(Math.round(standing.avgLoyalty))} tone={loyaltyColor} />
+          <div className="border border-amber/20 p-1 flex flex-col items-center justify-center">
+            <MoodFaceAvg avg={standing.avgMood} size="sm" showLabel={false} />
+            <div className="ranch-label text-[8px] text-dust mt-0.5">Mood</div>
+          </div>
         </div>
 
         <ul className="ranch-data text-[10px] text-dust mt-3 space-y-0.5">
