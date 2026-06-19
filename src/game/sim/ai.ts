@@ -293,9 +293,15 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
     return;
   }
 
+  // ── Leader chat directive (Sims-style "Talk to") ───────────────
+  // Walks the speaker to the target and runs a short conversation.
+  // Yields to *critical* needs only, so it never stalls survival.
+  if (handleTalkDirective(s, dt, deps)) return;
+
   // ── Construction commitment: assigned builders stay focused on their site,
   //    only interrupted by *critical* needs, and resume after eating/drinking.
   if (handleConstructionCommitment(s, dt, deps)) return;
+
 
   // Clear stale work targets so "shift protection" doesn't pin non-builders.
   if (s.workTarget?.kind === "building") {
