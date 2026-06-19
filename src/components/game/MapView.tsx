@@ -28,6 +28,9 @@ const PAL = {
   parchment: "#c4ae90",
 };
 
+const WALL_LIKE_KINDS = new Set(["fence", "palisade", "stone-wall", "gate"]);
+const isWallLikeKind = (kind: string) => WALL_LIKE_KINDS.has(kind);
+
 const TILE_PAL: Record<Tile["kind"], { base: string; alt: string; detail: string }> = {
   grass:        { base: "#4a5a2e", alt: "#536432", detail: "#6b7d3f" },
   "tall-grass": { base: "#566a32", alt: "#62763a", detail: "#7d9048" },
@@ -1146,6 +1149,28 @@ export function MapView() {
   const VH = H * zoom;
   const initialCenterDone = useRef(false);
 
+  const wallNeighborCounts = useMemo(() => {
+    const occupied = new Map<string, typeof buildings[number]>();
+    for (const b of buildings) {
+      if (!isWallLikeKind(b.kind)) continue;
+      for (let dy = 0; dy < b.h; dy++) {
+        for (let dx = 0; dx < b.w; dx++) {
+          occupied.set(`${b.x + dx},${b.y + dy}`, b);
+        }
+      }
+    }
+    const counts = new Map<string, { horizontal: number; vertical: number }>();
+    for (const b of buildings) {
+      if (!isWallLikeKind(b.kind)) continue;
+      const touches = (x: number, y: number) => occupied.has(`${x},${y}`);
+      counts.set(b.id, {
+        horizontal: Number(touches(b.x - 1, b.y)) + Number(touches(b.x + b.w, b.y)),
+        vertical: Number(touches(b.x, b.y - 1)) + Number(touches(b.x, b.y + b.h)),
+      });
+    }
+    return counts;
+  }, [buildings]);
+
   useEffect(() => {
     expandWorldToCurrentSize();
   }, [expandWorldToCurrentSize]);
@@ -1467,9 +1492,11 @@ export function MapView() {
             );
           }
 
-          // Wall-like pieces are authored horizontally; rotate when placed tall.
-          const isWallLike = b.kind === "fence" || b.kind === "palisade" || b.kind === "stone-wall" || b.kind === "gate";
-          const vertical = isWallLike && h > w;
+          // 1x1 wall segments need neighbor-aware orientation; otherwise a
+          // vertical fenceline repeats the same horizontal sprite down the row.
+          const isWallLike = isWallLikeKind(b.kind);
+          const neighbors = wallNeighborCounts.get(b.id);
+          const vertical = isWallLike && (h > w || (!!neighbors && neighbors.vertical > neighbors.horizontal));
           return (
             <g key={b.id}>
               <g transform={vertical ? `translate(${x + w}, ${y}) rotate(90)` : `translate(${x}, ${y})`}>
