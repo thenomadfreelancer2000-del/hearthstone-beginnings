@@ -29,16 +29,19 @@ const PAL = {
 };
 
 
+// TheoTown-inspired warm, readable palette. Each tile has a base, a
+// dither alt for non-flat coverage, and a detail color for tufts/pebbles.
 const TILE_PAL: Record<Tile["kind"], { base: string; alt: string; detail: string }> = {
-  grass:        { base: "#4a5a2e", alt: "#536432", detail: "#6b7d3f" },
-  "tall-grass": { base: "#566a32", alt: "#62763a", detail: "#7d9048" },
-  dirt:         { base: "#6e4920", alt: "#7a5326", detail: "#8e6730" },
-  forest:       { base: "#2f4327", alt: "#37502d", detail: "#4a6235" },
-  stone:        { base: "#6b6258", alt: "#766c61", detail: "#8a8175" },
-  water:        { base: "#3a5868", alt: "#456676", detail: "#5e8294" },
-  road:         { base: "#4a3418", alt: "#553c1c", detail: "#6a4a26" },
-  ruin:         { base: "#46392a", alt: "#504232", detail: "#665540" },
+  grass:        { base: "#6b8a3c", alt: "#7a9947", detail: "#94b558" },
+  "tall-grass": { base: "#5c7d33", alt: "#6b8d3d", detail: "#88a64a" },
+  dirt:         { base: "#94632a", alt: "#a17132", detail: "#b88947" },
+  forest:       { base: "#3e5c2a", alt: "#476833", detail: "#5e8240" },
+  stone:        { base: "#8a8278", alt: "#9a9388", detail: "#b0a89c" },
+  water:        { base: "#4a7a96", alt: "#5589a6", detail: "#9ec6db" },
+  road:         { base: "#6b4a26", alt: "#78532b", detail: "#8a6432" },
+  ruin:         { base: "#5c4d3a", alt: "#6a5944", detail: "#8a7558" },
 };
+
 
 function rand(x: number, y: number, salt = 0) {
   const n = Math.sin(x * 127.1 + y * 311.7 + salt * 13.37) * 43758.5453;
