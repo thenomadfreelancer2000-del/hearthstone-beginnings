@@ -2684,28 +2684,67 @@ export function MapView() {
             // Fences render per-tile with auto-connecting variants.
             // Each tile is its own upright sprite anchored at the south
             // corner of the tile diamond so posts read as standing rails.
-            if (b.kind === "fence") {
-              const style: FenceStyleKey = (b.fenceStyle ?? "natural");
+            // Roads — render as iso ground tiles with auto-connecting
+            // edges. We draw them in raw world space (no isoUpright counter
+            // transform) so the rectangle projects naturally into a diamond.
+            if (ROAD_TIER[b.kind]) {
+              const tx = b.x, ty = b.y;
+              const here = b.kind;
+              const tierHere = ROAD_TIER[here];
+              // Connect to any neighbor road, but the higher tier wins
+              // at the joint so seams read clean.
+              const nKind = roadAt.get(`${tx},${ty - 1}`);
+              const eKind = roadAt.get(`${tx + 1},${ty}`);
+              const sKind = roadAt.get(`${tx},${ty + 1}`);
+              const wKind = roadAt.get(`${tx - 1},${ty}`);
+              const conn = { n: !!nKind, e: !!eKind, s: !!sKind, w: !!wKind };
+              return (
+                <g key={b.id}>
+                  <RoadTile
+                    x={tx * TILE} y={ty * TILE} t={TILE}
+                    kind={here} tier={tierHere} connections={conn}
+                  />
+                  {sel && (
+                    <rect x={tx * TILE + 1} y={ty * TILE + 1} width={TILE - 2} height={TILE - 2}
+                      fill="none" stroke={PAL.gold} strokeWidth={1.5} strokeDasharray="3 2" />
+                  )}
+                </g>
+              );
+            }
+
+            // Fences / walls / gates render per-tile with auto-connecting
+            // variants. We render them in world space (no isoUpright wrap)
+            // so the rails project onto the iso ground axes — that is, an
+            // "east" rail runs along the NE-SW iso edge, matching the
+            // neighbor relationship. Posts pick up a vertical lift in the
+            // FenceArt sprite so they still read as standing rails.
+            if (FENCE_KINDS.has(b.kind)) {
+              const style: FenceStyleKey =
+                b.kind === "stone-wall" ? "weathered"
+                : b.kind === "palisade" ? "dark"
+                : b.kind === "gate" ? "white"
+                : (b.fenceStyle ?? "natural");
               const tiles: React.ReactNode[] = [];
               const tileSort: { tx: number; ty: number; node: React.ReactNode }[] = [];
               for (let dy = 0; dy < b.h; dy++) {
                 for (let dx = 0; dx < b.w; dx++) {
                   const tx = b.x + dx;
                   const ty = b.y + dy;
+                  // For a single-tile wall, include self-tile connections
+                  // to its own footprint so multi-wide gates draw as a
+                  // continuous rail.
                   const conn: FenceConn = {
                     n: hasFence(tx, ty - 1),
-                    e: hasFence(tx + 1, ty),
+                    e: hasFence(tx + 1, ty) || (dx + 1 < b.w),
                     s: hasFence(tx, ty + 1),
-                    w: hasFence(tx - 1, ty),
+                    w: hasFence(tx - 1, ty) || dx > 0,
                   };
                   tileSort.push({
                     tx, ty,
                     node: (
                       <g key={`${tx},${ty}`}
-                         transform={isoUpright((tx + 1) * TILE, (ty + 1) * TILE)}>
-                        <g transform={`translate(${-TILE / 2}, ${-TILE})`}>
-                          <FenceArt w={TILE} h={TILE} connections={conn} style={style} />
-                        </g>
+                         transform={`translate(${tx * TILE}, ${ty * TILE})`}>
+                        <FenceArt w={TILE} h={TILE} connections={conn} style={style} />
                       </g>
                     ),
                   });
@@ -2735,6 +2774,7 @@ export function MapView() {
                     fill="none" stroke={PAL.gold} strokeWidth={1.5} strokeDasharray="3 2" />
                 )}
                 <g transform={isoUpright(x + w, y + h)}>
+
                   <IsoBuilding kind={b.kind} gridW={b.w} gridH={b.h} tile={TILE}
                     farmStage={b.farm?.stage} farmGrowth={b.farm?.growth} />
                   <text
