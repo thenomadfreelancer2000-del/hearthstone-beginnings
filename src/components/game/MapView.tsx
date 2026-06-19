@@ -2545,6 +2545,27 @@ export function MapView() {
   const expandWorldToCurrentSize = useGame((s) => s.expandWorldToCurrentSize);
   const isMobile = useIsMobile();
 
+  // Precompute building tile occupancy so per-frame survivor and
+  // worn-path rendering avoid an O(buildings) scan per item.
+  const { builtTiles, enclosedRects } = useMemo(() => {
+    const builtTiles = new Set<string>();
+    const enclosedRects: { x: number; y: number; w: number; h: number }[] = [];
+    for (const b of buildings) {
+      if (b.builtProgress < 1) continue;
+      for (let dy = 0; dy < b.h; dy++) {
+        for (let dx = 0; dx < b.w; dx++) {
+          builtTiles.add(`${b.x + dx},${b.y + dy}`);
+        }
+      }
+      if (!PASSABLE_BUILDINGS.has(b.kind)) {
+        enclosedRects.push({ x: b.x, y: b.y, w: b.w, h: b.h });
+      }
+    }
+    return { builtTiles, enclosedRects };
+  }, [buildings]);
+
+
+
   const [hover, setHover] = useState<{ x: number; y: number } | null>(null);
   const [pendingPlacement, setPendingPlacement] = useState<{ x: number; y: number } | null>(null);
   const ref = useRef<SVGSVGElement>(null);
