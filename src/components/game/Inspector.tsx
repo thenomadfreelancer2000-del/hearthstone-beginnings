@@ -444,6 +444,7 @@ export function Inspector({ onHide }: { onHide?: () => void } = {}) {
         {b.builtProgress >= 1 && !isResidential(b.kind) && b.kind !== "farm-plot" && b.kind !== "fence" && (
           <WorkerPanel b={b} />
         )}
+        {b.kind === "fence" && b.builtProgress >= 1 && <FenceStylePanel b={b} />}
         <div className="divider-amber my-3" />
         <div className="ranch-data text-[10px] text-dust space-y-0.5">
           <div>
