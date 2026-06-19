@@ -97,15 +97,15 @@ export function GameShell() {
         <MinisterRequestsPanel />
         {!mobileFocus && !settingsOpen && (
           <div
-            className="absolute top-2 z-40 flex flex-col gap-1 items-stretch transition-all"
+            className="absolute top-2 z-40 flex flex-col gap-1.5 items-end transition-all"
             style={{ right: !isMobile && !inspectorCollapsed ? 348 : (!isMobile && inspectorCollapsed ? 40 : 8) }}
           >
-            <SideButton onClick={() => setLivestockOpen(true)} label="Livestock" />
-            <SideButton onClick={() => setAdminOpen(true)} label="Ministers" />
-            <SideButton onClick={() => setPoliticsOpen(true)} label="Council" />
-            <SideButton onClick={() => setFactionsOpen(true)} label="Factions" />
-            <SideButton onClick={() => setExpeditionsOpen(true)} label="Expeditions" />
-            <SideButton onClick={() => setOverlay("tree")} label="Dynasty" />
+            <SideIconButton onClick={() => setLivestockOpen(true)} label="Livestock" glyph="livestock" />
+            <SideIconButton onClick={() => setAdminOpen(true)} label="Ministers" glyph="ministers" />
+            <SideIconButton onClick={() => setPoliticsOpen(true)} label="Council" glyph="council" />
+            <SideIconButton onClick={() => setFactionsOpen(true)} label="Factions" glyph="factions" />
+            <SideIconButton onClick={() => setExpeditionsOpen(true)} label="Expeditions" glyph="expeditions" />
+            <SideIconButton onClick={() => setOverlay("tree")} label="Dynasty" glyph="dynasty" />
           </div>
         )}
         {livestockOpen && <LivestockPanel onClose={() => setLivestockOpen(false)} />}
@@ -189,14 +189,95 @@ export function GameShell() {
   );
 }
 
-function SideButton({ onClick, label }: { onClick: () => void; label: string }) {
+type SideGlyph = "livestock" | "ministers" | "council" | "factions" | "expeditions" | "dynasty";
+
+function SideIconButton({ onClick, label, glyph }: { onClick: () => void; label: string; glyph: SideGlyph }) {
   return (
     <button
       onClick={onClick}
-      className="ranch-label text-[8px] tracking-wider text-amber bg-coal/80 backdrop-blur-sm border border-amber/40 hover:border-amber hover:bg-amber/10 hover:text-amber-light px-1.5 h-5 min-w-[64px] text-right transition"
       title={label}
+      aria-label={label}
+      className="group relative w-10 h-10 flex items-center justify-center bg-coal/80 backdrop-blur-sm border border-amber/40 text-amber hover:border-amber hover:bg-amber/15 hover:text-amber-light transition"
+      style={{ borderRadius: 2 }}
     >
-      {label}
+      <svg viewBox="0 0 24 24" width={22} height={22} fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+        <SideGlyphPath glyph={glyph} />
+      </svg>
+      {/* branding-iron corner ticks */}
+      <span className="absolute top-0 left-0 w-1 h-1 border-t border-l border-amber/70" />
+      <span className="absolute top-0 right-0 w-1 h-1 border-t border-r border-amber/70" />
+      <span className="absolute bottom-0 left-0 w-1 h-1 border-b border-l border-amber/70" />
+      <span className="absolute bottom-0 right-0 w-1 h-1 border-b border-r border-amber/70" />
+      {/* hover label flag to the left */}
+      <span className="pointer-events-none absolute right-full mr-1.5 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity ranch-label text-[9px] tracking-wider text-amber bg-coal/90 border border-amber/40 px-1.5 py-0.5 whitespace-nowrap">
+        {label}
+      </span>
     </button>
   );
+}
+
+function SideGlyphPath({ glyph }: { glyph: SideGlyph }) {
+  switch (glyph) {
+    case "livestock":
+      // Stylized longhorn skull silhouette
+      return (
+        <>
+          <path d="M3 9c2-2 5 0 5 0M21 9c-2-2-5 0-5 0" />
+          <path d="M8 9c0-3 2-5 4-5s4 2 4 5v3c0 3-2 5-4 5s-4-2-4-5V9z" />
+          <circle cx="10.5" cy="11" r="0.8" fill="currentColor" stroke="none" />
+          <circle cx="13.5" cy="11" r="0.8" fill="currentColor" stroke="none" />
+          <path d="M11 15l1 1.5 1-1.5" />
+        </>
+      );
+    case "ministers":
+      // Quill pen over ledger
+      return (
+        <>
+          <rect x="4" y="6" width="11" height="14" />
+          <path d="M7 10h6M7 13h6M7 16h4" />
+          <path d="M14 4l6 6-7 7-3 1 1-3 6-6-3-5z" />
+        </>
+      );
+    case "council":
+      // Round table with three chairs (top view)
+      return (
+        <>
+          <circle cx="12" cy="12" r="5" />
+          <rect x="10.5" y="2.5" width="3" height="3" />
+          <rect x="3" y="14" width="3" height="3" transform="rotate(-30 4.5 15.5)" />
+          <rect x="18" y="14" width="3" height="3" transform="rotate(30 19.5 15.5)" />
+        </>
+      );
+    case "factions":
+      // Two crossed banners
+      return (
+        <>
+          <path d="M5 3v16l2-2 2 2V3z" />
+          <path d="M15 5v16l2-2 2 2V5z" />
+          <path d="M3 8h8M13 10h8" opacity={0.6} />
+        </>
+      );
+    case "expeditions":
+      // Compass rose
+      return (
+        <>
+          <circle cx="12" cy="12" r="8" />
+          <path d="M12 5l2 7-2 7-2-7z" fill="currentColor" stroke="none" opacity={0.85} />
+          <path d="M5 12l7-2 7 2-7 2z" />
+          <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" />
+        </>
+      );
+    case "dynasty":
+      // Family tree
+      return (
+        <>
+          <circle cx="12" cy="4.5" r="1.8" />
+          <path d="M12 6.3v3.2M6 14v-1.5c0-1.5 1-2.7 2.5-3M18 14v-1.5c0-1.5-1-2.7-2.5-3" />
+          <circle cx="6" cy="16" r="1.8" />
+          <circle cx="12" cy="16" r="1.8" />
+          <circle cx="18" cy="16" r="1.8" />
+          <path d="M12 9.5v4.7" />
+        </>
+      );
+  }
 }
