@@ -3022,7 +3022,7 @@ export function MapView() {
               "farm-plot", "field", "large-field", "orchard",
             ]);
             const showFoundation = !foundationKinds.has(b.kind);
-            return (
+            entries.push({ sort: b.x + b.w + b.y + b.h, node: (
               <g key={b.id}>
                 {showFoundation && (
                   <g>
@@ -3050,8 +3050,10 @@ export function MapView() {
                   </text>
                 </g>
               </g>
-            );
-          });
+            ) });
+          }
+          entries.sort((a, c) => a.sort - c.sort);
+          return entries.map((e, i) => <React.Fragment key={i}>{e.node}</React.Fragment>);
         })()}
 
         {/* Animals — clustered around their pen */}
