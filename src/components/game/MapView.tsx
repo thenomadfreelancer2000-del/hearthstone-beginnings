@@ -98,6 +98,149 @@ function canvasToObjectUrl(canvas: HTMLCanvasElement) {
   });
 }
 
+// ── Ranch fence (auto-connecting) ────────────────────────────────
+type FenceStyleKey = "natural" | "dark" | "white" | "weathered";
+type FenceConn = { n: boolean; e: boolean; s: boolean; w: boolean };
+
+const FENCE_PALETTES: Record<FenceStyleKey, {
+  rail: string; railShade: string; railLight: string;
+  post: string; postShade: string; postCap: string;
+}> = {
+  natural:   { rail: "#a87642", railShade: "#6b4521", railLight: "#c98f5a", post: "#5a3820", postShade: "#2f1d10", postCap: "#7a4f2a" },
+  dark:      { rail: "#5b3a22", railShade: "#2f1d10", railLight: "#754a2a", post: "#2b1a0d", postShade: "#1a0f06", postCap: "#3d2410" },
+  white:     { rail: "#efe6d4", railShade: "#9a8e76", railLight: "#fffaf0", post: "#d9cdb4", postShade: "#7a6e57", postCap: "#fffaf0" },
+  weathered: { rail: "#8d8472", railShade: "#56503f", railLight: "#a8a08c", post: "#5a5340", postShade: "#332f24", postCap: "#7a7460" },
+};
+
+// Render a single fence tile. The visual is a soft top-down/oblique
+// perspective: horizontal rails span tile-edge-to-tile-edge along the
+// connected axes, posts stand at junctions/ends, and a small cap +
+// shadow give it depth.
+function FenceArt({ w, h, connections, style }: { w: number; h: number; connections: FenceConn; style: FenceStyleKey }) {
+  const pal = FENCE_PALETTES[style];
+  const cx = w / 2;
+  const cy = h / 2;
+  const min = Math.min(w, h);
+  const railT = Math.max(2.2, min * 0.16);       // rail visual thickness
+  const postR = Math.max(2.4, min * 0.18);       // post radius (round-ish)
+  const postLift = Math.max(2, min * 0.18);      // how far the post "rises" above the rail line
+  const { n, e, s, w: cw } = connections;
+  const anyConn = n || e || s || cw;
+  // Decide which posts to draw. Posts go at endpoints (where a rail stops)
+  // and at every junction; for a straight run we only need posts at the
+  // segment-end tiles to avoid a wall of stakes.
+  const horizontalRun = (cw || e);
+  const verticalRun = (n || s);
+  const isStraightH = horizontalRun && !verticalRun;
+  const isStraightV = verticalRun && !horizontalRun;
+  const isJunction = horizontalRun && verticalRun; // corner, T, or cross
+  const isSingle = !anyConn;
+
+  // Endpoint flags: this side has no connection (rail terminates here).
+  const endLeft = !cw;
+  const endRight = !e;
+  const endTop = !n;
+  const endBottom = !s;
+
+  // Where the rail visually ends inside the tile (pull back so a post can sit on the end)
+  const railPad = postR * 0.4;
+  const hLeft = cw ? 0 : (isStraightH ? railPad : cx - postR * 0.2);
+  const hRight = e ? w : (isStraightH ? w - railPad : cx + postR * 0.2);
+  const vTop = n ? 0 : (isStraightV ? railPad : cy - postR * 0.2);
+  const vBottom = s ? h : (isStraightV ? h - railPad : cy + postR * 0.2);
+
+  // Rail Y bands (two stacked rails, like classic post-and-rail).
+  const railTopY = cy - railT * 0.55 - railT * 0.6;
+  const railBotY = cy + railT * 0.55 - railT * 0.05;
+  // For vertical runs we draw rails as vertical bands instead.
+  const railLeftX = cx - railT * 0.55 - railT * 0.6;
+  const railRightX = cx + railT * 0.55 - railT * 0.05;
+
+  const posts: Array<{ x: number; y: number }> = [];
+  if (isSingle) {
+    posts.push({ x: cx, y: cy });
+  } else if (isJunction) {
+    // Post at center for corners/T/cross + ends of every terminating arm
+    posts.push({ x: cx, y: cy });
+    if (endLeft && cw === false && (n || s)) {/* no left arm */}
+    if (cw && !e && !n && !s) posts.push({ x: 0, y: cy }); // unlikely
+    // For terminal arms in a junction, add a post at the tile edge:
+    if (cw && endRight && (n || s) && !e) posts.push({ x: w - postR * 0.3, y: cy });
+    if (e && endLeft && (n || s) && !cw) posts.push({ x: postR * 0.3, y: cy });
+    if (n && endBottom && (cw || e) && !s) posts.push({ x: cx, y: h - postR * 0.3 });
+    if (s && endTop && (cw || e) && !n) posts.push({ x: cx, y: postR * 0.3 });
+  } else if (isStraightH) {
+    if (endLeft) posts.push({ x: railPad + postR * 0.2, y: cy });
+    if (endRight) posts.push({ x: w - railPad - postR * 0.2, y: cy });
+    if (!endLeft && !endRight) {
+      // mid-run: occasional post so a long fence has rhythm (only every other tile)
+      // skip — keep mid clean; junctions/ends carry posts
+    }
+  } else if (isStraightV) {
+    if (endTop) posts.push({ x: cx, y: railPad + postR * 0.2 });
+    if (endBottom) posts.push({ x: cx, y: h - railPad - postR * 0.2 });
+  }
+
+  return (
+    <g>
+      {/* soft ground shadow */}
+      <ellipse cx={cx} cy={cy + railT * 0.9} rx={Math.max(w, h) * 0.42} ry={railT * 0.55} fill={PAL.shadow} opacity={0.28} />
+
+      {/* HORIZONTAL rails (two stacked) — drawn when there's a horizontal run, OR for a single tile (decorative) */}
+      {(horizontalRun || isSingle) && (
+        <g>
+          {/* top rail */}
+          <rect x={hLeft} y={railTopY} width={Math.max(0, hRight - hLeft)} height={railT} rx={railT * 0.35}
+            fill={pal.rail} stroke={pal.railShade} strokeWidth={0.6} />
+          <rect x={hLeft} y={railTopY} width={Math.max(0, hRight - hLeft)} height={railT * 0.35} rx={railT * 0.3}
+            fill={pal.railLight} opacity={0.55} />
+          {/* bottom rail */}
+          <rect x={hLeft} y={railBotY} width={Math.max(0, hRight - hLeft)} height={railT} rx={railT * 0.35}
+            fill={pal.rail} stroke={pal.railShade} strokeWidth={0.6} />
+          <rect x={hLeft} y={railBotY} width={Math.max(0, hRight - hLeft)} height={railT * 0.35} rx={railT * 0.3}
+            fill={pal.railLight} opacity={0.5} />
+        </g>
+      )}
+
+      {/* VERTICAL rails — drawn for vertical runs */}
+      {verticalRun && (
+        <g>
+          <rect x={railLeftX} y={vTop} width={railT} height={Math.max(0, vBottom - vTop)} rx={railT * 0.35}
+            fill={pal.rail} stroke={pal.railShade} strokeWidth={0.6} />
+          <rect x={railLeftX} y={vTop} width={railT * 0.35} height={Math.max(0, vBottom - vTop)} rx={railT * 0.3}
+            fill={pal.railLight} opacity={0.55} />
+          <rect x={railRightX} y={vTop} width={railT} height={Math.max(0, vBottom - vTop)} rx={railT * 0.35}
+            fill={pal.rail} stroke={pal.railShade} strokeWidth={0.6} />
+          <rect x={railRightX} y={vTop} width={railT * 0.35} height={Math.max(0, vBottom - vTop)} rx={railT * 0.3}
+            fill={pal.railLight} opacity={0.5} />
+        </g>
+      )}
+
+      {/* POSTS — drawn LAST so they sit on top, and we lift them slightly to look 3D */}
+      {posts.map((p, i) => {
+        const px = p.x - postR * 0.55;
+        const py = p.y - postR * 0.9 - postLift;
+        const pw = postR * 1.1;
+        const ph = postR * 1.9 + postLift;
+        return (
+          <g key={i}>
+            {/* post shadow */}
+            <ellipse cx={p.x} cy={p.y + postR * 0.55} rx={postR * 0.7} ry={postR * 0.28} fill={PAL.shadow} opacity={0.45} />
+            {/* post body */}
+            <rect x={px} y={py} width={pw} height={ph} rx={postR * 0.35}
+              fill={pal.post} stroke={pal.postShade} strokeWidth={0.7} />
+            {/* lit edge */}
+            <rect x={px} y={py} width={pw * 0.32} height={ph} rx={postR * 0.3}
+              fill={pal.postCap} opacity={0.55} />
+            {/* cap */}
+            <ellipse cx={p.x} cy={py + 0.6} rx={pw * 0.55} ry={pw * 0.28} fill={pal.postCap} stroke={pal.postShade} strokeWidth={0.5} />
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
 // ── Hand-drawn building renderers (unified style) ────────────────
 function BuildingArt({ kind, w, h, farmStage, farmGrowth }: { kind: string; w: number; h: number; farmStage?: string; farmGrowth?: number }) {
   // All buildings share: dark ink outline, warm wood tones, simple silhouettes.
