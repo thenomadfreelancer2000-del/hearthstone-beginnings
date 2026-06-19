@@ -1543,40 +1543,60 @@ function BuildingArt({ kind, w, h, farmStage, farmGrowth }: { kind: string; w: n
 function NodeArt({ kind, size, seed }: { kind: string; size: number; seed: number }) {
   const s = size;
   if (kind === "trees") {
-    // Stylized tree — shaded canopy with NW highlight + SE shadow + trunk
+    // Painterly tree — soft ground shadow, warm trunk with bark
+    // grooves, layered canopy with NW rim-light and SE core shadow.
     const variant = seed % 3;
+    const trunkDark = "#3a2412";
+    const trunkMid = "#5a3a1c";
+    const trunkLite = "#7a5230";
     return (
       <g>
-        <ellipse cx={s / 2} cy={s * 0.92} rx={s * 0.32} ry={s * 0.07} fill={PAL.shadow} />
-        <rect x={s * 0.46} y={s * 0.62} width={s * 0.08} height={s * 0.3} fill="#3d2810" stroke={PAL.ink} strokeWidth={0.6} />
-        <rect x={s * 0.46} y={s * 0.62} width={s * 0.025} height={s * 0.3} fill="#5a3820" opacity={0.7} />
+        {/* drop shadow */}
+        <ellipse cx={s / 2} cy={s * 0.93} rx={s * 0.34} ry={s * 0.08} fill="#000" opacity={0.28} />
+        {/* trunk with bark stripes */}
+        <path d={`M ${s*0.44} ${s*0.92} Q ${s*0.46} ${s*0.78} ${s*0.45} ${s*0.6}
+                  L ${s*0.55} ${s*0.6} Q ${s*0.54} ${s*0.78} ${s*0.56} ${s*0.92} Z`}
+          fill={trunkMid} stroke={PAL.ink} strokeWidth={0.6} />
+        <path d={`M ${s*0.45} ${s*0.6} L ${s*0.45} ${s*0.92}`} stroke={trunkDark} strokeWidth={0.6} />
+        <path d={`M ${s*0.49} ${s*0.65} L ${s*0.49} ${s*0.9}`} stroke={trunkLite} strokeWidth={0.5} opacity={0.7} />
         {variant === 0 ? (
+          // tall conifer — three tiers with snowless pine look
           <g>
-            {/* layered pine tiers — darker base, lighter top, lit crescent */}
-            <polygon points={`${s/2},${s*0.08} ${s*0.18},${s*0.55} ${s*0.82},${s*0.55}`} fill="#2f4220" stroke={PAL.ink} strokeWidth={0.8} />
-            <polygon points={`${s/2},${s*0.12} ${s*0.22},${s*0.5} ${s*0.78},${s*0.5}`} fill="#3d5226" />
-            <polygon points={`${s/2},${s*0.22} ${s*0.24},${s*0.65} ${s*0.76},${s*0.65}`} fill="#4a6235" stroke={PAL.ink} strokeWidth={0.8} />
-            <polygon points={`${s/2},${s*0.26} ${s*0.28},${s*0.6} ${s*0.72},${s*0.6}`} fill="#5e7842" />
-            {/* NW lit edge */}
-            <polygon points={`${s/2},${s*0.08} ${s*0.18},${s*0.55} ${s*0.36},${s*0.55} ${s*0.46},${s*0.18}`} fill="#7a9c52" opacity={0.45} />
+            <polygon points={`${s/2},${s*0.06} ${s*0.16},${s*0.5} ${s*0.84},${s*0.5}`}
+              fill="#2b3d1c" stroke={PAL.ink} strokeWidth={0.8} />
+            <polygon points={`${s/2},${s*0.22} ${s*0.2},${s*0.62} ${s*0.8},${s*0.62}`}
+              fill="#3a5226" stroke={PAL.ink} strokeWidth={0.7} />
+            <polygon points={`${s/2},${s*0.38} ${s*0.24},${s*0.72} ${s*0.76},${s*0.72}`}
+              fill="#4a6532" stroke={PAL.ink} strokeWidth={0.7} />
+            {/* NW rim-light */}
+            <polygon points={`${s/2},${s*0.06} ${s*0.16},${s*0.5} ${s*0.34},${s*0.5} ${s*0.46},${s*0.14}`}
+              fill="#9bc26a" opacity={0.5} />
+            <polygon points={`${s/2},${s*0.38} ${s*0.24},${s*0.72} ${s*0.4},${s*0.72} ${s*0.47},${s*0.44}`}
+              fill="#a8cf72" opacity={0.4} />
+            {/* tiny SE accents */}
+            <circle cx={s*0.66} cy={s*0.6} r={s*0.04} fill="#1f2e14" opacity={0.5} />
           </g>
         ) : variant === 1 ? (
+          // round oak — chunky lobed canopy
           <g>
-            <polygon points={`${s/2},${s*0.05} ${s*0.16},${s*0.45} ${s*0.84},${s*0.45}`} fill="#2f4220" stroke={PAL.ink} strokeWidth={0.8} />
-            <polygon points={`${s/2},${s*0.2} ${s*0.2},${s*0.6} ${s*0.8},${s*0.6}`} fill="#3d5226" stroke={PAL.ink} strokeWidth={0.8} />
-            <polygon points={`${s/2},${s*0.35} ${s*0.24},${s*0.7} ${s*0.76},${s*0.7}`} fill="#4a6235" stroke={PAL.ink} strokeWidth={0.8} />
-            <polygon points={`${s/2},${s*0.05} ${s*0.16},${s*0.45} ${s*0.32},${s*0.45} ${s*0.45},${s*0.15}`} fill="#7a9c52" opacity={0.5} />
-            <polygon points={`${s/2},${s*0.35} ${s*0.24},${s*0.7} ${s*0.4},${s*0.7} ${s*0.46},${s*0.42}`} fill="#88a85a" opacity={0.4} />
+            <ellipse cx={s*0.52} cy={s*0.48} rx={s*0.38} ry={s*0.32} fill="#2b3d1c" />
+            <ellipse cx={s*0.5} cy={s*0.42} rx={s*0.36} ry={s*0.3} fill="#3d5424" stroke={PAL.ink} strokeWidth={0.8} />
+            <circle cx={s*0.34} cy={s*0.42} r={s*0.13} fill="#4a6532" stroke={PAL.ink} strokeWidth={0.5} />
+            <circle cx={s*0.7}  cy={s*0.4}  r={s*0.14} fill="#4a6532" stroke={PAL.ink} strokeWidth={0.5} />
+            <circle cx={s*0.5}  cy={s*0.24} r={s*0.14} fill="#577a3a" stroke={PAL.ink} strokeWidth={0.5} />
+            {/* NW highlight */}
+            <ellipse cx={s*0.38} cy={s*0.3} rx={s*0.12} ry={s*0.08} fill="#a8cf72" opacity={0.6} />
+            <circle cx={s*0.34} cy={s*0.25} r={s*0.04} fill="#cfe69a" opacity={0.7} />
           </g>
         ) : (
+          // birch / aspen — slim trunk, airy crown
           <g>
-            {/* broadleaf — shadow + body + NW highlight + small accent leaves */}
-            <circle cx={s * 0.52} cy={s * 0.46} r={s * 0.34} fill="#2f4220" opacity={0.7} />
-            <circle cx={s/2} cy={s * 0.4} r={s * 0.32} fill="#3d5226" stroke={PAL.ink} strokeWidth={0.8} />
-            <circle cx={s * 0.4} cy={s * 0.5} r={s * 0.18} fill="#4a6235" />
-            <circle cx={s * 0.62} cy={s * 0.48} r={s * 0.16} fill="#566e3e" />
-            <circle cx={s * 0.4} cy={s * 0.32} r={s * 0.14} fill="#7a9c52" opacity={0.7} />
-            <circle cx={s * 0.55} cy={s * 0.28} r={s * 0.08} fill="#9ab86a" opacity={0.6} />
+            <ellipse cx={s*0.5} cy={s*0.4} rx={s*0.3} ry={s*0.34} fill="#2b3d1c" />
+            <ellipse cx={s*0.48} cy={s*0.34} rx={s*0.28} ry={s*0.3} fill="#456026" stroke={PAL.ink} strokeWidth={0.7} />
+            <circle cx={s*0.36} cy={s*0.32} r={s*0.1} fill="#5a7a36" />
+            <circle cx={s*0.62} cy={s*0.28} r={s*0.09} fill="#688a40" />
+            <circle cx={s*0.5}  cy={s*0.18} r={s*0.08} fill="#7ca04a" />
+            <ellipse cx={s*0.38} cy={s*0.24} rx={s*0.08} ry={s*0.05} fill="#b8d878" opacity={0.7} />
           </g>
         )}
       </g>
@@ -1584,26 +1604,53 @@ function NodeArt({ kind, size, seed }: { kind: string; size: number; seed: numbe
   }
 
   if (kind === "rocks") {
+    // Painterly boulder cluster — main mass + side rock + pebble.
     return (
       <g>
-        <ellipse cx={s / 2} cy={s * 0.9} rx={s * 0.36} ry={s * 0.07} fill={PAL.shadow} />
-        {/* base mass — dark silhouette */}
-        <polygon points={`${s*0.18},${s*0.82} ${s*0.28},${s*0.38} ${s*0.55},${s*0.28} ${s*0.8},${s*0.44} ${s*0.84},${s*0.82}`}
-          fill="#5e564c" stroke={PAL.ink} strokeWidth={1} />
+        <ellipse cx={s / 2} cy={s * 0.92} rx={s * 0.4} ry={s * 0.08} fill="#000" opacity={0.3} />
+        {/* secondary rock behind */}
+        <polygon points={`${s*0.62},${s*0.78} ${s*0.7},${s*0.55} ${s*0.88},${s*0.6} ${s*0.9},${s*0.82}`}
+          fill="#5a5249" stroke={PAL.ink} strokeWidth={0.7} />
+        <polygon points={`${s*0.7},${s*0.55} ${s*0.8},${s*0.55} ${s*0.78},${s*0.7}`}
+          fill="#9a9388" />
+        {/* main boulder — silhouette */}
+        <path d={`M ${s*0.14} ${s*0.82}
+                  Q ${s*0.1} ${s*0.55} ${s*0.28} ${s*0.36}
+                  Q ${s*0.42} ${s*0.22} ${s*0.6} ${s*0.28}
+                  Q ${s*0.82} ${s*0.36} ${s*0.78} ${s*0.6}
+                  Q ${s*0.74} ${s*0.82} ${s*0.6} ${s*0.84}
+                  Z`}
+          fill="#4a4239" stroke={PAL.ink} strokeWidth={1} />
         {/* lit NW facet */}
-        <polygon points={`${s*0.28},${s*0.38} ${s*0.55},${s*0.28} ${s*0.5},${s*0.55} ${s*0.32},${s*0.6}`}
+        <path d={`M ${s*0.18} ${s*0.7}
+                  Q ${s*0.14} ${s*0.5} ${s*0.3} ${s*0.36}
+                  Q ${s*0.44} ${s*0.24} ${s*0.58} ${s*0.3}
+                  L ${s*0.5} ${s*0.5}
+                  Q ${s*0.36} ${s*0.55} ${s*0.3} ${s*0.7}
+                  Z`}
           fill="#b8aea0" />
-        <polygon points={`${s*0.28},${s*0.38} ${s*0.4},${s*0.34} ${s*0.36},${s*0.5}`} fill="#d4ccc0" opacity={0.8} />
-        {/* shadow SE facet */}
-        <polygon points={`${s*0.55},${s*0.28} ${s*0.8},${s*0.44} ${s*0.68},${s*0.65} ${s*0.5},${s*0.55}`}
-          fill="#3a342c" />
+        {/* highlight */}
+        <path d={`M ${s*0.28} ${s*0.42} Q ${s*0.4} ${s*0.3} ${s*0.5} ${s*0.34}
+                  L ${s*0.42} ${s*0.46} Z`}
+          fill="#e0d6c6" opacity={0.85} />
+        {/* SE shadow facet */}
+        <path d={`M ${s*0.5} ${s*0.5} L ${s*0.78} ${s*0.6}
+                  Q ${s*0.74} ${s*0.82} ${s*0.6} ${s*0.84}
+                  L ${s*0.4} ${s*0.74} Z`}
+          fill="#2e2820" opacity={0.7} />
         {/* cracks */}
-        <line x1={s*0.4} y1={s*0.45} x2={s*0.46} y2={s*0.62} stroke={PAL.ink} strokeWidth={0.4} opacity={0.6} />
-        {/* small pebble at base */}
-        <ellipse cx={s*0.72} cy={s*0.82} rx={s*0.08} ry={s*0.05} fill="#7a7164" stroke={PAL.ink} strokeWidth={0.4} />
+        <path d={`M ${s*0.38} ${s*0.48} Q ${s*0.42} ${s*0.6} ${s*0.5} ${s*0.7}`}
+          stroke={PAL.ink} strokeWidth={0.4} fill="none" opacity={0.55} />
+        <path d={`M ${s*0.56} ${s*0.4} L ${s*0.62} ${s*0.5}`}
+          stroke={PAL.ink} strokeWidth={0.35} fill="none" opacity={0.5} />
+        {/* moss tuft */}
+        <ellipse cx={s*0.34} cy={s*0.38} rx={s*0.07} ry={s*0.025} fill="#4a6532" opacity={0.7} />
+        {/* pebble */}
+        <ellipse cx={s*0.22} cy={s*0.84} rx={s*0.07} ry={s*0.04} fill="#7a7164" stroke={PAL.ink} strokeWidth={0.4} />
       </g>
     );
   }
+
 
   if (kind === "fiber-grass") {
     // Tall reedy stalks with seed-tufts — flax/hemp hint
@@ -2827,7 +2874,10 @@ export function MapView() {
         })()}
 
 
-        <StaticResourceLayer nodes={nodes} width={W} height={H} />
+        {/* Resource nodes (trees / rocks / berries / fiber) are merged
+            into the depth-sorted entity list below so buildings, fences
+            and props in front correctly cover them. */}
+
 
         {/* Worn footpaths — tiles repeatedly walked over darken into a
             visible dirt trail. Intensity rises with traffic and caps so
@@ -3052,9 +3102,30 @@ export function MapView() {
               </g>
             ) });
           }
+          // Merge resource nodes into the same depth-sorted list so a
+          // tree on tile (tx,ty) draws BEHIND any building/fence whose
+          // south corner is further down-right, and IN FRONT of those
+          // further up-left. Treat each node as a 1×1 footprint.
+          for (const n of nodes) {
+            if (n.amount <= 0) continue;
+            const size = TILE * (n.kind === "trees" ? 1.3 : n.kind === "rocks" ? 1.05 : 0.95);
+            const depleted = n.amount < 30;
+            const seed = Math.abs((n.x * 73856093) ^ (n.y * 19349663));
+            const anchorX = (n.x + 1) * TILE;
+            const anchorY = (n.y + 1) * TILE;
+            entries.push({ sort: n.x + n.y + 2, node: (
+              <g key={`node-${n.id}`} transform={isoUpright(anchorX, anchorY)}
+                 opacity={depleted ? 0.6 : 1} pointerEvents="none">
+                <g transform={`translate(${-size / 2}, ${-size})`}>
+                  <NodeArt kind={n.kind} size={size} seed={seed} />
+                </g>
+              </g>
+            ) });
+          }
           entries.sort((a, c) => a.sort - c.sort);
           return entries.map((e, i) => <React.Fragment key={i}>{e.node}</React.Fragment>);
         })()}
+
 
         {/* Animals — clustered around their pen */}
         {(() => {
