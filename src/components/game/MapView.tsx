@@ -247,26 +247,198 @@ function BuildingArt({ kind, w, h, farmStage, farmGrowth }: { kind: string; w: n
   const cx = w / 2;
   switch (kind) {
     case "homestead": {
-      // Solid log cabin with peaked roof, chimney
-      const roofH = h * 0.45;
-      const wallY = roofH;
-      const wallH = h - roofH;
+      // Top-down family estate: yard with fence, garden, shed, well, firewood,
+      // trees and a substantial pitched-roof main house with a small porch.
+      const pad = Math.max(1.5, w * 0.04);
+      const yardX = pad, yardY = pad;
+      const yardW = w - pad * 2, yardH = h - pad * 2;
+      // Main house occupies the upper-right portion of the yard
+      const houseW = yardW * 0.56;
+      const houseH = yardH * 0.46;
+      const houseX = yardX + yardW - houseW - pad * 0.5;
+      const houseY = yardY + pad * 0.5;
+      const roofOverhang = Math.min(2.5, houseW * 0.06);
+      const porchH = houseH * 0.18;
+      const porchY = houseY + houseH;
+      const porchX = houseX + houseW * 0.18;
+      const porchW = houseW * 0.55;
+      // Garden lower-left
+      const gardenW = yardW * 0.36;
+      const gardenH = yardH * 0.34;
+      const gardenX = yardX + pad * 0.4;
+      const gardenY = yardY + yardH - gardenH - pad * 0.4;
+      // Shed lower-right
+      const shedW = yardW * 0.22;
+      const shedH = yardH * 0.22;
+      const shedX = yardX + yardW - shedW - pad * 0.4;
+      const shedY = yardY + yardH - shedH - pad * 0.4;
+      // Well middle-left
+      const wellR = Math.min(yardW, yardH) * 0.07;
+      const wellCx = yardX + yardW * 0.12;
+      const wellCy = yardY + yardH * 0.42;
+      // Path from south gate to porch
+      const gateX = yardX + yardW * 0.42;
+      const pathW = Math.max(3, w * 0.07);
+      // Firewood stack near house
+      const fwX = houseX - pad * 1.4;
+      const fwY = houseY + houseH * 0.25;
+      // Fence posts around yard perimeter
+      const postR = Math.max(0.9, w * 0.014);
+      const perim: { x: number; y: number }[] = [];
+      const steps = Math.max(6, Math.round(yardW / 6));
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        perim.push({ x: yardX + t * yardW, y: yardY });           // top
+        perim.push({ x: yardX + t * yardW, y: yardY + yardH });   // bottom
+      }
+      const vSteps = Math.max(5, Math.round(yardH / 6));
+      for (let i = 1; i < vSteps; i++) {
+        const t = i / vSteps;
+        perim.push({ x: yardX, y: yardY + t * yardH });
+        perim.push({ x: yardX + yardW, y: yardY + t * yardH });
+      }
       return (
         <g>
-          {/* shadow */}
-          <ellipse cx={cx} cy={h - 2} rx={w * 0.45} ry={3} fill={PAL.shadow} />
-          {/* walls */}
-          <rect x={2} y={wallY} width={w - 4} height={wallH - 2} fill="#7a5028" stroke={PAL.ink} strokeWidth={1.2} />
-          {/* log lines */}
-          <line x1={3} y1={wallY + wallH * 0.35} x2={w - 3} y2={wallY + wallH * 0.35} stroke={PAL.inkSoft} strokeWidth={0.6} opacity={0.6} />
-          <line x1={3} y1={wallY + wallH * 0.7} x2={w - 3} y2={wallY + wallH * 0.7} stroke={PAL.inkSoft} strokeWidth={0.6} opacity={0.6} />
+          {/* ground shadow */}
+          <ellipse cx={cx} cy={h - 1.5} rx={w * 0.47} ry={3} fill={PAL.shadow} />
+          {/* yard ground — trampled grass / dirt */}
+          <rect x={yardX} y={yardY} width={yardW} height={yardH} rx={2}
+            fill="#8a9a5b" stroke="#4a3a1f" strokeWidth={0.9} opacity={0.95} />
+          <rect x={yardX + 1} y={yardY + 1} width={yardW - 2} height={yardH - 2} rx={1.5}
+            fill="#9caa6a" opacity={0.55} />
+
+          {/* dirt path from south gate up to porch */}
+          <path d={`M${gateX} ${yardY + yardH} L${gateX} ${porchY + porchH * 0.5} L${porchX + porchW / 2 - pathW / 2} ${porchY + porchH * 0.5}`}
+            stroke="#b08a55" strokeWidth={pathW} strokeLinecap="round" strokeLinejoin="round" fill="none" />
+          <path d={`M${gateX} ${yardY + yardH} L${gateX} ${porchY + porchH * 0.5}`}
+            stroke="#c9a06a" strokeWidth={pathW * 0.5} strokeLinecap="round" fill="none" opacity={0.7} />
+
+          {/* vegetable garden */}
+          <rect x={gardenX} y={gardenY} width={gardenW} height={gardenH}
+            fill="#6e4920" stroke={PAL.ink} strokeWidth={0.8} />
+          {Array.from({ length: 4 }).map((_, i) => {
+            const ry = gardenY + (gardenH / 4) * (i + 0.5);
+            return (
+              <g key={`gr${i}`}>
+                <line x1={gardenX + 1} y1={ry} x2={gardenX + gardenW - 1} y2={ry} stroke="#3d2810" strokeWidth={0.8} />
+                {Array.from({ length: 4 }).map((_, j) => {
+                  const gx = gardenX + 2 + ((gardenW - 4) / 3) * j;
+                  return <circle key={j} cx={gx} cy={ry - 0.6} r={0.9} fill="#4a6235" stroke="#2f3d20" strokeWidth={0.3} />;
+                })}
+              </g>
+            );
+          })}
+
+          {/* storage shed */}
+          <rect x={shedX} y={shedY + shedH * 0.35} width={shedW} height={shedH * 0.65}
+            fill="#7a5028" stroke={PAL.ink} strokeWidth={0.9} />
+          <polygon points={`${shedX - 1},${shedY + shedH * 0.38} ${shedX + shedW / 2},${shedY + shedH * 0.05} ${shedX + shedW + 1},${shedY + shedH * 0.38}`}
+            fill="#4a2f18" stroke={PAL.ink} strokeWidth={0.9} />
+          <rect x={shedX + shedW * 0.4} y={shedY + shedH * 0.55} width={shedW * 0.2} height={shedH * 0.4} fill="#2f1d0c" />
+
+          {/* well */}
+          <ellipse cx={wellCx} cy={wellCy + wellR * 0.9} rx={wellR * 1.15} ry={wellR * 0.4} fill={PAL.shadow} />
+          <circle cx={wellCx} cy={wellCy} r={wellR} fill="#6e6258" stroke={PAL.ink} strokeWidth={0.9} />
+          <circle cx={wellCx} cy={wellCy} r={wellR * 0.55} fill="#1a1410" />
+          <rect x={wellCx - wellR * 0.15} y={wellCy - wellR * 1.6} width={wellR * 0.3} height={wellR * 1.4} fill="#5a3820" stroke={PAL.ink} strokeWidth={0.4} />
+          <rect x={wellCx - wellR * 1.1} y={wellCy - wellR * 1.7} width={wellR * 2.2} height={wellR * 0.25} fill="#3d2810" />
+
+          {/* stacked firewood */}
+          {Array.from({ length: 3 }).map((_, i) => (
+            <g key={`fw${i}`}>
+              <rect x={fwX} y={fwY + i * 2.2} width={6} height={2} fill="#7a5028" stroke={PAL.ink} strokeWidth={0.4} />
+              <circle cx={fwX + 0.8} cy={fwY + i * 2.2 + 1} r={0.7} fill="#c9a06a" />
+              <circle cx={fwX + 5.2} cy={fwY + i * 2.2 + 1} r={0.7} fill="#c9a06a" />
+            </g>
+          ))}
+
+          {/* a barrel near the porch */}
+          <ellipse cx={houseX + houseW + pad * 0.4} cy={porchY + porchH * 0.3} rx={2.2} ry={2.6} fill="#7a5028" stroke={PAL.ink} strokeWidth={0.6} />
+          <line x1={houseX + houseW + pad * 0.4 - 2.1} y1={porchY + porchH * 0.3} x2={houseX + houseW + pad * 0.4 + 2.1} y2={porchY + porchH * 0.3} stroke="#3d2810" strokeWidth={0.5} />
+
+          {/* decorative bushes / small trees in corners */}
+          {[[yardX + 3, yardY + 3], [yardX + yardW - 3, yardY + 3]].map(([bx, by], i) => (
+            <g key={`bush${i}`}>
+              <circle cx={bx} cy={by + 1} r={2.4} fill={PAL.shadow} />
+              <circle cx={bx} cy={by} r={2.6} fill="#3d5226" stroke={PAL.ink} strokeWidth={0.6} />
+              <circle cx={bx - 0.6} cy={by - 0.6} r={1.1} fill="#4a6235" />
+            </g>
+          ))}
+
+          {/* MAIN HOUSE — wide, prominent */}
+          {/* porch */}
+          <rect x={porchX} y={porchY - 0.6} width={porchW} height={porchH + 1.2}
+            fill="#a87a3e" stroke={PAL.ink} strokeWidth={0.9} />
+          <line x1={porchX + 1} y1={porchY + porchH * 0.5} x2={porchX + porchW - 1} y2={porchY + porchH * 0.5}
+            stroke="#3d2810" strokeWidth={0.4} opacity={0.7} />
+          {/* porch posts */}
+          {[porchX + 0.6, porchX + porchW - 0.6].map((px, i) => (
+            <rect key={`pp${i}`} x={px - 0.6} y={porchY - 1.2} width={1.2} height={porchH + 1.8} fill="#5a3820" stroke={PAL.ink} strokeWidth={0.4} />
+          ))}
+
+          {/* house walls (log) */}
+          <rect x={houseX} y={houseY + houseH * 0.32} width={houseW} height={houseH * 0.68}
+            fill="#8a5a30" stroke={PAL.ink} strokeWidth={1.1} />
+          {/* log seams */}
+          {[0.48, 0.66, 0.84].map((t, i) => (
+            <line key={`ls${i}`} x1={houseX + 1} y1={houseY + houseH * t} x2={houseX + houseW - 1} y2={houseY + houseH * t}
+              stroke={PAL.inkSoft} strokeWidth={0.4} opacity={0.6} />
+          ))}
+          {/* windows */}
+          {[0.18, 0.62].map((t, i) => (
+            <g key={`w${i}`}>
+              <rect x={houseX + houseW * t} y={houseY + houseH * 0.5} width={houseW * 0.18} height={houseH * 0.18}
+                fill="#d9c98a" stroke={PAL.ink} strokeWidth={0.5} />
+              <line x1={houseX + houseW * (t + 0.09)} y1={houseY + houseH * 0.5} x2={houseX + houseW * (t + 0.09)} y2={houseY + houseH * 0.68}
+                stroke={PAL.ink} strokeWidth={0.4} />
+            </g>
+          ))}
           {/* door */}
-          <rect x={cx - w * 0.1} y={wallY + wallH * 0.4} width={w * 0.2} height={wallH * 0.55} fill="#3d2810" stroke={PAL.ink} strokeWidth={0.8} />
-          {/* roof */}
-          <polygon points={`0,${wallY + 2} ${cx},2 ${w},${wallY + 2}`} fill="#5a3820" stroke={PAL.ink} strokeWidth={1.2} />
-          <line x1={cx} y1={4} x2={cx} y2={wallY} stroke={PAL.inkSoft} strokeWidth={0.5} opacity={0.5} />
-          {/* chimney */}
-          <rect x={w * 0.72} y={roofH * 0.2} width={w * 0.1} height={roofH * 0.5} fill="#5e564c" stroke={PAL.ink} strokeWidth={0.8} />
+          <rect x={houseX + houseW * 0.42} y={houseY + houseH * 0.74} width={houseW * 0.16} height={houseH * 0.26}
+            fill="#3d2810" stroke={PAL.ink} strokeWidth={0.6} />
+          <circle cx={houseX + houseW * 0.56} cy={houseY + houseH * 0.87} r={0.5} fill="#d4a93a" />
+
+          {/* pitched roof — drawn as a wide hipped slab with ridge line */}
+          <polygon
+            points={`${houseX - roofOverhang},${houseY + houseH * 0.36} ${houseX + houseW * 0.18},${houseY - 0.5} ${houseX + houseW * 0.82},${houseY - 0.5} ${houseX + houseW + roofOverhang},${houseY + houseH * 0.36}`}
+            fill="#4a2f18" stroke={PAL.ink} strokeWidth={1.2} />
+          {/* roof shade band */}
+          <polygon
+            points={`${houseX - roofOverhang + 1},${houseY + houseH * 0.34} ${houseX + houseW * 0.2},${houseY + 0.4} ${houseX + houseW * 0.8},${houseY + 0.4} ${houseX + houseW + roofOverhang - 1},${houseY + houseH * 0.34}`}
+            fill="#5a3820" opacity={0.55} />
+          {/* ridge */}
+          <line x1={houseX + houseW * 0.18} y1={houseY - 0.5} x2={houseX + houseW * 0.82} y2={houseY - 0.5}
+            stroke="#2a1808" strokeWidth={1.2} strokeLinecap="round" />
+          {/* shingles hint */}
+          {[0.12, 0.22, 0.32].map((t, i) => (
+            <line key={`sh${i}`} x1={houseX - roofOverhang + 2} y1={houseY + houseH * t + houseH * 0.04}
+              x2={houseX + houseW + roofOverhang - 2} y2={houseY + houseH * t + houseH * 0.04}
+              stroke="#2a1808" strokeWidth={0.3} opacity={0.5} />
+          ))}
+          {/* chimney with smoke wisp */}
+          <rect x={houseX + houseW * 0.74} y={houseY - houseH * 0.18} width={houseW * 0.1} height={houseH * 0.32}
+            fill="#6e6258" stroke={PAL.ink} strokeWidth={0.7} />
+          <rect x={houseX + houseW * 0.73} y={houseY - houseH * 0.21} width={houseW * 0.12} height={houseH * 0.04} fill="#3d2810" />
+
+          {/* fence around yard perimeter (with gate gap at south) */}
+          {/* rails */}
+          <rect x={yardX} y={yardY - 0.4} width={yardW} height={0.9} fill="#7a5028" />
+          <rect x={yardX} y={yardY + yardH - 0.5} width={(gateX - yardX) - pathW * 0.7} height={0.9} fill="#7a5028" />
+          <rect x={gateX + pathW * 0.7} y={yardY + yardH - 0.5} width={(yardX + yardW) - (gateX + pathW * 0.7)} height={0.9} fill="#7a5028" />
+          <rect x={yardX - 0.4} y={yardY} width={0.9} height={yardH} fill="#7a5028" />
+          <rect x={yardX + yardW - 0.5} y={yardY} width={0.9} height={yardH} fill="#7a5028" />
+          {/* fence posts */}
+          {perim.map((p, i) => {
+            // skip posts inside gate gap
+            if (Math.abs(p.y - (yardY + yardH)) < 0.1 && Math.abs(p.x - gateX) < pathW * 0.8) return null;
+            return (
+              <rect key={`fp${i}`} x={p.x - postR} y={p.y - postR} width={postR * 2} height={postR * 2.4}
+                fill="#5a3820" stroke={PAL.ink} strokeWidth={0.3} />
+            );
+          })}
+          {/* gate posts (taller) */}
+          <rect x={gateX - pathW * 0.7 - 0.7} y={yardY + yardH - 2} width={1.4} height={3.2} fill="#3d2810" stroke={PAL.ink} strokeWidth={0.4} />
+          <rect x={gateX + pathW * 0.7 - 0.7} y={yardY + yardH - 2} width={1.4} height={3.2} fill="#3d2810" stroke={PAL.ink} strokeWidth={0.4} />
         </g>
       );
     }
