@@ -133,12 +133,20 @@ export function MainMenu() {
             >
               Begin a New Founding
             </button>
+            <button
+              className="btn-ranch btn-ranch-ghost"
+              onClick={() => setWorkshopOpen(true)}
+            >
+              Workshop
+            </button>
             <button className="btn-ranch btn-ranch-ghost opacity-70" disabled>
               Settings
             </button>
           </motion.div>
         </motion.div>
       </div>
+
+      <WorkshopPanel open={workshopOpen} onOpenChange={setWorkshopOpen} />
 
     </div>
   );
