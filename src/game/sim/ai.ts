@@ -570,6 +570,80 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
       }
       return;
     }
+    // ── Visit a friend — Sims-style spontaneous socializing ─────
+    // When basic needs are met and they're hungry for company, survivors
+    // walk over to their best friend (or a curious neighbor) for a chat
+    // instead of just standing by the fire. This makes the settlement
+    // feel like a community: people drifting between friends, laughing,
+    // gossiping, falling in love.
+    if (
+      s.stage !== "child" &&
+      s.needs.food > 35 && s.needs.water > 35 && s.needs.rest > 25 &&
+      s.needs.belonging < 80
+    ) {
+      // Pick the most appealing friend to visit.
+      let target: Survivor | null = null;
+      let bestScore = -Infinity;
+      for (const o of deps.survivors) {
+        if (o.id === s.id) continue;
+        if (o.health <= 0) continue;
+        if (o.stage === "child") continue;
+        const d = dist(s.x, s.y, o.x, o.y);
+        if (d > 18) continue;
+        const r = findRelationship(deps.relationships, s.id, o.id);
+        const op = r ? opinionScore(r) : 0;
+        // Strangers also count a little — survivors do meet new people.
+        // Distance penalty so they prefer nearby friends.
+        const score = op + 10 - d * 1.2;
+        if (score > bestScore && (op >= 15 || (r?.interactions ?? 0) < 4)) {
+          bestScore = score;
+          target = o;
+        }
+      }
+      if (target) {
+        const tx = target.x, ty = target.y;
+        const d = dist(s.x, s.y, tx, ty);
+        if (d < 1.6) {
+          // Chatting! Both feel it.
+          s.needs.belonging = Math.min(100, s.needs.belonging + 0.7);
+          s.needs.purpose = Math.min(100, s.needs.purpose + 0.1);
+          s.skills.social = Math.min(30, (s.skills.social ?? 1) + 0.0015 * dt * learningRate(s.skills));
+          s.state = "socializing";
+          const bias = traitPairBias(s.traits, target.traits);
+          const existing = findRelationship(deps.relationships, s.id, target.id);
+          const existingScore = existing ? opinionScore(existing) : 0;
+          const friendMult = existingScore >= 60 ? 1.7 : existingScore >= 30 ? 1.3 : 1.0;
+          touchRelationship(deps.relationships, s.id, target.id, {
+            affection: ((+0.03 + bias * 0.012) * friendMult) * dt,
+            trust: +0.008 * friendMult * dt,
+            friendship: (+0.035 + bias * 0.01) * friendMult * dt,
+            respect: +0.004 * dt,
+            rivalry: bias < -0.6 ? +0.015 * dt : 0,
+          });
+          // Pull the friend into the chat too — they pause and turn.
+          if (target.state === "idle" || target.state === "moving") {
+            target.state = "socializing";
+            target.action = `Chatting with ${s.name}.`;
+            target.needs.belonging = Math.min(100, target.needs.belonging + 0.5);
+          }
+          s.action =
+            bias > 0.4 ? `Laughing with ${target.name}.` :
+            existingScore >= 60 ? `Sharing stories with ${target.name}.` :
+            existingScore >= 25 ? `Chatting with ${target.name}.` :
+                                  `Getting to know ${target.name}.`;
+          return;
+        } else {
+          setTarget(s, tx, ty);
+          s.state = "moving";
+          s.action =
+            existingScore_ifAny(deps.relationships, s.id, target.id) >= 40
+              ? `Going to see ${target.name}.`
+              : `Walking over to ${target.name}.`;
+          return;
+        }
+      }
+    }
+
     const fire = nearestCampfire(s, deps.buildings);
     if (fire && (s.needs.belonging < 70 || s.isFounder)) {
       const cx = fire.x + fire.w / 2, cy = fire.y + fire.h / 2;
