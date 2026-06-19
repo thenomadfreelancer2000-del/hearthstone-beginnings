@@ -2194,11 +2194,7 @@ export function IsoBuilding({
   switch (kind) {
     case "homestead": {
       return (
-        <g>
-          <RanchYard gridW={gridW} gridH={gridH} T={tile} layer="back" />
-          <IsoSprite gridW={gridW} gridH={gridH} T={tile} src={homesteadAsset.url} />
-          <RanchYard gridW={gridW} gridH={gridH} T={tile} layer="front" />
-        </g>
+        <IsoSprite gridW={gridW} gridH={gridH} T={tile} src={homesteadAsset.url} />
       );
     }
 
