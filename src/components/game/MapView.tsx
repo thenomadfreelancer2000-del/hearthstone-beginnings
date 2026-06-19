@@ -2900,7 +2900,8 @@ export function MapView() {
             (a, b) => (a.x + a.w + a.y + a.h) - (b.x + b.w + b.y + b.h),
           );
 
-          return ordered.map((b) => {
+          const entries: { sort: number; node: React.ReactNode }[] = [];
+          for (const b of ordered) {
             const sel = selection.kind === "building" && selection.id === b.id;
             const x = b.x * TILE;
             const y = b.y * TILE;
