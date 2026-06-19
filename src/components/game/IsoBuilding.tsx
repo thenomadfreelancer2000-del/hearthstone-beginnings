@@ -2084,11 +2084,55 @@ function HomesteadFlair({ gridW, gridH, T }: { gridW: number; gridH: number; T: 
     </g>
   );
 
+  const porchA = lerp(c.S, c.W, 0.30);
+  const porchB = lerp(c.S, c.W, 0.70);
+  const porchMid = mid(porchA, porchB);
+  const porchOutRaw: P = [porchMid[0] - c.C[0], porchMid[1] - c.C[1]];
+  const porchOutLen = Math.hypot(porchOutRaw[0], porchOutRaw[1]) || 1;
+  const porchOut: P = [porchOutRaw[0] / porchOutLen, porchOutRaw[1] / porchOutLen];
+  const porchDepth = T * 0.23;
+  const porchA2: P = [porchA[0] + porchOut[0] * porchDepth, porchA[1] + porchOut[1] * porchDepth];
+  const porchB2: P = [porchB[0] + porchOut[0] * porchDepth, porchB[1] + porchOut[1] * porchDepth];
+  const porch = (
+    <g>
+      <polygon points={poly(porchA, porchB, porchB2, porchA2)} fill="#8b5a2b" stroke={INK} strokeWidth={0.65} strokeLinejoin="round" />
+      {[0.2, 0.4, 0.6, 0.8].map((tt, i) => {
+        const a = lerp(porchA, porchA2, tt), b = lerp(porchB, porchB2, tt);
+        return <line key={`porch-plank${i}`} x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} stroke="#4f2f14" strokeWidth={0.35} />;
+      })}
+      {[porchA2, porchB2].map((p, i) => (
+        <g key={`porch-post${i}`}>
+          <rect x={p[0] - 0.7} y={p[1] - wallH * 0.68} width={1.4} height={wallH * 0.68}
+            fill="#5a3518" stroke={INK} strokeWidth={0.35} />
+          <circle cx={p[0]} cy={p[1] - wallH * 0.68} r={0.9} fill="#d3b078" stroke={INK} strokeWidth={0.25} />
+        </g>
+      ))}
+      <polygon points={poly(lift(porchA2, wallH * 0.68), lift(porchB2, wallH * 0.68), lift(porchB, wallH * 0.86), lift(porchA, wallH * 0.86))}
+        fill="#6f2115" stroke={INK} strokeWidth={0.55} />
+    </g>
+  );
+
+  const flowerBoxes = [0.19, 0.81].map((tt, i) => {
+    const p = lift(lerp(c.S, c.W, tt), wallH * 0.38);
+    return (
+      <g key={`front-flower-box${i}`}>
+        <rect x={p[0] - T * 0.11} y={p[1] - 1.2} width={T * 0.22} height={2.2}
+          fill="#5a3518" stroke={INK} strokeWidth={0.3} />
+        {["#e94a6a", "#f6c64a", "#e57ab3"].map((col, j) => (
+          <circle key={j} cx={p[0] + (j - 1) * T * 0.055} cy={p[1] - 2.25} r={0.8}
+            fill={col} stroke={INK} strokeWidth={0.15} />
+        ))}
+      </g>
+    );
+  });
+
   return (
     <g>
+      {porch}
       {dormer}
       {chimney}
       {vane}
+      {flowerBoxes}
     </g>
   );
 }
