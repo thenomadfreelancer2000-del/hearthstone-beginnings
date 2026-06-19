@@ -43,7 +43,31 @@ const PASSABLE_BUILDINGS = new Set<string>([
   "campfire", "stockpile", "food-stockpile", "well", "stone-well", "deep-well",
   "water-collector", "water-barrel", "field", "large-field", "farm-plot",
   "orchard", "foraging-camp", "workbench",
+  // Roads — survivors walk on them, they never block.
+  "dirt-path", "dirt-road", "gravel-road", "paved-road", "stone-road",
 ]);
+
+const ROAD_SPEED: Record<string, number> = {
+  "dirt-path": 1.10,
+  "dirt-road": 1.20,
+  "gravel-road": 1.35,
+  "paved-road": 1.55,
+  "stone-road": 1.75,
+};
+
+/** Lookup the best road speed multiplier under a position. Returns 1 when off-road. */
+function roadSpeedAt(x: number, y: number, buildings: Building[]): number {
+  let best = 1;
+  for (const b of buildings) {
+    if (b.builtProgress < 1) continue;
+    const bonus = ROAD_SPEED[b.kind];
+    if (!bonus) continue;
+    if (x < b.x || x >= b.x + b.w || y < b.y || y >= b.y + b.h) continue;
+    if (bonus > best) best = bonus;
+  }
+  return best;
+}
+
 
 function tileAt(tiles: Tile[], mapW: number, gx: number, gy: number): Tile | undefined {
   if (gx < 0 || gy < 0) return undefined;
