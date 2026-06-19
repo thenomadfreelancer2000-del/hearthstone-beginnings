@@ -235,12 +235,19 @@ interface WallProps {
   trimRows?: number;    // number of seam lines per face
   banner?: { color: string; symbol?: "+" | "books" | "wheat" | "leaf" };
   chimney?: boolean;
+  /** Suppress the dark ground ellipse under the building. */
+  noShadow?: boolean;
+  /** Render a porch slab + posts + lintel in front of the SW door. */
+  porch?: "none" | "stoop" | "covered" | "grand";
+  porchColor?: string;
 }
 
 function Walls({
   corners, wallH, lit, shade, door = "wood", doorColor = "#3d2810",
   windows = 1, windowColor = "#dec97a", trim, trimRows = 0, banner,
+  noShadow = false, porch = "stoop", porchColor = "#6a4724",
 }: WallProps) {
+
   const { S, E, N, W } = corners;
   const Su = lift(S, wallH);
   const Eu = lift(E, wallH);
