@@ -1004,3 +1004,176 @@ export function decayMemoriesDaily(s: import("../types").Survivor) {
   }
   s.memories = next;
 }
+
+// ── Talk-to directive (Sims-style chat from leader) ──────────────
+// The leader (or any survivor) is sent to converse with a target.
+// Different topics flatter or grate depending on the listener's traits.
+// Talking takes about a quarter of a day — short, never stalls the sim.
+const TALK_DURATION_TICKS = 60; // ~6 in-game hours
+
+interface TopicEffect {
+  affection: number;
+  trust: number;
+  friendship: number;
+  respect: number;
+  loyalty: number;
+  /** Memory text shown in the listener's history. */
+  memory: string;
+  /** Visible action line for both speakers. */
+  speakerLine: (target: Survivor) => string;
+  listenerLine: (speaker: Survivor) => string;
+}
+
+function topicEffectFor(topic: ChatTopic, listener: Survivor, speaker: Survivor): TopicEffect {
+  const traits = new Set(listener.traits);
+  const has = (t: string) => traits.has(t);
+  // Base effects per topic
+  let aff = 0, tr = 0, fr = 0, rs = 0, loy = 0;
+  let memory = "";
+  switch (topic) {
+    case "joke": {
+      aff = 5; fr = 6; tr = 1; rs = -1; loy = 0.6;
+      if (has("Friendly") || has("Curious")) { aff += 4; fr += 4; loy += 0.4; }
+      if (has("Aggressive")) { aff += 1; }
+      if (has("Bitter") || has("Paranoid") || has("Jealous")) { aff -= 6; rs -= 3; loy -= 0.6; }
+      if (has("Principled") || has("Traditional")) { rs -= 2; }
+      memory = `${speaker.name} cracked a joke with me.`;
+      break;
+    }
+    case "smalltalk": {
+      aff = 3; fr = 4; tr = 1; loy = 0.3;
+      if (has("Quiet") || has("Independent")) { aff -= 1; }
+      if (has("Friendly")) { aff += 2; fr += 2; }
+      memory = `Chatted with ${speaker.name} about nothing in particular.`;
+      break;
+    }
+    case "compliment": {
+      aff = 7; tr = 2; rs = 1; loy = 1.0;
+      if (has("Jealous")) { aff += 2; tr -= 1; }
+      if (has("Honest") || has("Principled")) { aff -= 2; rs -= 2; loy -= 0.5; } // sounds hollow
+      if (has("Ambitious")) { aff += 3; loy += 0.5; }
+      memory = `${speaker.name} praised me to my face.`;
+      break;
+    }
+    case "serious": {
+      aff = 2; tr = 5; rs = 6; loy = 1.2;
+      if (has("Principled") || has("Traditional") || has("Loyal")) { rs += 4; tr += 2; loy += 0.6; }
+      if (has("Lazy") || has("Cowardly")) { aff -= 4; rs -= 2; loy -= 0.4; } // doesn't want to hear it
+      if (has("Idealistic")) { aff += 3; rs += 2; }
+      memory = `${speaker.name} sat with me and spoke of weighty matters.`;
+      break;
+    }
+    case "vent": {
+      aff = 4; tr = 8; fr = 5; loy = 1.5;
+      if (has("Compassionate")) { aff += 4; tr += 3; loy += 0.7; }
+      if (has("Selfish") || has("Aggressive")) { aff -= 2; tr -= 2; }
+      memory = `${speaker.name} listened while I unburdened myself.`;
+      break;
+    }
+  }
+  // Personality compatibility nudges every topic.
+  aff += traitPairBias(speaker.traits, listener.traits) * 2;
+
+  const speakerLine = (t: Survivor) =>
+    topic === "joke"       ? `Telling ${t.name} a joke.` :
+    topic === "compliment" ? `Paying ${t.name} a compliment.` :
+    topic === "serious"    ? `Speaking earnestly with ${t.name}.` :
+    topic === "vent"       ? `Listening to ${t.name}.` :
+                             `Making small talk with ${t.name}.`;
+  const listenerLine = (sp: Survivor) =>
+    topic === "joke"       ? `Sharing a laugh with ${sp.name}.` :
+    topic === "compliment" ? `Receiving ${sp.name}'s praise.` :
+    topic === "serious"    ? `In serious talk with ${sp.name}.` :
+    topic === "vent"       ? `Unburdening to ${sp.name}.` :
+                             `Chatting with ${sp.name}.`;
+  return { affection: aff, trust: tr, friendship: fr, respect: rs, loyalty: loy, memory, speakerLine, listenerLine };
+}
+
+function handleTalkDirective(s: Survivor, dt: number, deps: SimDeps): boolean {
+  const d = s.directive;
+  if (!d || d.kind !== "talk") return false;
+  const target = deps.survivors.find(x => x.id === d.targetId);
+  // Invalidate stale directives
+  if (!target || target.health <= 0 || s.health <= 0) {
+    s.directive = null;
+    return false;
+  }
+  // Yield to *critical* survival needs — let the normal AI handle them,
+  // then the directive resumes next tick.
+  if (s.needs.water < CRIT_WATER || s.needs.food < CRIT_FOOD || s.needs.rest < CRIT_REST) {
+    return false;
+  }
+  // Give up after ~half a day if we never get close (target wandered far).
+  if (deps.tick - d.issuedTick > TICKS_PER_DAY / 2 && d.phase === "going") {
+    s.directive = null;
+    return false;
+  }
+
+  const dToTarget = dist(s.x, s.y, target.x, target.y);
+
+  if (d.phase === "going") {
+    if (dToTarget < 1.6) {
+      d.phase = "talking";
+      d.talkStartTick = deps.tick;
+    } else {
+      setTarget(s, target.x, target.y);
+      s.action = `Going to talk with ${target.name}.`;
+      return true;
+    }
+  }
+
+  if (d.phase === "talking") {
+    // If the listener drifts far while talking, walk back into range.
+    if (dToTarget > 2.4) {
+      setTarget(s, target.x, target.y);
+      s.action = `Catching up to ${target.name}.`;
+      return true;
+    }
+    const fx = topicEffectFor(d.topic, target, s);
+    // Distribute deltas over TALK_DURATION_TICKS so they accrue gradually.
+    const frac = dt / TALK_DURATION_TICKS;
+    touchRelationship(deps.relationships, s.id, target.id, {
+      affection: fx.affection * frac,
+      trust:     fx.trust * frac,
+      friendship:fx.friendship * frac,
+      respect:   fx.respect * frac,
+      rivalry:   fx.affection < -3 ? Math.abs(fx.affection) * 0.25 * frac : 0,
+    });
+    // Loyalty to founder — only if the speaker IS the founder/leader figure.
+    if (s.isFounder || s.id === target.id) {
+      // no-op; leader speaking to themselves isn't possible
+    }
+    target.loyaltyToFounder = Math.max(-100, Math.min(100,
+      (target.loyaltyToFounder ?? 0) + fx.loyalty * frac));
+    // Needs trickle — both feel the company
+    s.needs.belonging      = Math.min(100, s.needs.belonging + 1.2 * frac);
+    target.needs.belonging = Math.min(100, target.needs.belonging + 1.2 * frac);
+    s.skills.social = Math.min(30, (s.skills.social ?? 1) + 0.002 * dt * learningRate(s.skills));
+    target.skills.social = Math.min(30, (target.skills.social ?? 1) + 0.001 * dt);
+
+    s.state = "socializing";
+    s.action = fx.speakerLine(target);
+    // Pause the listener if they're idle/wandering — they turn to listen.
+    if (target.state === "idle" || target.state === "moving") {
+      target.state = "socializing";
+      target.action = fx.listenerLine(s);
+    }
+
+    // Wrap up after the duration.
+    const started = d.talkStartTick ?? deps.tick;
+    if (deps.tick - started >= TALK_DURATION_TICKS) {
+      // Emit a memory on the listener (weight scaled by how positive it was).
+      const weight = Math.max(8, Math.min(45, 15 + Math.abs(fx.affection) * 2));
+      const emo: import("../types").Memory["emotion"] =
+        fx.affection > 4 ? "joy" :
+        fx.affection < -3 ? "anger" :
+        fx.respect >= 4 ? "pride" : "trust";
+      deps.emitMemory(target, fx.memory, emo, weight);
+      s.directive = null;
+      s.state = "idle";
+    }
+    return true;
+  }
+
+  return false;
+}
