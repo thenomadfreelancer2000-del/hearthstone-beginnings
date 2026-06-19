@@ -53,7 +53,7 @@ function buildingContains(b: Building, x: number, y: number, pad = 0): boolean {
          y >= b.y - pad && y <= b.y + b.h + pad;
 }
 
-const PASSABLE_BUILDINGS = new Set<string>([
+export const PASSABLE_BUILDINGS = new Set<string>([
   "campfire", "stockpile", "food-stockpile", "well", "stone-well", "deep-well",
   "water-collector", "water-barrel", "field", "large-field", "farm-plot",
   "orchard", "foraging-camp", "workbench",
