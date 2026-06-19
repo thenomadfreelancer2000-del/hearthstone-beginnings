@@ -1715,8 +1715,6 @@ export function MapView() {
               {!dead && workMate && <WorkSmallTalkBubble begin={workTalkOffset} />}
             </g>
           );
-            </g>
-          );
         })}
 
         {/* Outside threat — wandering zombies beyond the perimeter */}
