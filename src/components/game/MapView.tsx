@@ -32,6 +32,18 @@ const isoBounds = (mapW: number, mapH: number) => ({
 const isoMatrixString = (mapH: number) =>
   `matrix(${ISO_MATRIX_A}, ${ISO_MATRIX_B}, ${ISO_MATRIX_C}, ${ISO_MATRIX_D}, ${isoTx(mapH)}, 0)`;
 
+// Counter-transform: inside the iso parent group, applying this matrix
+// to a child group cancels the iso shear so that child renders
+// "screen-upright" while still anchored at the iso projection of world
+// point (worldX, worldY). Used to draw upright buildings, fences,
+// trees and survivors on top of the diamond ground.
+// Derivation: parent matrix P = [[1,-1,tx],[0.5,0.5,0]]; child C
+// = P⁻¹ ∘ translate(P·anchor). The translate component simplifies to
+// exactly (worldX, worldY).
+const isoUpright = (worldX: number, worldY: number) =>
+  `matrix(0.5, -0.5, 1, 1, ${worldX}, ${worldY})`;
+
+
 type LayerImage = {
   id: string;
   url: string;
