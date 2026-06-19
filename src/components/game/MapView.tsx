@@ -2454,10 +2454,17 @@ export function MapView() {
   }, [buildPlacement, hover, pendingPlacement, buildings, tiles, mapW, mapH, territory, resources]);
 
   function svgToTile(e: React.MouseEvent) {
-    const svg = ref.current!;
-    const pt = svg.createSVGPoint();
+    // Hit-test against the iso-projected world group so the inverse CTM
+    // accounts for the isometric transform; coordinates in that group's
+    // local space are still the original square-grid pixel space, so
+    // dividing by TILE recovers the integer tile under the pointer.
+    const g = isoGroupRef.current;
+    if (!g) return null;
+    const owner = g.ownerSVGElement ?? ref.current;
+    if (!owner) return null;
+    const pt = owner.createSVGPoint();
     pt.x = e.clientX; pt.y = e.clientY;
-    const m = svg.getScreenCTM();
+    const m = g.getScreenCTM();
     if (!m) return null;
     const p = pt.matrixTransform(m.inverse());
     return { x: Math.floor(p.x / TILE), y: Math.floor(p.y / TILE) };
