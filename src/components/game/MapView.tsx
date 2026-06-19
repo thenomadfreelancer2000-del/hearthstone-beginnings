@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useGame, territoryDims } from "@/game/store";
+import { PASSABLE_BUILDINGS } from "@/game/sim/ai";
+
 import { useView } from "@/game/viewStore";
 import { BUILDINGS } from "@/game/data/content";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -3211,7 +3213,18 @@ export function MapView() {
           const cx = s.x * TILE + TILE / 2;
           const cy = s.y * TILE + TILE / 2;
           const dead = s.health <= 0;
+          // Hide survivors when they are inside an enclosed building — they
+          // should appear to enter through the door and only reappear on exit.
+          const insideBuilding = !dead && buildings.some((b) =>
+            b.builtProgress >= 1 &&
+            !PASSABLE_BUILDINGS.has(b.kind) &&
+            s.x >= b.x + 0.15 && s.x <= b.x + b.w - 0.15 &&
+            s.y >= b.y + 0.15 && s.y <= b.y + b.h - 0.15,
+          );
+
+          if (insideBuilding) return null;
           const sleeping = !dead && s.state === "resting";
+
           // Find a nearby chat partner (Sims-style pairing).
           let partner: typeof survivors[number] | undefined;
           if (!dead && s.state === "socializing") {

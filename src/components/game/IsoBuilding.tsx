@@ -1,5 +1,7 @@
 import React from "react";
 import { getWorkshopVisual, workshopBaseKind, isWorkshopKind } from "@/game/workshop/registry";
+import homesteadAsset from "@/assets/homestead.png.asset.json";
+
 
 
 
@@ -2191,17 +2193,15 @@ export function IsoBuilding({
   // Special-case dispatchers first
   switch (kind) {
     case "homestead": {
-
-      const cfg = (VISUALS.homestead as Extract<VisualKind, { type: "block" }>).cfg;
       return (
         <g>
           <RanchYard gridW={gridW} gridH={gridH} T={tile} layer="back" />
-          <IsoBlock {...cfg} gridW={gridW} gridH={gridH} T={tile} />
-          <HomesteadFlair gridW={gridW} gridH={gridH} T={tile} />
+          <IsoSprite gridW={gridW} gridH={gridH} T={tile} src={homesteadAsset.url} />
           <RanchYard gridW={gridW} gridH={gridH} T={tile} layer="front" />
         </g>
       );
     }
+
     case "campfire": return <IsoCampfire gridW={gridW} gridH={gridH} T={tile} />;
     case "well": return <IsoWell gridW={gridW} gridH={gridH} T={tile} />;
     case "stone-well": return <IsoWell gridW={gridW} gridH={gridH} T={tile} />;
