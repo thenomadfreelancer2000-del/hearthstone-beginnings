@@ -1575,45 +1575,91 @@ export function MapView() {
         <StaticResourceLayer nodes={nodes} width={W} height={H} />
 
         {/* Buildings */}
-        {buildings.map((b) => {
-          const sel = selection.kind === "building" && selection.id === b.id;
-          const x = b.x * TILE;
-          const y = b.y * TILE;
-          const w = b.w * TILE;
-          const h = b.h * TILE;
-          const built = b.builtProgress >= 1;
+        {(() => {
+          // Build a fence-tile occupancy map once per render so each fence
+          // tile can pick the right auto-connect variant.
+          const fenceAt = new Set<string>();
+          for (const b of buildings) {
+            if (b.kind !== "fence" || b.builtProgress < 1) continue;
+            for (let dy = 0; dy < b.h; dy++) {
+              for (let dx = 0; dx < b.w; dx++) {
+                fenceAt.add(`${b.x + dx},${b.y + dy}`);
+              }
+            }
+          }
+          const hasFence = (tx: number, ty: number) => fenceAt.has(`${tx},${ty}`);
+          return buildings.map((b) => {
+            const sel = selection.kind === "building" && selection.id === b.id;
+            const x = b.x * TILE;
+            const y = b.y * TILE;
+            const w = b.w * TILE;
+            const h = b.h * TILE;
+            const built = b.builtProgress >= 1;
 
-          if (!built) {
+            if (!built) {
+              return (
+                <g key={b.id} opacity={0.75}>
+                  <rect x={x + 2} y={y + 2} width={w - 4} height={h - 4}
+                    fill="rgba(60,42,16,0.55)" stroke="#8b6a1a" strokeWidth={1} strokeDasharray="3 2" />
+                  <line x1={x + 2} y1={y + 2} x2={x + w - 2} y2={y + h - 2} stroke="#8b6a1a" strokeWidth={0.5} opacity={0.5} />
+                  <line x1={x + w - 2} y1={y + 2} x2={x + 2} y2={y + h - 2} stroke="#8b6a1a" strokeWidth={0.5} opacity={0.5} />
+                  <rect x={x + 3} y={y + h - 5} width={(w - 6) * b.builtProgress} height={2} fill={PAL.gold} />
+                  <text x={x + w / 2} y={y - 2} textAnchor="middle" fontFamily="Oswald"
+                    fontSize="8" fill={PAL.parchment} opacity={0.75}>{b.kind.toUpperCase()}</text>
+                </g>
+              );
+            }
+
+            // Fences render per-tile with auto-connecting variants.
+            if (b.kind === "fence") {
+              const style: FenceStyleKey = (b.fenceStyle ?? "natural");
+              const tiles: React.ReactNode[] = [];
+              for (let dy = 0; dy < b.h; dy++) {
+                for (let dx = 0; dx < b.w; dx++) {
+                  const tx = b.x + dx;
+                  const ty = b.y + dy;
+                  const conn: FenceConn = {
+                    n: hasFence(tx, ty - 1),
+                    e: hasFence(tx + 1, ty),
+                    s: hasFence(tx, ty + 1),
+                    w: hasFence(tx - 1, ty),
+                  };
+                  tiles.push(
+                    <g key={`${tx},${ty}`} transform={`translate(${tx * TILE}, ${ty * TILE})`}>
+                      <FenceArt w={TILE} h={TILE} connections={conn} style={style} />
+                    </g>
+                  );
+                }
+              }
+              return (
+                <g key={b.id}>
+                  {tiles}
+                  {sel && (
+                    <rect x={x + 1} y={y + 1} width={w - 2} height={h - 2}
+                      fill="none" stroke={PAL.gold} strokeWidth={1.5} strokeDasharray="3 2" />
+                  )}
+                </g>
+              );
+            }
+
+            // Wall art is 4-way symmetric (top-down), so no rotation needed.
             return (
-              <g key={b.id} opacity={0.75}>
-                <rect x={x + 2} y={y + 2} width={w - 4} height={h - 4}
-                  fill="rgba(60,42,16,0.55)" stroke="#8b6a1a" strokeWidth={1} strokeDasharray="3 2" />
-                <line x1={x + 2} y1={y + 2} x2={x + w - 2} y2={y + h - 2} stroke="#8b6a1a" strokeWidth={0.5} opacity={0.5} />
-                <line x1={x + w - 2} y1={y + 2} x2={x + 2} y2={y + h - 2} stroke="#8b6a1a" strokeWidth={0.5} opacity={0.5} />
-                <rect x={x + 3} y={y + h - 5} width={(w - 6) * b.builtProgress} height={2} fill={PAL.gold} />
+              <g key={b.id}>
+                <g transform={`translate(${x}, ${y})`}>
+                  <BuildingArt kind={b.kind} w={w} h={h} farmStage={b.farm?.stage} farmGrowth={b.farm?.growth} />
+                </g>
+                {sel && (
+                  <rect x={x + 1} y={y + 1} width={w - 2} height={h - 2}
+                    fill="none" stroke={PAL.gold} strokeWidth={1.5} strokeDasharray="3 2" />
+                )}
                 <text x={x + w / 2} y={y - 2} textAnchor="middle" fontFamily="Oswald"
-                  fontSize="8" fill={PAL.parchment} opacity={0.75}>{b.kind.toUpperCase()}</text>
+                  fontSize="8" fill={PAL.parchment} opacity={sel ? 1 : 0.55}>
+                  {b.kind.replace("-", " ").toUpperCase()}
+                </text>
               </g>
             );
-          }
-
-          // Wall art is 4-way symmetric (top-down), so no rotation needed.
-          return (
-            <g key={b.id}>
-              <g transform={`translate(${x}, ${y})`}>
-                <BuildingArt kind={b.kind} w={w} h={h} farmStage={b.farm?.stage} farmGrowth={b.farm?.growth} />
-              </g>
-              {sel && (
-                <rect x={x + 1} y={y + 1} width={w - 2} height={h - 2}
-                  fill="none" stroke={PAL.gold} strokeWidth={1.5} strokeDasharray="3 2" />
-              )}
-              <text x={x + w / 2} y={y - 2} textAnchor="middle" fontFamily="Oswald"
-                fontSize="8" fill={PAL.parchment} opacity={sel ? 1 : 0.55}>
-                {b.kind.replace("-", " ").toUpperCase()}
-              </text>
-            </g>
-          );
-        })}
+          });
+        })()}
 
         {/* Animals — clustered around their pen */}
         {(() => {
