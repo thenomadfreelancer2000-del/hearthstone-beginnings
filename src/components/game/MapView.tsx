@@ -635,9 +635,10 @@ function SurvivorArt({ founder, dead, female, stage, pregnant }: { founder: bool
 // Shows what they're doing right now: ZZZ for sleep, fork for eating,
 // droplet for drinking, hammer/sickle/axe/pick for working, speech
 // bubble for socializing. Pure SVG, no extra deps.
-function ActivityGlyph({ survivor: s, partnerNearby }: {
+function ActivityGlyph({ survivor: s, partnerNearby, speakOffset = "0s" }: {
   survivor: import("@/game/types").Survivor;
   partnerNearby: boolean;
+  speakOffset?: string;
 }) {
   const st = s.state;
   // Position the glyph above head (head is ~y -5 in core sprite).
@@ -692,15 +693,37 @@ function ActivityGlyph({ survivor: s, partnerNearby }: {
     );
   }
   if (st === "socializing" || partnerNearby) {
-    // Speech bubble with two dots
+    // Speech bubble that pops in and out — pairs alternate via speakOffset
+    // so the conversation reads as turn-taking, like Sims.
     return (
       <g transform={`translate(0 ${gy})`} pointerEvents="none">
-        <path d="M-2.4 -1.6 Q-2.4 -2.6 -1.4 -2.6 L1.6 -2.6 Q2.6 -2.6 2.6 -1.6 L2.6 0.4 Q2.6 1.4 1.6 1.4 L0 1.4 L-0.8 2.4 L-1 1.4 L-1.4 1.4 Q-2.4 1.4 -2.4 0.4 Z"
-              fill="#f1e2bf" stroke={PAL.ink} strokeWidth={0.35} opacity={0.95} />
-        <circle cx={-1} cy={-0.6} r={0.28} fill={PAL.ink} />
-        <circle cx={0.1} cy={-0.6} r={0.28} fill={PAL.ink} />
-        <circle cx={1.2} cy={-0.6} r={0.28} fill={PAL.ink} />
-        <animate attributeName="opacity" values="0.9;1;0.9" dur="1.6s" repeatCount="indefinite" />
+        <g>
+          <path d="M-2.4 -1.6 Q-2.4 -2.6 -1.4 -2.6 L1.6 -2.6 Q2.6 -2.6 2.6 -1.6 L2.6 0.4 Q2.6 1.4 1.6 1.4 L0 1.4 L-0.8 2.4 L-1 1.4 L-1.4 1.4 Q-2.4 1.4 -2.4 0.4 Z"
+                fill="#f1e2bf" stroke={PAL.ink} strokeWidth={0.35} />
+          <circle cx={-1} cy={-0.6} r={0.28} fill={PAL.ink} />
+          <circle cx={0.1} cy={-0.6} r={0.28} fill={PAL.ink} />
+          <circle cx={1.2} cy={-0.6} r={0.28} fill={PAL.ink} />
+          {/* Pop in for 1.4s, then hide for 1.4s — partner takes the other slot */}
+          <animate attributeName="opacity"
+            values="0;1;1;0;0"
+            keyTimes="0;0.1;0.5;0.55;1"
+            dur="2.8s" begin={speakOffset} repeatCount="indefinite" />
+          <animateTransform attributeName="transform" type="scale"
+            values="0.2;1;1;0.2;0.2"
+            keyTimes="0;0.1;0.5;0.55;1"
+            dur="2.8s" begin={speakOffset} repeatCount="indefinite"
+            additive="sum" />
+        </g>
+        {/* Tiny floating heart for very close bonds — affection drives it */}
+        {partnerNearby && (
+          <g>
+            <path d="M0 1 L-0.9 0.1 Q-1.4 -0.4 -0.9 -0.9 Q-0.4 -1.3 0 -0.7 Q0.4 -1.3 0.9 -0.9 Q1.4 -0.4 0.9 0.1 Z"
+                  fill="#b14a3a" opacity={0.85} transform="translate(3.2 -1)" />
+            <animateTransform attributeName="transform" type="translate"
+              values="0 0; 0 -4" dur="2.6s" begin="1.2s" repeatCount="indefinite" additive="sum" />
+            <animate attributeName="opacity" values="0;0.9;0" dur="2.6s" begin="1.2s" repeatCount="indefinite" />
+          </g>
+        )}
       </g>
     );
   }
@@ -1562,30 +1585,79 @@ export function MapView() {
 
 
 
+        {/* Conversation links — Sims-style "they're chatting" arcs */}
+        {(() => {
+          const links: { a: typeof survivors[number]; b: typeof survivors[number]; key: string }[] = [];
+          const seen = new Set<string>();
+          for (const a of survivors) {
+            if (a.health <= 0 || a.state !== "socializing") continue;
+            for (const b of survivors) {
+              if (b.id === a.id || b.health <= 0) continue;
+              if (b.state !== "socializing") continue;
+              const dx = b.x - a.x, dy = b.y - a.y;
+              if (dx * dx + dy * dy > 2.6 * 2.6) continue;
+              const k = a.id < b.id ? `${a.id}|${b.id}` : `${b.id}|${a.id}`;
+              if (seen.has(k)) continue;
+              seen.add(k);
+              links.push({ a, b, key: k });
+            }
+          }
+          return links.map(({ a, b, key }) => {
+            const ax = a.x * TILE + TILE / 2;
+            const ay = a.y * TILE + TILE / 2 - 6;
+            const bx = b.x * TILE + TILE / 2;
+            const by = b.y * TILE + TILE / 2 - 6;
+            const mx = (ax + bx) / 2;
+            const my = (ay + by) / 2 - 4;
+            return (
+              <g key={`talk-${key}`} pointerEvents="none">
+                <path d={`M${ax} ${ay} Q${mx} ${my} ${bx} ${by}`}
+                  fill="none" stroke="#c9a14a" strokeWidth={0.4}
+                  strokeDasharray="0.8 1.2" opacity={0.55} />
+              </g>
+            );
+          });
+        })()}
+
         {/* Survivors */}
-        {survivors.map((s) => {
+        {survivors.map((s, idx) => {
           const sel = selection.kind === "survivor" && selection.id === s.id;
           const cx = s.x * TILE + TILE / 2;
           const cy = s.y * TILE + TILE / 2;
           const dead = s.health <= 0;
           const sleeping = !dead && s.state === "resting";
-          // Detect "talking" — another survivor very close & both socializing/idle.
-          const partner = !dead && (s.state === "socializing")
-            ? survivors.find(o => o.id !== s.id && !(o.health <= 0)
-                && Math.abs(o.x - s.x) < 1.2 && Math.abs(o.y - s.y) < 1.2)
-            : undefined;
+          // Find a nearby chat partner (Sims-style pairing).
+          let partner: typeof survivors[number] | undefined;
+          if (!dead && s.state === "socializing") {
+            for (const o of survivors) {
+              if (o.id === s.id || o.health <= 0) continue;
+              if (o.state !== "socializing") continue;
+              const dx = o.x - s.x, dy = o.y - s.y;
+              if (dx * dx + dy * dy <= 2.6 * 2.6) { partner = o; break; }
+            }
+          }
+          // Face the partner: mirror sprite if partner sits to the left.
+          const faceLeft = partner ? (partner.x < s.x) : false;
+          // Stagger speech-bubble timing so the conversation looks turn-based.
+          const speakOffset = partner
+            ? ((s.id < partner.id) ? "0s" : "1.4s")
+            : "0s";
           return (
             <g key={s.id} style={{ pointerEvents: "all", cursor: "pointer" }} transform={`translate(${cx}, ${cy})`}>
               {sel && (
                 <circle cx={0} cy={1} r={10} fill="none" stroke={PAL.gold} strokeWidth={1.3} strokeDasharray="2 2" />
               )}
-              <g transform={sleeping ? "rotate(-78) translate(0,-1)" : undefined}>
+              <g transform={
+                sleeping
+                  ? "rotate(-78) translate(0,-1)"
+                  : (faceLeft ? "scale(-1,1)" : undefined)
+              }>
                 <SurvivorArt founder={!!s.isFounder} dead={dead} female={s.gender === "f"} stage={s.stage} pregnant={!!s.pregnant} />
               </g>
               {dead && (
                 <line x1={-4} y1={-3} x2={4} y2={3} stroke={PAL.ink} strokeWidth={0.8} />
               )}
-              {!dead && <ActivityGlyph survivor={s} partnerNearby={!!partner} />}
+              {!dead && <ActivityGlyph survivor={s} partnerNearby={!!partner} speakOffset={speakOffset} />}
             </g>
           );
         })}
