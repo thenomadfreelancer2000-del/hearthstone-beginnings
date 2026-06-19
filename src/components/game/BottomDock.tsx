@@ -51,6 +51,8 @@ const BUILD_CATEGORIES: { id: string; label: string; kinds: import("@/game/types
   { id: "livestock", label: "Livestock", kinds: ["chicken-coop", "goat-pen", "sheep-pen", "cattle-pasture", "dairy-barn", "breeding-barn", "livestock-shelter"] },
   { id: "education", label: "Education", kinds: ["learning-tent", "schoolhouse", "academy", "library"] },
   { id: "medical",   label: "Medical",   kinds: ["medical-tent", "clinic", "infirmary", "hospital"] },
+  { id: "roads",     label: "Roads",     kinds: ["dirt-path", "dirt-road", "gravel-road", "paved-road", "stone-road"] },
+
 ];
 
 function BuildMenu() {
