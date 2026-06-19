@@ -2545,6 +2545,27 @@ export function MapView() {
   const expandWorldToCurrentSize = useGame((s) => s.expandWorldToCurrentSize);
   const isMobile = useIsMobile();
 
+  // Precompute building tile occupancy so per-frame survivor and
+  // worn-path rendering avoid an O(buildings) scan per item.
+  const { builtTiles, enclosedRects } = useMemo(() => {
+    const builtTiles = new Set<string>();
+    const enclosedRects: { x: number; y: number; w: number; h: number }[] = [];
+    for (const b of buildings) {
+      if (b.builtProgress < 1) continue;
+      for (let dy = 0; dy < b.h; dy++) {
+        for (let dx = 0; dx < b.w; dx++) {
+          builtTiles.add(`${b.x + dx},${b.y + dy}`);
+        }
+      }
+      if (!PASSABLE_BUILDINGS.has(b.kind)) {
+        enclosedRects.push({ x: b.x, y: b.y, w: b.w, h: b.h });
+      }
+    }
+    return { builtTiles, enclosedRects };
+  }, [buildings]);
+
+
+
   const [hover, setHover] = useState<{ x: number; y: number } | null>(null);
   const [pendingPlacement, setPendingPlacement] = useState<{ x: number; y: number } | null>(null);
   const ref = useRef<SVGSVGElement>(null);
@@ -2896,11 +2917,8 @@ export function MapView() {
             const tx = Number(sx), ty = Number(sy);
             if (!Number.isFinite(tx) || !Number.isFinite(ty)) continue;
             // Don't draw under a road or building footprint.
-            const covered = buildings.some(b =>
-              b.builtProgress >= 1 &&
-              tx >= b.x && tx < b.x + b.w && ty >= b.y && ty < b.y + b.h,
-            );
-            if (covered) continue;
+            if (builtTiles.has(`${tx},${ty}`)) continue;
+
             const t = Math.min(1, (w - PATH_MIN) / (PATH_FULL - PATH_MIN));
             out.push(
               <g key={key} transform={`translate(${tx * TILE}, ${ty * TILE})`} opacity={0.25 + t * 0.5}>
@@ -3215,12 +3233,18 @@ export function MapView() {
           const dead = s.health <= 0;
           // Hide survivors when they are inside an enclosed building — they
           // should appear to enter through the door and only reappear on exit.
-          const insideBuilding = !dead && buildings.some((b) =>
-            b.builtProgress >= 1 &&
-            !PASSABLE_BUILDINGS.has(b.kind) &&
-            s.x >= b.x + 0.15 && s.x <= b.x + b.w - 0.15 &&
-            s.y >= b.y + 0.15 && s.y <= b.y + b.h - 0.15,
-          );
+          let insideBuilding = false;
+          if (!dead) {
+            for (let i = 0; i < enclosedRects.length; i++) {
+              const b = enclosedRects[i];
+              if (s.x >= b.x + 0.15 && s.x <= b.x + b.w - 0.15 &&
+                  s.y >= b.y + 0.15 && s.y <= b.y + b.h - 0.15) {
+                insideBuilding = true;
+                break;
+              }
+            }
+          }
+
 
           if (insideBuilding) return null;
           const sleeping = !dead && s.state === "resting";
