@@ -1112,7 +1112,7 @@ const VISUALS: Record<string, VisualKind> = {
       door: "double", doorColor: "#3a2410",
       windows: 3, windowColor: "#ffd87a",
       trim: "#3d2810", trimRows: 4,
-      chimney: true, chimneyColor: "#7a5a48",
+      chimney: true, chimneyColor: "#8a8278",
       banner: { color: "#a6432a" },
       inset: 0.17,
       noShadow: true,
