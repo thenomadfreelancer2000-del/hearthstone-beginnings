@@ -2767,7 +2767,7 @@ export function MapView() {
               const cy = py + padY + r2 * (ph - padY * 1.2);
               const adult = a.ageDays >= (ADULT_DAYS[a.species] ?? 60);
               out.push(
-                <g key={a.id} transform={`translate(${cx}, ${cy})`} pointerEvents="none">
+                <g key={a.id} transform={isoUpright(cx, cy)} pointerEvents="none">
                   <AnimalArt species={a.species} dead={a.dead ?? false} adult={adult} />
                 </g>,
               );
