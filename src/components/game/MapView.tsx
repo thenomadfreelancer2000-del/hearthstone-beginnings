@@ -309,21 +309,8 @@ function BuildingArt({ kind, w, h, farmStage, farmGrowth }: { kind: string; w: n
           <path d={`M${gateX} ${yardY + yardH} L${gateX} ${porchY + porchH * 0.5}`}
             stroke="#c9a06a" strokeWidth={pathW * 0.5} strokeLinecap="round" fill="none" opacity={0.7} />
 
-          {/* vegetable garden */}
-          <rect x={gardenX} y={gardenY} width={gardenW} height={gardenH}
-            fill="#6e4920" stroke={PAL.ink} strokeWidth={0.8} />
-          {Array.from({ length: 4 }).map((_, i) => {
-            const ry = gardenY + (gardenH / 4) * (i + 0.5);
-            return (
-              <g key={`gr${i}`}>
-                <line x1={gardenX + 1} y1={ry} x2={gardenX + gardenW - 1} y2={ry} stroke="#3d2810" strokeWidth={0.8} />
-                {Array.from({ length: 4 }).map((_, j) => {
-                  const gx = gardenX + 2 + ((gardenW - 4) / 3) * j;
-                  return <circle key={j} cx={gx} cy={ry - 0.6} r={0.9} fill="#4a6235" stroke="#2f3d20" strokeWidth={0.3} />;
-                })}
-              </g>
-            );
-          })}
+          {/* vegetable garden removed */}
+
 
           {/* storage shed */}
           <rect x={shedX} y={shedY + shedH * 0.35} width={shedW} height={shedH * 0.65}
