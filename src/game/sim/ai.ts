@@ -120,7 +120,10 @@ function moveToward(s: Survivor, dt: number, deps?: SimDeps) {
   const dx = s.targetX - s.x;
   const dy = s.targetY - s.y;
   const d = Math.sqrt(dx * dx + dy * dy);
-  const speed = 0.04 * dt;
+  // Movement speed: roads give a real travel bonus.
+  const roadMult = deps ? roadSpeedAt(s.x, s.y, deps.buildings) : 1;
+  const speed = 0.04 * dt * roadMult;
+
   if (d <= speed) {
     s.x = s.targetX;
     s.y = s.targetY;
