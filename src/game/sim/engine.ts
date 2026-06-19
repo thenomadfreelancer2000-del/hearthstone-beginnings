@@ -52,7 +52,10 @@ export interface Engine {
   foundingPhase?: boolean;
   /** Leader auto-help toggles (founder pitches in on builds/farms). */
   leaderHelp?: { build: boolean; farm: boolean };
+  /** Foot-traffic wear map ("x,y" → count). Drives natural footpath formation. */
+  wornPaths?: Record<string, number>;
 }
+
 
 function nextTime(t: GameTime): GameTime {
   const tick = t.tick + 1;
