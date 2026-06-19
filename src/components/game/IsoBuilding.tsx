@@ -1106,16 +1106,16 @@ const VISUALS: Record<string, VisualKind> = {
   homestead: {
     type: "block",
     cfg: {
-      // Ranch estate manor: smaller footprint inside the plot, solid barn-red
-      // roof, warm clapboard siding, and custom porch/yard details.
-      walls: { lit: "#ead7a6", shade: "#b98d58" },
-      roof: { type: "hip", color: "#9b2f1d", shade: "#5f190f", pitch: 0.46 },
-      story: 1.32,
-      door: "double", doorColor: "#214331",
-      windows: 3, windowColor: "#ffd96f",
-      trim: "#6f4b25", trimRows: 6,
+      // Ranch estate manor: small brown-wood cabin nested well inside the
+      // fenced yard. All-brown timber walls and matching shingle roof.
+      walls: { lit: "#8a5a2b", shade: "#5a3819" },
+      roof: { type: "hip", color: "#6b3d1c", shade: "#3a200d", pitch: 0.46 },
+      story: 1.05,
+      door: "double", doorColor: "#3a230f",
+      windows: 2, windowColor: "#ffd96f",
+      trim: "#3d2510", trimRows: 5,
       chimney: false,
-      inset: 0.22,
+      inset: 0.36,
       noShadow: true,
       porch: "none",
     },
@@ -1914,13 +1914,8 @@ function RanchYard({
       {/* benches flanking the porch */}
       {bench([benchA[0], benchA[1] - 1], "sw")}
       {bench([benchB[0], benchB[1] - 1], "se")}
-      {/* little flower garden by the steps */}
-      {gardenBed}
       {/* wood porch steps */}
       {stairs}
-      {/* flower boxes along the front fence */}
-      {flowerBox(sw_q1, T * 0.36, ["#d94a4a", "#f1c64a", "#e57ab3", "#f08a3a"])}
-      {flowerBox(sw_q2, T * 0.36, ["#e57ab3", "#d94a4a", "#f1c64a", "#a86ad6"])}
     </g>
   );
 }
@@ -2112,27 +2107,12 @@ function HomesteadFlair({ gridW, gridH, T }: { gridW: number; gridH: number; T: 
     </g>
   );
 
-  const flowerBoxes = [0.19, 0.81].map((tt, i) => {
-    const p = lift(lerp(c.S, c.W, tt), wallH * 0.38);
-    return (
-      <g key={`front-flower-box${i}`}>
-        <rect x={p[0] - T * 0.11} y={p[1] - 1.2} width={T * 0.22} height={2.2}
-          fill="#5a3518" stroke={INK} strokeWidth={0.3} />
-        {["#e94a6a", "#f6c64a", "#e57ab3"].map((col, j) => (
-          <circle key={j} cx={p[0] + (j - 1) * T * 0.055} cy={p[1] - 2.25} r={0.8}
-            fill={col} stroke={INK} strokeWidth={0.15} />
-        ))}
-      </g>
-    );
-  });
-
   return (
     <g>
       {porch}
       {dormer}
       {chimney}
       {vane}
-      {flowerBoxes}
     </g>
   );
 }
