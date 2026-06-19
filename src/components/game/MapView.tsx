@@ -3092,7 +3092,7 @@ export function MapView() {
               "farm-plot", "field", "large-field", "orchard",
             ]);
             const showFoundation = !foundationKinds.has(b.kind);
-            entries.push({ sort: b.x + b.w + b.y + b.h, node: (
+            entries.push({ sort: b.x + b.w / 2 + b.y + b.h / 2, node: (
               <g key={b.id}>
                 {showFoundation && (
                   <g>
