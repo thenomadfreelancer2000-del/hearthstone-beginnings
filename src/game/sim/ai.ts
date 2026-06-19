@@ -76,10 +76,13 @@ function tileAt(tiles: Tile[], mapW: number, gx: number, gy: number): Tile | und
   return tiles[gy * mapW + gx];
 }
 
+const FENCE_KINDS = new Set<string>(["fence", "palisade", "stone-wall"]);
+
 function isBlocked(
   x: number, y: number,
   deps: { tiles: Tile[]; mapW: number; buildings: Building[]; nodes: ResourceNode[] },
   allowBuildingId?: string,
+  ignoreFences?: boolean,
 ): boolean {
   const t = tileAt(deps.tiles, deps.mapW, Math.floor(x), Math.floor(y));
   if (t) {
@@ -89,6 +92,7 @@ function isBlocked(
     if (b.id === allowBuildingId) continue;
     if (PASSABLE_BUILDINGS.has(b.kind)) continue;
     if (b.builtProgress < 1) continue; // ghosts/under-construction don't block
+    if (ignoreFences && FENCE_KINDS.has(b.kind)) continue;
     if (buildingContains(b, x, y, -0.1)) return true;
   }
   for (const n of deps.nodes) {
