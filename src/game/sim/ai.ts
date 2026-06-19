@@ -395,7 +395,7 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
   }
 
   if (s.state === "moving") {
-    moveToward(s, dt);
+    moveToward(s, dt, deps);
     return;
   }
 
