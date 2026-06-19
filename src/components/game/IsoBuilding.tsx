@@ -93,7 +93,8 @@ function Roof({ corners, wallH, style, T }: {
           fill={style.shade} stroke={INK} strokeWidth={0.9} strokeLinejoin="round" />
         {/* SW slope (mid) */}
         <polygon points={poly(Su, Wu, apex)}
-          fill={style.color} stroke={INK} strokeWidth={0.9} strokeLinejoin="round" opacity={0.92} />
+          fill={style.color} stroke={INK} strokeWidth={0.9} strokeLinejoin="round" />
+
         {/* NW slope (lit) */}
         <polygon points={poly(Wu, Nu, apex)}
           fill={style.color} stroke={INK} strokeWidth={0.9} strokeLinejoin="round" />
