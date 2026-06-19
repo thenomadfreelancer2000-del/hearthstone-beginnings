@@ -2251,3 +2251,5 @@ function IsoBuildingImpl({
     />
   );
 }
+
+export const IsoBuilding = React.memo(IsoBuildingImpl);
