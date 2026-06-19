@@ -693,7 +693,7 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
         s.state = "idle";
         return;
       }
-      if (dist(s.x, s.y, cx, cy) < 1.6) {
+      if (distToBuilding(b, s.x, s.y) < 1.2) {
         const skillMult = 1 + (s.skills.build ?? 1) * 0.18;
         const traitMult = traitWorkSpeed(s.traits);
         const rivalMult = rivalryWorkMult(s, b, deps);
@@ -706,9 +706,13 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
         s.action = `Breaking ground on the ${b.kind}.`;
         if (s.isFounder) grantLeaderHelpOpinion(s, deps, dt, "farm");
       } else {
-        setTarget(s, cx, cy);
+        const p = nearestPointOn(b, s.x, s.y);
+        const ox = p.x === b.x ? -0.4 : p.x === b.x + b.w ? 0.4 : 0;
+        const oy = p.y === b.y ? -0.4 : p.y === b.y + b.h ? 0.4 : 0;
+        setTarget(s, p.x + ox, p.y + oy);
         s.action = `Walking to the ${b.kind} site.`;
       }
+
       return;
     }
     if (plot && plot.farm) {
