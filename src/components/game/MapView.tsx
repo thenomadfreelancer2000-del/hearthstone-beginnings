@@ -2479,9 +2479,9 @@ export function MapView() {
       <div style={{ width: VW, height: VH, position: "relative" }}>
       <svg
         ref={ref}
-        width={W}
-        height={H}
-        viewBox={`0 0 ${W} ${H}`}
+        width={ISO.w}
+        height={ISO.h}
+        viewBox={`0 0 ${ISO.w} ${ISO.h}`}
         className="block"
         shapeRendering="geometricPrecision"
         onMouseMove={(e) => {
