@@ -9,6 +9,29 @@ import type { ResourceNode, Tile } from "@/game/types";
 const TILE = 28;
 const LAYER_CHUNK = 1024;
 
+// ── Isometric projection ────────────────────────────────────────
+// The simulation stays a square grid (tile (x,y) lives at pixel
+// (x*TILE, y*TILE) in "world" space). For presentation we apply a single
+// 2:1 isometric matrix to the root <g>, so every child — terrain canvas,
+// buildings, fences, survivors — is projected to a diamond grid without
+// touching its draw code. The matrix below maps:
+//   world (TILE, 0) → iso ( TILE,  TILE/2)
+//   world (0, TILE) → iso (-TILE,  TILE/2)
+// which is the classic TheoTown-style 2:1 diamond.
+// The translate component shifts the projected map so its min x lands at 0
+// (the western tile of the grid is at world (0, mapH) → iso (-mapH*TILE, …)).
+const ISO_MATRIX_A = 1;
+const ISO_MATRIX_B = 0.5;
+const ISO_MATRIX_C = -1;
+const ISO_MATRIX_D = 0.5;
+const isoTx = (mapH: number) => mapH * TILE;
+const isoBounds = (mapW: number, mapH: number) => ({
+  w: (mapW + mapH) * TILE,
+  h: (mapW + mapH) * TILE * 0.5,
+});
+const isoMatrixString = (mapH: number) =>
+  `matrix(${ISO_MATRIX_A}, ${ISO_MATRIX_B}, ${ISO_MATRIX_C}, ${ISO_MATRIX_D}, ${isoTx(mapH)}, 0)`;
+
 type LayerImage = {
   id: string;
   url: string;
@@ -2247,6 +2270,7 @@ export function MapView() {
   const [hover, setHover] = useState<{ x: number; y: number } | null>(null);
   const [pendingPlacement, setPendingPlacement] = useState<{ x: number; y: number } | null>(null);
   const ref = useRef<SVGSVGElement>(null);
+  const isoGroupRef = useRef<SVGGElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const zoom = useView((s) => s.mapZoom);
@@ -2255,8 +2279,9 @@ export function MapView() {
   const centerRequestId = useView((s) => s.centerRequestId);
   const W = mapW * TILE;
   const H = mapH * TILE;
-  const VW = W * zoom;
-  const VH = H * zoom;
+  const ISO = isoBounds(mapW, mapH);
+  const VW = ISO.w * zoom;
+  const VH = ISO.h * zoom;
   const initialCenterDone = useRef(false);
 
 
@@ -2278,8 +2303,13 @@ export function MapView() {
     requestAnimationFrame(() => {
       const target = scrollRef.current;
       if (!target) return;
-      const sx = cx * TILE * zoom - target.clientWidth / 2;
-      const sy = cy * TILE * zoom - target.clientHeight / 2;
+      // Project ranch center through the iso matrix.
+      const wx = cx * TILE;
+      const wy = cy * TILE;
+      const ix = ISO_MATRIX_A * wx + ISO_MATRIX_C * wy + isoTx(mapH);
+      const iy = ISO_MATRIX_B * wx + ISO_MATRIX_D * wy;
+      const sx = ix * zoom - target.clientWidth / 2;
+      const sy = iy * zoom - target.clientHeight / 2;
       target.scrollTo({
         left: Math.max(0, sx),
         top: Math.max(0, sy),
@@ -2424,10 +2454,17 @@ export function MapView() {
   }, [buildPlacement, hover, pendingPlacement, buildings, tiles, mapW, mapH, territory, resources]);
 
   function svgToTile(e: React.MouseEvent) {
-    const svg = ref.current!;
-    const pt = svg.createSVGPoint();
+    // Hit-test against the iso-projected world group so the inverse CTM
+    // accounts for the isometric transform; coordinates in that group's
+    // local space are still the original square-grid pixel space, so
+    // dividing by TILE recovers the integer tile under the pointer.
+    const g = isoGroupRef.current;
+    if (!g) return null;
+    const owner = g.ownerSVGElement ?? ref.current;
+    if (!owner) return null;
+    const pt = owner.createSVGPoint();
     pt.x = e.clientX; pt.y = e.clientY;
-    const m = svg.getScreenCTM();
+    const m = g.getScreenCTM();
     if (!m) return null;
     const p = pt.matrixTransform(m.inverse());
     return { x: Math.floor(p.x / TILE), y: Math.floor(p.y / TILE) };
@@ -2442,9 +2479,9 @@ export function MapView() {
       <div style={{ width: VW, height: VH, position: "relative" }}>
       <svg
         ref={ref}
-        width={W}
-        height={H}
-        viewBox={`0 0 ${W} ${H}`}
+        width={ISO.w}
+        height={ISO.h}
+        viewBox={`0 0 ${ISO.w} ${ISO.h}`}
         className="block"
         shapeRendering="geometricPrecision"
         onMouseMove={(e) => {
@@ -2515,6 +2552,11 @@ export function MapView() {
             <line x1="3" y1="0" x2="3" y2="6" stroke="#1a1208" strokeWidth="0.4" opacity="0.4" />
           </pattern>
         </defs>
+
+        {/* Isometric world projection — everything inside this group is
+            drawn in square world space and projected to 2:1 diamonds. */}
+        <g ref={isoGroupRef} transform={isoMatrixString(mapH)}>
+
 
         <StaticTileLayers tiles={tiles} width={W} height={H} />
 
@@ -2847,8 +2889,9 @@ export function MapView() {
             </g>
           );
         })()}
+        </g>
 
-        <rect x={0} y={0} width={W} height={H} fill="url(#vignette)" pointerEvents="none" />
+        <rect x={0} y={0} width={ISO.w} height={ISO.h} fill="url(#vignette)" pointerEvents="none" />
       </svg>
       </div>
     </div>

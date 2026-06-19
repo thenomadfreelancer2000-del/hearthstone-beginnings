@@ -1,64 +1,53 @@
-## Visual Style Overhaul — TheoTown-Inspired
+# Isometric Camera & Rendering Overhaul
 
-A pure rendering refresh of `src/components/game/MapView.tsx`. No gameplay, types, store, or content changes. The map is drawn in two layers: a Canvas terrain layer and an SVG building/entity layer — both live in MapView.tsx (2100 lines).
+Visual-only refactor of `src/components/game/MapView.tsx` (~2856 lines). Simulation, coordinates, pathfinding, building placement, AI, fences logic, store — all untouched. Only the projection from grid → screen changes.
 
-This is large. I want to scope it before charging in.
+## Approach
 
-### What I propose to ship in this pass
+Add a single projection layer: `worldToIso(tx, ty)` mapping grid cell `(tx, ty)` to a screen point on a 2:1 diamond. Tile size becomes `ISO_W=56, ISO_H=28` (W:H = 2:1). Every existing draw call is rewritten in terms of this projection. Hit-testing inverts it.
 
-**1. Terrain layer (Canvas, ~lines 1330-1400)**
-- New warmer palette per tile kind (grass / tall-grass / dirt / forest / stone / water / ruin / road).
-- Per-tile dithered noise + a second blended color so tiles read with subtle texture instead of flat fills.
-- Soft edge blending between adjacent kinds (e.g. grass→dirt) using a 1px lighter rim.
-- Water gets gentle horizontal ripple stripes; stone gets speckle; forest floor a darker green.
+```text
+square grid (x,y)         iso screen
+                          screen.x = (x - y) * ISO_W/2 + originX
+                          screen.y = (x + y) * ISO_H/2 + originY
+```
 
-**2. Resource nodes (Canvas, ~1444)**
-- Trees: layered canopy circles + trunk + ground shadow.
-- Rocks: clustered polygons with highlight.
-- Fiber grass: tufts instead of dots.
+Internal tile coords stay `(x, y)` integers — only pixels move.
 
-**3. Buildings (SVG, lines 249-799)**
-Redraw each kind for clearer silhouettes at zoom-out. One pass per building:
-- Tent — canvas triangle with pole and door flap.
-- Cabin — square log hut, pitched roof, chimney.
-- House — taller wooden home, two windows, door, chimney.
-- Manor — wide ranch residence with wraparound porch.
-- Homestead — keep current yard composition but redraw house with stronger outline and ranch trim.
-- Campfire, Water collector, Foraging camp, Watchtower, Guard post, Well — restyle for consistency (thicker outline, same shading rules).
+## Passes
 
-**3b. Fences / walls / gate (1842 + 652-737)**
-- Real connected ranch fence: posts at corners + two horizontal rails between, computed from neighbor fence tiles for end/corner/T/cross pieces (the data for this is already in MapView via neighbor lookup).
-- Palisade, stone-wall, gate restyled to match.
+### Pass 1 — Projection + terrain canvas (diamonds)
+- Add `ISO_W`, `ISO_H`, `worldToIso`, `isoToWorld` helpers + new map pixel bounds (`(W+H)*ISO_W/2` wide, `(W+H)*ISO_H/2` tall).
+- Resize the layer canvas, regenerate chunks in iso space.
+- Rewrite `drawTile` to fill a diamond polygon instead of a square rect, with subtle NW-lit / SE-shaded edge bevels for depth.
+- Convert noise/dither passes (grass blades, dirt scuffs, stone pebbles, forest blobs, water ripples, film grain) so they sit inside the diamond mask.
+- Update pan clamping, center-on-ranch math, and zoom origin to iso bounds.
 
-**4. Farm plots (518)**
-- Soil rows visible at all stages.
-- Stage visuals: fresh soil (dark brown rows) → sprouts (tiny green dots) → mature (taller green strokes) → harvested (stubble).
-- Orchards (if farm type is tree-crop): render a grid of small trees instead of rows.
+### Pass 2 — Buildings, fences, resource nodes
+- Replace per-building SVG `<g transform="translate(px, py)">` with iso-projected anchor; redraw each building (tent, cabin, house, manor, homestead, campfire, well, watchtower, guard post, water collector, foraging camp) as 2.5D blocks: top diamond + two visible faces (front-SE, side-SW) with consistent light direction (NW lit, SE shadowed).
+- Footprint diamonds (w×h grid) drawn as a single larger iso diamond outline for placement halo.
+- Fence/wall/gate: re-derive the four connection directions (already in code) and draw rails/posts along the iso edges of the tile diamond; corners and T-junctions reuse existing neighbor data.
+- Trees, rocks, berries, fiber tufts: redraw as iso billboards (vertical sprite anchored at tile center bottom).
+- Sort all entities by `(tx + ty)` then `ty` for correct back-to-front painter's order.
 
-**5. Livestock (new small render block in the entity layer)**
-- For each livestock building, render N small animal sprites inside its footprint, slowly drifting positions each frame using existing animation tick. Chicken, sheep, goat, cattle silhouettes.
+### Pass 3 — Survivors, zombies, farm plots, hit testing
+- Farm plot rows: rotate soil/sprout/crop strokes to follow the diamond axes (NE-SW rows).
+- Survivor markers: place at `worldToIso(s.x, s.y)` minus a small vertical offset; keep current animation/state.
+- Zombie layer: same projection helper exported for consistency.
+- Hit testing: convert pointer screen coords back via `isoToWorld` (inverse of the 2:1 affine) — this restores click-to-select on tiles/buildings.
+- Selection/placement halos (the existing ghost-on-hover) become diamond outlines.
 
-**6. Shared style constants**
-- A `TILE_PALETTES`, `BUILDING_STROKE`, `BUILDING_FILL` block near the top so all buildings share outline weight, shadow direction, and roof tones — this is what makes TheoTown read as one set.
+## What stays exactly the same
 
-### What I'm NOT doing
-- No new building types, no new tile kinds, no gameplay or type changes.
-- No sprite-sheet assets — staying with SVG + Canvas vector art, so it ships without binary uploads.
-- No zoom-dependent LOD swap this pass (current zoom logic stays; we just draw better at every zoom).
+- All grid coordinates, tile data, `MAP_W=180`, `MAP_H=140`, building footprints `(w,h)`, pathfinding, AI tick, store.
+- Fence connection logic (N/E/S/W neighbor lookup).
+- Pan + zoom controls, viewStore, center-on-ranch action.
+- The Canvas + SVG split (terrain on canvas, entities on SVG) — only what they draw changes.
 
-### Risk / size
+## Risk
 
-`MapView.tsx` is 2100 lines and each of the 6 sections above is a non-trivial edit. Doing the whole list in one turn produces a huge diff that's hard for you to review and easy for me to break. I'd rather ship this in 2-3 passes.
+Large diff (~1500 lines touched across the three passes), but each pass leaves the app rendering. Pass 1 alone produces a fully playable isometric map; Passes 2 and 3 polish buildings/entities. If anything breaks (hit testing is the highest-risk piece), it's isolated to the new projection helpers and easy to revert.
 
-### Suggested order (one pass each)
+## Question
 
-1. **Pass A — Terrain + resource nodes + shared palette constants.** Biggest visual lift, lowest risk. You'll see the map transform immediately.
-2. **Pass B — Buildings (all kinds) + fences/walls/gate connected pieces.**
-3. **Pass C — Farm growth stages + livestock animals on the map.**
-
-If you'd rather I do all three in a single mega-pass, say the word and I'll do it — just know the diff will be large.
-
-### Questions before I start
-
-- Confirm the order above, or tell me to do it all at once.
-- Any building you want me to prioritize (e.g. Homestead stays as-is since we just reworked it)?
+Ship all three passes in one go, or one pass per turn (recommended — you see iso terrain immediately and confirm direction before I redo every building)?
