@@ -28,6 +28,9 @@ const PAL = {
   parchment: "#c4ae90",
 };
 
+const WALL_LIKE_KINDS = new Set(["fence", "palisade", "stone-wall", "gate"]);
+const isWallLikeKind = (kind: string) => WALL_LIKE_KINDS.has(kind);
+
 const TILE_PAL: Record<Tile["kind"], { base: string; alt: string; detail: string }> = {
   grass:        { base: "#4a5a2e", alt: "#536432", detail: "#6b7d3f" },
   "tall-grass": { base: "#566a32", alt: "#62763a", detail: "#7d9048" },
