@@ -2723,10 +2723,43 @@ export function MapView() {
 
         <StaticResourceLayer nodes={nodes} width={W} height={H} />
 
+        {/* Worn footpaths — tiles repeatedly walked over darken into a
+            visible dirt trail. Intensity rises with traffic and caps so
+            very busy routes feel like proper paths. */}
+        {(() => {
+          if (!wornPaths) return null;
+          const PATH_MIN = 60;      // wear threshold before a tile starts to show
+          const PATH_FULL = 360;    // wear level at which it is fully visible
+          const out: React.ReactElement[] = [];
+          for (const key in wornPaths) {
+            const w = wornPaths[key];
+            if (w < PATH_MIN) continue;
+            const [sx, sy] = key.split(",");
+            const tx = Number(sx), ty = Number(sy);
+            if (!Number.isFinite(tx) || !Number.isFinite(ty)) continue;
+            // Don't draw under a road or building footprint.
+            const covered = buildings.some(b =>
+              b.builtProgress >= 1 &&
+              tx >= b.x && tx < b.x + b.w && ty >= b.y && ty < b.y + b.h,
+            );
+            if (covered) continue;
+            const t = Math.min(1, (w - PATH_MIN) / (PATH_FULL - PATH_MIN));
+            out.push(
+              <g key={key} transform={`translate(${tx * TILE}, ${ty * TILE})`} opacity={0.25 + t * 0.5}>
+                <rect x={TILE * 0.18} y={TILE * 0.18}
+                  width={TILE * 0.64} height={TILE * 0.64}
+                  fill="#6e4d22" stroke="#4a3414" strokeWidth={0.5} rx={TILE * 0.15} />
+              </g>,
+            );
+          }
+          return out;
+        })()}
+
         {/* Buildings — drawn back-to-front so closer buildings overlap
             farther ones in the iso projection. Each built building is
             wrapped in a counter-transform so it stands upright on top of
             its diamond footprint instead of being sheared. */}
+
         {(() => {
           // Tile-occupancy maps for auto-connecting visuals.
           //   • fenceAt: any wall/gate kind (so mixed runs connect cleanly)
