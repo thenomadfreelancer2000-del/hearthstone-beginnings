@@ -334,6 +334,54 @@ function Walls({
         </>
       )}
 
+      {/* Porch / stoop projecting from the SW face under the door
+          — acts as the universal entrance marker so players can spot the
+          door from any iso angle. */}
+      {door !== "none" && porch !== "none" && (() => {
+        const A = lerp(S, W, 0.36);          // left edge of porch on SW face
+        const B = lerp(S, W, 0.64);          // right edge
+        const depth = porch === "grand" ? 4.5 : porch === "covered" ? 3.5 : 2.6;
+        // Project outward from SW face (perpendicular to S→W, away from C)
+        const outX = (A[0] - corners.C[0]); const outY = (A[1] - corners.C[1]);
+        const outLen = Math.hypot(outX, outY) || 1;
+        const ox = (outX / outLen) * depth;
+        const oy = (outY / outLen) * depth * 0.6 + 1.4;
+        const A2: P = [A[0] + ox, A[1] + oy];
+        const B2: P = [B[0] + ox, B[1] + oy];
+        const slabFill = porchColor;
+        const slabShade = "#3a2410";
+        return (
+          <g>
+            {/* slab top */}
+            <polygon points={poly(A, B, B2, A2)}
+              fill={slabFill} stroke={INK} strokeWidth={0.6} strokeLinejoin="round" />
+            {/* slab front edge (thickness) */}
+            <polygon points={poly(A2, B2, [B2[0], B2[1] + 1.6] as P, [A2[0], A2[1] + 1.6] as P)}
+              fill={slabShade} stroke={INK} strokeWidth={0.5} />
+            {/* step plank line */}
+            <line x1={(A[0] + A2[0]) / 2} y1={(A[1] + A2[1]) / 2}
+              x2={(B[0] + B2[0]) / 2} y2={(B[1] + B2[1]) / 2}
+              stroke={INK_SOFT} strokeWidth={0.4} opacity={0.6} />
+            {porch !== "stoop" && (
+              <>
+                {/* porch posts */}
+                <rect x={A2[0] - 0.5} y={A2[1] - wallH * 0.85} width={1} height={wallH * 0.85}
+                  fill={slabShade} stroke={INK} strokeWidth={0.4} />
+                <rect x={B2[0] - 0.5} y={B2[1] - wallH * 0.85} width={1} height={wallH * 0.85}
+                  fill={slabShade} stroke={INK} strokeWidth={0.4} />
+                {/* porch awning */}
+                <polygon points={poly(
+                  [A2[0] - 0.8, A2[1] - wallH * 0.85] as P,
+                  [B2[0] + 0.8, B2[1] - wallH * 0.85] as P,
+                  lift(B, wallH * 0.85),
+                  lift(A, wallH * 0.85),
+                )} fill="#4a2f18" stroke={INK} strokeWidth={0.6} />
+              </>
+            )}
+          </g>
+        );
+      })()}
+
       {/* Door on SW face (front) */}
       {door !== "none" && (() => {
         const dWidth = door === "double" || door === "barn" ? 0.20 : 0.12;
@@ -342,8 +390,15 @@ function Walls({
         const top = door === "arch" ? 0.78 : door === "barn" ? 0.82 : 0.72;
         return (
           <>
+            {/* bright doorframe so the entrance reads at any zoom */}
+            <polygon points={featureOnSWFace(dt0 - 0.025, dt1 + 0.025, 0, top + 0.04)}
+              fill="none" stroke="#f4d27a" strokeWidth={1.1} strokeLinejoin="round" opacity={0.95} />
             <polygon points={featureOnSWFace(dt0, dt1, 0, top)}
               fill={doorColor} stroke={INK} strokeWidth={0.7} />
+            {door === "arch" && (
+              <polygon points={featureOnSWFace(dt0, dt1, top - 0.06, top + 0.04)}
+                fill="#2a1808" stroke={INK} strokeWidth={0.5} />
+            )}
             {door === "double" && (
               <line
                 x1={lerp(lerp(S, W, 0.5), lift(lerp(S, W, 0.5), wallH * top), 0.0)[0]}
@@ -364,9 +419,15 @@ function Walls({
                 />
               </>
             )}
+            {/* door knob — small warm dot, reinforces "this is the entrance" */}
+            <circle
+              cx={lerp(lerp(S, W, dt0 + (dt1 - dt0) * 0.78), lift(lerp(S, W, dt0 + (dt1 - dt0) * 0.78), wallH * top * 0.45), 1)[0]}
+              cy={lerp(lerp(S, W, dt0 + (dt1 - dt0) * 0.78), lift(lerp(S, W, dt0 + (dt1 - dt0) * 0.78), wallH * top * 0.45), 1)[1]}
+              r={0.55} fill="#f4d27a" stroke={INK} strokeWidth={0.3} />
           </>
         );
       })()}
+
 
       {/* Hanging banner / sign above the door */}
       {banner && (() => {
