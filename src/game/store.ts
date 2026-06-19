@@ -672,30 +672,32 @@ export const useGame = create<GameState>((set, get) => ({
 
 
   assignBuilder: (buildingId, survivorId) => {
-    const st = get();
-    // First release the new survivor from any prior job (and clear any old builder of this site).
-    const cleared = survivorId
-      ? releaseSurvivorFromAssignments(st.buildings, survivorId)
-      : st.buildings;
-    set({
-      buildings: cleared.map(b =>
-        b.id === buildingId ? { ...b, assignedBuilderId: survivorId, stalledTicks: 0 } : b
-      ),
-      survivors: survivorId
-        ? st.survivors.map(s => s.id === survivorId
-            ? {
-                ...s,
-                occupation: "builder" as const,
-                // Drop stale gather/haul state so they commit to the new site
-                // immediately instead of ping-ponging to the stockpile.
-                workTarget: { kind: "building" as const, id: buildingId },
-                carrying: null,
-                commitment: { kind: "construction" as const, buildingId, phase: "returning" as const, sinceTick: st.time.tick },
-              }
-            : s)
-        : st.survivors,
-      pendingBuildAssignment: st.pendingBuildAssignment === buildingId ? null : st.pendingBuildAssignment,
-    });
+    set(produce(get(), (draft) => {
+      if (survivorId) {
+        for (const b of draft.buildings) {
+          if (b.assignedBuilderId === survivorId) { b.assignedBuilderId = null; b.stalledTicks = 0; }
+          if (b.assignedWorkerId === survivorId) b.assignedWorkerId = null;
+          if (b.farm && b.farm.assignedFarmerId === survivorId) b.farm.assignedFarmerId = null;
+        }
+      }
+      const target = draft.buildings.find(b => b.id === buildingId);
+      if (target) {
+        target.assignedBuilderId = survivorId;
+        target.stalledTicks = 0;
+      }
+      if (survivorId) {
+        const s = draft.survivors.find(x => x.id === survivorId);
+        if (s) {
+          s.occupation = "builder";
+          // Drop stale gather/haul state so they commit to the new site
+          // immediately instead of ping-ponging to the stockpile.
+          s.workTarget = { kind: "building", id: buildingId };
+          s.carrying = null;
+          s.commitment = { kind: "construction", buildingId, phase: "returning", sinceTick: draft.time.tick };
+        }
+      }
+      if (draft.pendingBuildAssignment === buildingId) draft.pendingBuildAssignment = null;
+    }));
   },
 
   autoAssignBuilder: (buildingId) => {
