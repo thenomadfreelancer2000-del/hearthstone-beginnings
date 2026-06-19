@@ -3,11 +3,13 @@ import { motion } from "framer-motion";
 import { useGame } from "@/game/store";
 import { hasSave } from "@/game/persistence";
 import heroImage from "@/assets/menu-hero.jpg";
+import { WorkshopPanel } from "./WorkshopPanel";
 
 export function MainMenu() {
   const setScreen = useGame((s) => s.setScreen);
   const resume = useGame((s) => s.resumeFromSave);
   const [canResume, setCanResume] = useState(false);
+  const [workshopOpen, setWorkshopOpen] = useState(false);
   useEffect(() => {
     setCanResume(hasSave());
   }, []);
@@ -131,12 +133,20 @@ export function MainMenu() {
             >
               Begin a New Founding
             </button>
+            <button
+              className="btn-ranch btn-ranch-ghost"
+              onClick={() => setWorkshopOpen(true)}
+            >
+              Workshop
+            </button>
             <button className="btn-ranch btn-ranch-ghost opacity-70" disabled>
               Settings
             </button>
           </motion.div>
         </motion.div>
       </div>
+
+      <WorkshopPanel open={workshopOpen} onOpenChange={setWorkshopOpen} />
 
     </div>
   );
