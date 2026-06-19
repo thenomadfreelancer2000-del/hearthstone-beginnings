@@ -1104,19 +1104,22 @@ const VISUALS: Record<string, VisualKind> = {
   homestead: {
     type: "block",
     cfg: {
-      walls: { lit: "#d8b079", shade: "#8a5a2c" },
-      roof: { type: "gable", color: "#8a3a22", shade: "#5a2010", ridge: "ne", gable: "#e7c693" },
-      // 10% smaller overall vs the previous pass (story 1.5 → 1.35,
-      // footprint inset 0.08 → 0.17 so each side pulls in ~9%).
-      story: 1.35,
-      door: "double", doorColor: "#3a2410",
-      windows: 3, windowColor: "#ffd87a",
-      trim: "#3d2810", trimRows: 4,
-      chimney: true, chimneyColor: "#8a8278",
-      banner: { color: "#a6432a" },
-      inset: 0.17,
+      // Painted clapboard manor — creamy white walls, deep forest-green
+      // trim, classic barn-red roof. Reads as a prestige building even
+      // when zoomed out.
+      walls: { lit: "#f3e4c2", shade: "#c8a87a" },
+      roof: { type: "gable", color: "#9a2a1c", shade: "#5e160c", ridge: "ne", gable: "#f3e4c2" },
+      story: 1.6,
+      door: "double", doorColor: "#1f3a2a",
+      windows: 4, windowColor: "#ffd87a",
+      trim: "#1f3a2a", trimRows: 5,
+      // Rooftop chimney is OFF — a bespoke stone side-chimney is drawn
+      // separately by HomesteadFlair so it dominates the silhouette.
+      chimney: false,
+      banner: { color: "#1f3a2a" },
+      inset: 0.10,
       noShadow: true,
-      porch: "grand", porchColor: "#8a5a2c",
+      porch: "grand", porchColor: "#1f3a2a",
     },
   },
   tent: {
@@ -1528,7 +1531,7 @@ function RanchYard({
   // Fence sits flush with the tile footprint; the building inside
   // is rendered at inset 0.17 so the ring between them is the yard.
   const outer = isoCorners(gridW, gridH, T, -0.02);
-  const inner = isoCorners(gridW, gridH, T, 0.17);
+  const inner = isoCorners(gridW, gridH, T, 0.10);
   const PICKET = "#efe2bf";
   const PICKET_SHADE = "#a89366";
   const RAIL = "#c9b282";
@@ -1832,6 +1835,174 @@ function RanchYard({
 
 
 // ──────────────────────────────────────────────────────────────
+// HomesteadFlair — bespoke overlays that give the homestead its
+// signature silhouette: a tall stone side-chimney rising past the
+// roofline, a front dormer with a lit window, and a ridge weather
+// vane. Drawn on top of the IsoBlock body.
+// ──────────────────────────────────────────────────────────────
+function HomesteadFlair({ gridW, gridH, T }: { gridW: number; gridH: number; T: number }) {
+  const c = isoCorners(gridW, gridH, T, 0.10);
+  const wallH = 1.6 * T; // must match VISUALS.homestead.story
+
+  // ── Stone side-chimney at the NE side of the house.
+  // Anchored on the ground at the midpoint of the NE wall (N→E),
+  // pushed slightly outward so it kisses the wall instead of
+  // poking through it. Rises past the roof ridge for impact.
+  const ne = mid(c.N, c.E);
+  // outward direction = away from building center
+  const outX = ne[0] - c.C[0], outY = ne[1] - c.C[1];
+  const outLen = Math.hypot(outX, outY) || 1;
+  const push = T * 0.18;
+  const chBase: P = [ne[0] + (outX / outLen) * push, ne[1] + (outY / outLen) * push];
+  const d = T * 0.55;   // chimney footprint half-diagonal
+  const H = wallH + T * 0.95; // taller than the roof peak
+
+  const fS: P = chBase;
+  const fW: P = [chBase[0] - d, chBase[1] - d / 2];
+  const fE: P = [chBase[0] + d, chBase[1] - d / 2];
+  const fN: P = [chBase[0],     chBase[1] - d];
+  const tS = lift(fS, H), tW = lift(fW, H), tE = lift(fE, H), tN = lift(fN, H);
+  const STONE_LIT2 = "#cdc3b5";
+  const STONE_MID  = "#9a9189";
+  const STONE_SHD  = "#6e655a";
+  const MORTAR = "#4a443a";
+
+  const chimney = (
+    <g>
+      {/* shadow on ground */}
+      <ellipse cx={chBase[0]} cy={chBase[1] + 1} rx={d * 1.3} ry={d * 0.45}
+        fill="rgba(0,0,0,0.32)" />
+      {/* SW face (lit stone) */}
+      <polygon points={poly(fS, fW, tW, tS)}
+        fill={STONE_MID} stroke={INK} strokeWidth={0.5} />
+      {/* SE face (shaded stone) */}
+      <polygon points={poly(fS, fE, tE, tS)}
+        fill={STONE_SHD} stroke={INK} strokeWidth={0.5} />
+      {/* random stone block pattern on SW face */}
+      {[0.18, 0.36, 0.56, 0.76].map((tt, i) => {
+        const a = lerp(fS, tS, tt), b = lerp(fW, tW, tt);
+        return <line key={`hw${i}`} x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]}
+          stroke={MORTAR} strokeWidth={0.4} />;
+      })}
+      {[0.18, 0.36, 0.56, 0.76].map((tt, i) => {
+        const a = lerp(fS, tS, tt), b = lerp(fE, tE, tt);
+        return <line key={`he${i}`} x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]}
+          stroke={MORTAR} strokeWidth={0.4} opacity={0.7} />;
+      })}
+      {/* offset stone joints */}
+      {[0.27, 0.46, 0.66].map((tt, i) => {
+        const a = lerp(fS, fW, 0.5), top = lerp(tS, tW, 0.5);
+        const p1 = lerp(a, top, tt);
+        return <line key={`vw${i}`} x1={p1[0] - 1.5} y1={p1[1] - 0.5}
+          x2={p1[0] - 1.5} y2={p1[1] - 4} stroke={MORTAR} strokeWidth={0.35} />;
+      })}
+      {/* cap rim (overhang) */}
+      {(() => {
+        const r = 1.6;
+        const rim = (p: P): P => [p[0], p[1] - r];
+        return (
+          <polygon points={poly(rim(tS), rim(tE), rim(tN), rim(tW))}
+            fill={STONE_LIT2} stroke={INK} strokeWidth={0.5} />
+        );
+      })()}
+      {/* top diamond (flue opening) */}
+      <polygon points={poly(tS, tE, tN, tW)}
+        fill={STONE_LIT2} stroke={INK} strokeWidth={0.5} />
+      <polygon points={poly(
+        lerp(tS, tN, 0.30),
+        lerp(tE, tW, 0.30),
+        lerp(tN, tS, 0.30),
+        lerp(tW, tE, 0.30),
+      )} fill="#1a1208" />
+      {/* wisp of smoke */}
+      <path d={`M ${(tS[0] + tN[0]) / 2} ${(tS[1] + tN[1]) / 2 - 2}
+                 q -3 -4 0 -7 q 3 -3 0 -6`}
+        stroke="rgba(220,220,220,0.55)" strokeWidth={1.4} fill="none" strokeLinecap="round" />
+      <path d={`M ${(tS[0] + tN[0]) / 2 + 1.5} ${(tS[1] + tN[1]) / 2 - 4}
+                 q -3 -3 0 -6`}
+        stroke="rgba(220,220,220,0.4)" strokeWidth={1.0} fill="none" strokeLinecap="round" />
+    </g>
+  );
+
+  // ── Front-facing dormer on the SW roof slope ──
+  // The SW roof slope runs from the eave (between S and W on the
+  // wall top) up to the ridge. Place the dormer at the midpoint of
+  // the SW eave, pushed slightly up the slope.
+  const swEaveMid = lift(mid(c.S, c.W), wallH);
+  const dormerBase: P = [swEaveMid[0], swEaveMid[1] - T * 0.25];
+  const dW = T * 0.55, dH = T * 0.45;
+  const dormer = (
+    <g>
+      {/* dormer side walls — small rectangle facing camera */}
+      <polygon points={poly(
+        [dormerBase[0] - dW / 2, dormerBase[1]],
+        [dormerBase[0] + dW / 2, dormerBase[1]],
+        [dormerBase[0] + dW / 2, dormerBase[1] - dH],
+        [dormerBase[0] - dW / 2, dormerBase[1] - dH],
+      )} fill="#f3e4c2" stroke={INK} strokeWidth={0.5} />
+      {/* dormer roof — small triangle peak */}
+      <polygon points={poly(
+        [dormerBase[0] - dW / 2 - 1, dormerBase[1] - dH],
+        [dormerBase[0] + dW / 2 + 1, dormerBase[1] - dH],
+        [dormerBase[0],              dormerBase[1] - dH - T * 0.30],
+      )} fill="#9a2a1c" stroke={INK} strokeWidth={0.5} />
+      {/* lit window */}
+      <rect x={dormerBase[0] - dW / 2 + 2} y={dormerBase[1] - dH + 2}
+        width={dW - 4} height={dH - 4}
+        fill="#ffd87a" stroke="#1f3a2a" strokeWidth={0.5} />
+      <line x1={dormerBase[0]} y1={dormerBase[1] - dH + 2}
+        x2={dormerBase[0]} y2={dormerBase[1] - 2}
+        stroke="#1f3a2a" strokeWidth={0.4} />
+      <line x1={dormerBase[0] - dW / 2 + 2} y1={dormerBase[1] - dH / 2}
+        x2={dormerBase[0] + dW / 2 - 2} y2={dormerBase[1] - dH / 2}
+        stroke="#1f3a2a" strokeWidth={0.4} />
+    </g>
+  );
+
+  // ── Weather vane on the ridge ──
+  // Approximate the ridge peak as lifted center-top of the building.
+  const ridgePeak: P = [c.C[0], c.C[1] - wallH - T * 0.85];
+  const vane = (
+    <g>
+      <line x1={ridgePeak[0]} y1={ridgePeak[1]}
+        x2={ridgePeak[0]} y2={ridgePeak[1] - T * 0.55}
+        stroke="#1a1208" strokeWidth={0.7} strokeLinecap="round" />
+      {/* directional N/E arrow + rooster silhouette */}
+      <polygon points={poly(
+        [ridgePeak[0] - 3.5, ridgePeak[1] - T * 0.45],
+        [ridgePeak[0] + 3.5, ridgePeak[1] - T * 0.45],
+        [ridgePeak[0] + 5,   ridgePeak[1] - T * 0.50],
+        [ridgePeak[0] + 3.5, ridgePeak[1] - T * 0.55],
+        [ridgePeak[0] - 3.5, ridgePeak[1] - T * 0.55],
+        [ridgePeak[0] - 5,   ridgePeak[1] - T * 0.50],
+      )} fill="#3a2210" stroke={INK} strokeWidth={0.4} />
+      {/* rooster on top */}
+      <ellipse cx={ridgePeak[0]} cy={ridgePeak[1] - T * 0.62}
+        rx={2.2} ry={1.5} fill="#3a2210" />
+      <line x1={ridgePeak[0] + 1.5} y1={ridgePeak[1] - T * 0.68}
+        x2={ridgePeak[0] + 3.2} y2={ridgePeak[1] - T * 0.78}
+        stroke="#3a2210" strokeWidth={0.7} />
+      <circle cx={ridgePeak[0] + 3.2} cy={ridgePeak[1] - T * 0.78} r={0.9} fill="#3a2210" />
+      <polygon points={`${ridgePeak[0] + 3.5},${ridgePeak[1] - T * 0.80}
+                        ${ridgePeak[0] + 4.2},${ridgePeak[1] - T * 0.78}
+                        ${ridgePeak[0] + 3.5},${ridgePeak[1] - T * 0.76}`}
+        fill="#c94a2a" />
+      {/* small star at base */}
+      <circle cx={ridgePeak[0]} cy={ridgePeak[1] - 0.5} r={1.2} fill="#e8c060" stroke={INK} strokeWidth={0.3} />
+    </g>
+  );
+
+  return (
+    <g>
+      {dormer}
+      {chimney}
+      {vane}
+    </g>
+  );
+}
+
+
+// ──────────────────────────────────────────────────────────────
 // Top-level dispatcher
 // ──────────────────────────────────────────────────────────────
 
@@ -1853,6 +2024,7 @@ export function IsoBuilding({
         <g>
           <RanchYard gridW={gridW} gridH={gridH} T={tile} layer="back" />
           <IsoBlock {...cfg} gridW={gridW} gridH={gridH} T={tile} />
+          <HomesteadFlair gridW={gridW} gridH={gridH} T={tile} />
           <RanchYard gridW={gridW} gridH={gridH} T={tile} layer="front" />
         </g>
       );
