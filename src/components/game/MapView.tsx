@@ -2172,6 +2172,7 @@ const StaticTileLayers = React.memo(function StaticTileLayers({ tiles, width, he
     }));
 
     (async () => {
+      await loadTileImages();
       const images: LayerImage[] = [];
       // Spatial lookup so we can blend tile edges against neighbors.
       const tileMap = new Map<string, Tile>();
