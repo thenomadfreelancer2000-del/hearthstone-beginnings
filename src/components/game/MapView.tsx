@@ -2851,7 +2851,7 @@ export function MapView() {
             ? `${(s.id.charCodeAt(0) % 6) * 0.7}s`
             : "0s";
           return (
-            <g key={s.id} style={{ pointerEvents: "all", cursor: "pointer" }} transform={`translate(${cx}, ${cy})`}>
+            <g key={s.id} style={{ pointerEvents: "all", cursor: "pointer" }} transform={isoUpright(cx, cy)}>
               {sel && (
                 <circle cx={0} cy={1} r={10} fill="none" stroke={PAL.gold} strokeWidth={1.3} strokeDasharray="2 2" />
               )}
