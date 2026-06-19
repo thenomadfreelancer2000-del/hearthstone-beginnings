@@ -2950,7 +2950,7 @@ export function MapView() {
               const conn = { n: !!nKind, e: !!eKind, s: !!sKind, w: !!wKind };
               const nbInfo = (k?: string) => (k ? { kind: k, tier: ROAD_TIER[k] ?? 1 } : undefined);
               const neighbors = { n: nbInfo(nKind), e: nbInfo(eKind), s: nbInfo(sKind), w: nbInfo(wKind) };
-              return (
+              entries.push({ sort: b.x + b.w + b.y + b.h, node: (
                 <g key={b.id}>
                   <RoadTile
                     x={tx * TILE} y={ty * TILE} t={TILE}
@@ -2962,7 +2962,8 @@ export function MapView() {
                       fill="none" stroke={PAL.gold} strokeWidth={1.5} strokeDasharray="3 2" />
                   )}
                 </g>
-              );
+              ) });
+              continue;
             }
 
             // Fences / walls / gates render per-tile with auto-connecting
