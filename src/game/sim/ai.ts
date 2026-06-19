@@ -471,13 +471,18 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
   // ── Farmer behavior: walk to the assigned farm plot and tend it visibly.
   // The engine handles plant/grow/harvest; this just shows the farmer on
   // their plot instead of wandering off to forage wild food nodes.
-  if (s.occupation === "farmer") {
+  //
+  // The assigned farmer (including the founder) ALSO helps build the plot
+  // when it isn't finished yet — otherwise a freshly-assigned founder would
+  // never move to a half-built field and would idle by the campfire.
+  const myAssignedPlot = deps.buildings.find(b =>
+    b.kind === "farm-plot" && b.farm?.assignedFarmerId === s.id,
+  ) ?? null;
+  if (s.occupation === "farmer" || myAssignedPlot) {
     let plot: Building | null =
-      deps.buildings.find(b =>
-        b.kind === "farm-plot" && b.builtProgress >= 1 && b.farm?.assignedFarmerId === s.id,
-      ) ?? null;
+      myAssignedPlot && myAssignedPlot.builtProgress >= 1 ? myAssignedPlot : null;
     if (!plot) {
-      // Fall back to any nearby farm plot that has no assigned farmer.
+      // Fall back to any nearby finished farm plot that has no assigned farmer.
       let bestD = Infinity;
       for (const b of deps.buildings) {
         if (b.kind !== "farm-plot" || b.builtProgress < 1 || !b.farm) continue;
@@ -486,6 +491,36 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
         const d = dist(s.x, s.y, cx, cy);
         if (d < bestD) { bestD = d; plot = b; }
       }
+    }
+    // Unfinished assigned plot: walk over and pitch in on construction so
+    // the founder (or any farmer) doesn't sit by the fire forever.
+    if (!plot && myAssignedPlot && myAssignedPlot.builtProgress < 1) {
+      const b = myAssignedPlot;
+      normalizeConstructionBuilding(b);
+      const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
+      s.workTarget = { kind: "building", id: b.id };
+      if (!hasConstructionResources(b)) {
+        s.action = `Waiting on materials for the ${b.kind}.`;
+        s.state = "idle";
+        return;
+      }
+      if (dist(s.x, s.y, cx, cy) < 1.6) {
+        const skillMult = 1 + (s.skills.build ?? 1) * 0.18;
+        const traitMult = traitWorkSpeed(s.traits);
+        const rivalMult = rivalryWorkMult(s, b, deps);
+        const mgrMult = managerBonus("head-builder", deps.ministers ?? [], deps.survivors);
+        const work = skillMult * 0.9 * traitMult * rivalMult * mgrMult * (dt / 24);
+        applyConstructionWork(b, work, deps.tick);
+        s.skills.build = Math.min(30, (s.skills.build ?? 1) + 0.002 * dt * learningRate(s.skills));
+        s.skills.building = s.skills.build;
+        s.state = "working";
+        s.action = `Breaking ground on the ${b.kind}.`;
+        if (s.isFounder) grantLeaderHelpOpinion(s, deps, dt, "farm");
+      } else {
+        setTarget(s, cx, cy);
+        s.action = `Walking to the ${b.kind} site.`;
+      }
+      return;
     }
     if (plot && plot.farm) {
       const cx = plot.x + plot.w / 2, cy = plot.y + plot.h / 2;
