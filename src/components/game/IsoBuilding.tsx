@@ -525,6 +525,9 @@ interface BlockProps {
   banner?: WallProps["banner"];
   chimney?: boolean;
   chimneyColor?: string;
+  noShadow?: boolean;
+  porch?: WallProps["porch"];
+  porchColor?: string;
 }
 
 function IsoBlock(props: BlockProps) {
@@ -540,7 +543,11 @@ function IsoBlock(props: BlockProps) {
         windows={props.windows} windowColor={props.windowColor}
         trim={props.trim} trimRows={props.trimRows ?? 0}
         banner={props.banner}
+        noShadow={props.noShadow}
+        porch={props.porch}
+        porchColor={props.porchColor}
       />
+
       <Roof corners={c} wallH={wallH} style={props.roof} T={props.T} />
       {props.chimney && <Chimney corners={c} wallH={wallH} color={props.chimneyColor} />}
     </g>
