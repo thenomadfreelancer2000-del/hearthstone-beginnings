@@ -1914,13 +1914,8 @@ function RanchYard({
       {/* benches flanking the porch */}
       {bench([benchA[0], benchA[1] - 1], "sw")}
       {bench([benchB[0], benchB[1] - 1], "se")}
-      {/* little flower garden by the steps */}
-      {gardenBed}
       {/* wood porch steps */}
       {stairs}
-      {/* flower boxes along the front fence */}
-      {flowerBox(sw_q1, T * 0.36, ["#d94a4a", "#f1c64a", "#e57ab3", "#f08a3a"])}
-      {flowerBox(sw_q2, T * 0.36, ["#e57ab3", "#d94a4a", "#f1c64a", "#a86ad6"])}
     </g>
   );
 }
