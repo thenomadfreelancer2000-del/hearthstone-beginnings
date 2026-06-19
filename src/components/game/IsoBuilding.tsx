@@ -161,7 +161,7 @@ function Roof({ corners, wallH, style, T }: {
           fill={style.shade} stroke={INK} strokeWidth={0.9} strokeLinejoin="round" />
         {/* Gable triangle */}
         <polygon points={poly(Eu, Su, ridgeB, ridgeA)}
-          fill={gableFill} stroke={INK} strokeWidth={0.8} opacity={0.85} />
+          fill={gableFill} stroke={INK} strokeWidth={0.8} />
         <line x1={ridgeA[0]} y1={ridgeA[1]} x2={ridgeB[0]} y2={ridgeB[1]}
           stroke={INK} strokeWidth={1} />
       </g>
