@@ -2,6 +2,11 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useGame } from "@/game/store";
 import { BUILDABLE_KINDS, BUILDINGS } from "@/game/data/content";
+import { useWorkshop } from "@/game/workshop/store";
+import { workshopKindOf, WORKSHOP_CATEGORIES, type WorkshopCategory } from "@/game/workshop/types";
+import { WorkshopPanel } from "./WorkshopPanel";
+import type { BuildingKind } from "@/game/types";
+
 
 export function BottomDock() {
   const [tab, setTab] = useState<"build" | "people" | "chronicle" | null>(null);
