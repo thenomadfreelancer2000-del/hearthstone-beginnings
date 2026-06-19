@@ -1180,7 +1180,9 @@ export const useGame = create<GameState>((set, get) => ({
       ministers: [],
       ministerRequests: [],
       ministerReports: [],
+      wornPaths: {},
     });
+
   },
 
   resumeFromSave: () => {
