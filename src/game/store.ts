@@ -152,6 +152,7 @@ interface GameState {
   cancelBuild: () => void;
   placeBuilding: (x: number, y: number) => boolean;
   setOccupation: (id: string, occ: Survivor["occupation"]) => void;
+  talkToSurvivor: (targetId: string, topic: import("./types").ChatTopic) => void;
   assignBuilder: (buildingId: ID, survivorId: ID | null) => void;
   autoAssignBuilder: (buildingId: ID) => void;
   setLeaderHelp: (mode: "build" | "farm", on: boolean) => void;
@@ -607,6 +608,34 @@ export const useGame = create<GameState>((set, get) => ({
       ),
     });
   },
+
+  talkToSurvivor: (targetId, topic) => {
+    const st = get();
+    const leaderId = st.currentLeaderId;
+    if (!leaderId || leaderId === targetId) return;
+    const leader = st.survivors.find(x => x.id === leaderId);
+    const target = st.survivors.find(x => x.id === targetId);
+    if (!leader || !target) return;
+    if (leader.health <= 0 || target.health <= 0) return;
+    set({
+      survivors: st.survivors.map(s =>
+        s.id === leaderId
+          ? {
+              ...s,
+              directive: {
+                kind: "talk" as const,
+                targetId,
+                topic,
+                issuedTick: st.time.tick,
+                phase: "going" as const,
+                talkStartTick: null,
+              },
+            }
+          : s
+      ),
+    });
+  },
+
 
   assignBuilder: (buildingId, survivorId) => {
     const st = get();

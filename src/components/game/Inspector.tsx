@@ -134,6 +134,11 @@ export function Inspector({ onHide }: { onHide?: () => void } = {}) {
           <p className="ranch-body italic text-dust-light text-xs mt-2 leading-snug">{s.action}</p>
         )}
 
+        {!isDead && !isLeader && (s.stage === "adult" || s.stage === "youth" || s.stage === "elder") && (
+          <TalkToBar targetId={s.id} targetName={s.name} />
+        )}
+
+
         {/* Tab nav */}
         <div className="mt-3 flex gap-0.5 overflow-x-auto scroll-amber border-b border-amber/30 shrink-0">
           {SURVIVOR_TABS.map((t) => (
@@ -1110,5 +1115,60 @@ function LeaderHelpToggles() {
         <Row id="farm" label="Help Farmers" hint="Gathers food alongside the workers. Lifts opinion of those nearby." />
       </div>
     </>
+  );
+}
+
+// ── Talk-To: leader-issued chat directive ───────────────────────
+function TalkToBar({ targetId, targetName }: { targetId: string; targetName: string }) {
+  const [open, setOpen] = useState(false);
+  const leaderId = useGame((s) => s.currentLeaderId);
+  const leader = useGame((s) => s.survivors.find(x => x.id === s.currentLeaderId));
+  const talk = useGame((s) => s.talkToSurvivor);
+  if (!leaderId || !leader || leader.health <= 0) return null;
+  const busy = leader.directive?.kind === "talk" && leader.directive.targetId === targetId;
+  const otherBusy = leader.directive?.kind === "talk" && leader.directive.targetId !== targetId;
+
+  const topics: { id: import("@/game/types").ChatTopic; label: string; hint: string }[] = [
+    { id: "joke",       label: "Tell a joke",   hint: "Light. Friendly love it; the bitter and paranoid resent it." },
+    { id: "smalltalk",  label: "Small talk",    hint: "Safe filler — small warmth all around." },
+    { id: "compliment", label: "Compliment",    hint: "Flattery. Honest souls find it hollow." },
+    { id: "serious",    label: "Serious talk",  hint: "Weighty. Principled & traditional respect it; the lazy resent it." },
+    { id: "vent",       label: "Listen to them",hint: "Hear them out. Big trust & belonging gain." },
+  ];
+
+  const choose = (t: import("@/game/types").ChatTopic) => {
+    talk(targetId, t);
+    setOpen(false);
+  };
+
+  return (
+    <div className="mt-2 border border-amber/30 bg-coal-dark/40 p-2">
+      <div className="flex items-center justify-between gap-2">
+        <span className="ranch-label text-[10px] text-amber">Leader → {targetName}</span>
+        <button
+          onClick={() => setOpen(v => !v)}
+          disabled={otherBusy}
+          className={`btn-ranch text-[10px] px-2 py-0.5 ${busy ? "btn-ranch-primary" : ""}`}
+          title={otherBusy ? "Leader is already talking with someone else." : ""}
+        >
+          {busy ? "On the way…" : otherBusy ? "Leader busy" : "💬 Talk to"}
+        </button>
+      </div>
+      {open && !otherBusy && (
+        <div className="mt-2 grid grid-cols-1 gap-1">
+          {topics.map(t => (
+            <button
+              key={t.id}
+              onClick={() => choose(t.id)}
+              className="btn-ranch text-[10px] py-1 text-left px-2"
+              title={t.hint}
+            >
+              <span className="text-parchment">{t.label}</span>
+              <span className="block text-dust-light text-[9px] italic leading-tight">{t.hint}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
