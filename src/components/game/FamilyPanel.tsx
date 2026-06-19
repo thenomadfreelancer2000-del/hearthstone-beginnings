@@ -196,7 +196,7 @@ function MemberRow({ s, isHead, isLeader, onClick }: { s: Survivor; isHead: bool
   );
 }
 
-function Stat({ label, v, tone }: { label: string; v: number; tone: string }) {
+function Stat({ label, v, tone }: { label: string; v: string | number; tone: string }) {
   return (
     <div className="border border-amber/20 p-1">
       <div className={`ranch-data text-base ${tone}`}>{v}</div>
