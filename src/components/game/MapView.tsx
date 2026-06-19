@@ -2233,13 +2233,17 @@ const StaticResourceLayer = React.memo(function StaticResourceLayer({ nodes }: {
       {nodes.map((n) => {
         if (n.amount <= 0) return null;
         const size = TILE * (n.kind === "trees" ? 1.3 : n.kind === "rocks" ? 1.05 : 0.95);
-        const cx = n.x * TILE + TILE / 2;
-        const cy = n.y * TILE + TILE / 2;
         const depleted = n.amount < 30;
         const seed = (n.x * 73856093) ^ (n.y * 19349663);
+        // Anchor at the south corner of the tile's iso diamond so trees
+        // and rocks visually stand on the front of the ground tile.
+        const anchorX = (n.x + 1) * TILE;
+        const anchorY = (n.y + 1) * TILE;
         return (
-          <g key={n.id} transform={`translate(${cx - size / 2}, ${cy - size / 2})`} opacity={depleted ? 0.6 : 1}>
-            <NodeArt kind={n.kind} size={size} seed={Math.abs(seed)} />
+          <g key={n.id} transform={isoUpright(anchorX, anchorY)} opacity={depleted ? 0.6 : 1}>
+            <g transform={`translate(${-size / 2}, ${-size})`}>
+              <NodeArt kind={n.kind} size={size} seed={Math.abs(seed)} />
+            </g>
           </g>
         );
       })}
