@@ -1241,7 +1241,9 @@ export const useGame = create<GameState>((set, get) => ({
       ministerReports: save.ministerReports ?? [],
       expeditions: save.expeditions ?? [],
       borderMode: false,
+      wornPaths: {},
     });
+
     return true;
   },
 
