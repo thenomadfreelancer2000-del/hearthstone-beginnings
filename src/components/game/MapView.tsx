@@ -2978,43 +2978,34 @@ export function MapView() {
                 : b.kind === "palisade" ? "dark"
                 : b.kind === "gate" ? "white"
                 : (b.fenceStyle ?? "natural");
-              const tiles: React.ReactNode[] = [];
-              const tileSort: { tx: number; ty: number; node: React.ReactNode }[] = [];
               for (let dy = 0; dy < b.h; dy++) {
                 for (let dx = 0; dx < b.w; dx++) {
                   const tx = b.x + dx;
                   const ty = b.y + dy;
-                  // For a single-tile wall, include self-tile connections
-                  // to its own footprint so multi-wide gates draw as a
-                  // continuous rail.
                   const conn: FenceConn = {
                     n: hasFence(tx, ty - 1),
                     e: hasFence(tx + 1, ty) || (dx + 1 < b.w),
                     s: hasFence(tx, ty + 1),
                     w: hasFence(tx - 1, ty) || dx > 0,
                   };
-                  tileSort.push({
-                    tx, ty,
-                    node: (
-                      <g key={`${tx},${ty}`}
-                         transform={`translate(${tx * TILE}, ${ty * TILE})`}>
-                        <FenceArt w={TILE} h={TILE} connections={conn} style={style} />
-                      </g>
-                    ),
-                  });
+                  // Per-tile sort key (matches a 1×1 building at this tile)
+                  // so trees and props in front of a long fence run can
+                  // correctly draw on top of it.
+                  entries.push({ sort: tx + ty + 2, node: (
+                    <g key={`${b.id}-${tx}-${ty}`}
+                       transform={`translate(${tx * TILE}, ${ty * TILE})`}>
+                      <FenceArt w={TILE} h={TILE} connections={conn} style={style} />
+                    </g>
+                  ) });
                 }
               }
-              tileSort.sort((a, c) => (a.tx + a.ty) - (c.tx + c.ty));
-              for (const t of tileSort) tiles.push(t.node);
-              return (
-                <g key={b.id}>
-                  {tiles}
-                  {sel && (
-                    <rect x={x + 1} y={y + 1} width={w - 2} height={h - 2}
-                      fill="none" stroke={PAL.gold} strokeWidth={1.5} strokeDasharray="3 2" />
-                  )}
-                </g>
-              );
+              if (sel) {
+                entries.push({ sort: b.x + b.w + b.y + b.h + 0.5, node: (
+                  <rect key={`${b.id}-sel`} x={x + 1} y={y + 1} width={w - 2} height={h - 2}
+                    fill="none" stroke={PAL.gold} strokeWidth={1.5} strokeDasharray="3 2" />
+                ) });
+              }
+              continue;
             }
 
             // Built building: selection halo stays in iso space (diamond
