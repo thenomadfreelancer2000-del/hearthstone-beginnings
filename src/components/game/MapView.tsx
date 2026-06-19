@@ -1492,9 +1492,11 @@ export function MapView() {
             );
           }
 
-          // Wall-like pieces are authored horizontally; rotate when placed tall.
-          const isWallLike = b.kind === "fence" || b.kind === "palisade" || b.kind === "stone-wall" || b.kind === "gate";
-          const vertical = isWallLike && h > w;
+          // 1x1 wall segments need neighbor-aware orientation; otherwise a
+          // vertical fenceline repeats the same horizontal sprite down the row.
+          const isWallLike = isWallLikeKind(b.kind);
+          const neighbors = wallNeighborCounts.get(b.id);
+          const vertical = isWallLike && (h > w || (!!neighbors && neighbors.vertical > neighbors.horizontal));
           return (
             <g key={b.id}>
               <g transform={vertical ? `translate(${x + w}, ${y}) rotate(90)` : `translate(${x}, ${y})`}>
