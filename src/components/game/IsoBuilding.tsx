@@ -1662,7 +1662,7 @@ export function IsoBuilding({
   // Special-case dispatchers first
   switch (kind) {
     case "homestead": {
-      const cfg = (VISUALS.homestead as { type: "block"; cfg: BlockProps }).cfg;
+      const cfg = (VISUALS.homestead as Extract<VisualKind, { type: "block" }>).cfg;
       return (
         <g>
           <RanchYard gridW={gridW} gridH={gridH} T={tile} layer="back" />
