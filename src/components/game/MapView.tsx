@@ -1986,16 +1986,28 @@ const StaticTileLayers = React.memo(function StaticTileLayers({ tiles, width, he
           ctx.strokeStyle = pal.detail;
           ctx.fillStyle = pal.detail;
           if (t.kind === "water") {
-            // Subtle wave highlights
+            // Curved wave highlights — varied, fewer than the old grid
             ctx.strokeStyle = pal.detail;
-            ctx.globalAlpha = 0.55;
+            ctx.globalAlpha = 0.5;
             ctx.lineWidth = 0.7;
-            for (const oy of [6, 14, 22]) {
-              const ox = (rand(t.x, t.y, oy) - 0.5) * 4;
+            const nWaves = 2 + Math.floor(rand(t.x, t.y, 3) * 2);
+            for (let i = 0; i < nWaves; i++) {
+              const wy = py + 4 + rand(t.x, t.y, 70 + i) * (TILE - 8);
+              const wx = px + 2 + rand(t.x, t.y, 80 + i) * (TILE * 0.4);
+              const wlen = 5 + rand(t.x, t.y, 90 + i) * 7;
               ctx.beginPath();
-              ctx.moveTo(px + 3 + ox, py + oy);
-              ctx.quadraticCurveTo(px + TILE / 2, py + oy - 1.5, px + TILE - 3 + ox, py + oy);
+              ctx.moveTo(wx, wy);
+              ctx.quadraticCurveTo(wx + wlen / 2, wy - 1.2, wx + wlen, wy);
               ctx.stroke();
+            }
+            // Tiny sun-sparkle dots — sparse, give the surface life
+            if (rand(t.x, t.y, 200) > 0.7) {
+              ctx.fillStyle = "#e8f4fa";
+              ctx.globalAlpha = 0.75;
+              const sx = px + 3 + rand(t.x, t.y, 201) * (TILE - 6);
+              const sy = py + 3 + rand(t.x, t.y, 202) * (TILE - 6);
+              ctx.fillRect(sx, sy, 1.2, 1.2);
+              ctx.fillRect(sx + 1.5, sy + 0.5, 0.8, 0.8);
             }
             ctx.globalAlpha = 1;
           } else if (t.kind === "grass" || t.kind === "tall-grass") {
