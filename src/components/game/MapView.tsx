@@ -279,31 +279,9 @@ function BuildingArt({ kind, w, h, farmStage, farmGrowth }: { kind: string; w: n
       );
     }
     case "fence": {
-      // TOP-DOWN: 4-way symmetric "+" of rails with corner posts. Reads the
-      // same in any orientation, so neighboring fences naturally form runs.
-      const cy = h / 2;
-      const railT = Math.max(1.4, Math.min(w, h) * 0.16); // rail thickness
-      const postS = Math.max(1.6, Math.min(w, h) * 0.18); // post side
-      const inset = Math.max(1.2, Math.min(w, h) * 0.12);
-      return (
-        <g>
-          {/* faint shadow under the whole tile */}
-          <rect x={inset} y={inset} width={w - inset * 2} height={h - inset * 2} fill={PAL.shadow} opacity={0.25} />
-          {/* horizontal rail */}
-          <rect x={0} y={cy - railT / 2} width={w} height={railT} fill="#8a5a30" stroke={PAL.ink} strokeWidth={0.4} />
-          <line x1={0} y1={cy} x2={w} y2={cy} stroke={PAL.inkSoft} strokeWidth={0.3} opacity={0.55} />
-          {/* vertical rail */}
-          <rect x={cx - railT / 2} y={0} width={railT} height={h} fill="#8a5a30" stroke={PAL.ink} strokeWidth={0.4} />
-          <line x1={cx} y1={0} x2={cx} y2={h} stroke={PAL.inkSoft} strokeWidth={0.3} opacity={0.55} />
-          {/* 4 corner posts (look like log ends from above) */}
-          {[[inset, inset], [w - inset - postS, inset], [inset, h - inset - postS], [w - inset - postS, h - inset - postS]].map(([px, py], i) => (
-            <g key={i}>
-              <rect x={px} y={py} width={postS} height={postS} rx={0.6} fill="#5a3820" stroke={PAL.ink} strokeWidth={0.5} />
-              <circle cx={px + postS / 2} cy={py + postS / 2} r={postS * 0.18} fill="#3d2810" opacity={0.7} />
-            </g>
-          ))}
-        </g>
-      );
+      // Standalone single-tile fence (used as fallback). Connected variants
+      // are rendered by <FenceArt> directly in the main map loop.
+      return <FenceArt w={w} h={h} connections={{ n: false, e: false, s: false, w: false }} style="natural" />;
     }
     case "palisade": {
       // TOP-DOWN: a ring of sharpened log-ends (circles with point dots).
