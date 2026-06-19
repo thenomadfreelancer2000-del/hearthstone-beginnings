@@ -2339,6 +2339,8 @@ const StaticTileLayers = React.memo(function StaticTileLayers({ tiles, width, he
         // ── Pass 3: per-tile details (tufts, pebbles, ripples)
         ctx.lineCap = "round";
         for (const t of chunkTiles) {
+          // Tiles backed by a hand-drawn image already include detail.
+          if (TILE_IMAGE_CACHE[t.kind]) continue;
           const px = t.x * TILE;
           const py = t.y * TILE;
           const pal = TILE_PAL[t.kind];
