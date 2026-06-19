@@ -353,7 +353,7 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
 
 
   if (s.stage === "child" || s.stage === "teen") {
-    if (s.state === "moving") { moveToward(s, dt); return; }
+    if (s.state === "moving") { moveToward(s, dt, deps); return; }
     if (s.needs.water < 28) {
       const w = nearestWater(s, deps.tiles, deps.mapW);
       if (w) {
