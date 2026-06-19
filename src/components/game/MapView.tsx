@@ -2913,7 +2913,7 @@ export function MapView() {
             // (renders as a diamond outline on the ground) plus an upright
             // progress label.
             if (!built) {
-              return (
+              entries.push({ sort: b.x + b.w + b.y + b.h, node: (
                 <g key={b.id} opacity={0.85}>
                   <rect x={x + 2} y={y + 2} width={w - 4} height={h - 4}
                     fill="rgba(60,42,16,0.55)" stroke="#8b6a1a" strokeWidth={1} strokeDasharray="3 2" />
@@ -2927,7 +2927,8 @@ export function MapView() {
                     </text>
                   </g>
                 </g>
-              );
+              ) });
+              continue;
             }
 
             // Fences render per-tile with auto-connecting variants.
