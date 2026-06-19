@@ -772,7 +772,7 @@ function ActivityGlyph({ survivor: s, partnerNearby }: {
   return null;
 }
 
-function _SurvivorArtSpacer() { return null;
+
 
 function SurvivorArtCore({ founder, dead, female, elderTint, pregnant }: { founder: boolean; dead: boolean; female: boolean; elderTint?: boolean; pregnant?: boolean }) {
   const skin = "#d9b48a";
