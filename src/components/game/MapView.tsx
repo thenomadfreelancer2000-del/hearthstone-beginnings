@@ -2936,18 +2936,21 @@ export function MapView() {
               const tx = b.x, ty = b.y;
               const here = b.kind;
               const tierHere = ROAD_TIER[here];
-              // Connect to any neighbor road, but the higher tier wins
-              // at the joint so seams read clean.
+              // Connect to any neighbor road. The renderer picks the
+              // higher tier at each joint so seams read clean.
               const nKind = roadAt.get(`${tx},${ty - 1}`);
               const eKind = roadAt.get(`${tx + 1},${ty}`);
               const sKind = roadAt.get(`${tx},${ty + 1}`);
               const wKind = roadAt.get(`${tx - 1},${ty}`);
               const conn = { n: !!nKind, e: !!eKind, s: !!sKind, w: !!wKind };
+              const nbInfo = (k?: string) => (k ? { kind: k, tier: ROAD_TIER[k] ?? 1 } : undefined);
+              const neighbors = { n: nbInfo(nKind), e: nbInfo(eKind), s: nbInfo(sKind), w: nbInfo(wKind) };
               return (
                 <g key={b.id}>
                   <RoadTile
                     x={tx * TILE} y={ty * TILE} t={TILE}
                     kind={here} tier={tierHere} connections={conn}
+                    neighbors={neighbors}
                   />
                   {sel && (
                     <rect x={tx * TILE + 1} y={ty * TILE + 1} width={TILE - 2} height={TILE - 2}
