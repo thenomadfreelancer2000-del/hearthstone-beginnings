@@ -624,15 +624,23 @@ export const useGame = create<GameState>((set, get) => ({
 
 
   setOccupation: (id, occ) => {
-    const st = get();
-    // Reassigning a job stops any prior building/farm/node task.
-    const buildings = releaseSurvivorFromAssignments(st.buildings, id);
-    set({
-      buildings,
-      survivors: st.survivors.map(s =>
-        s.id === id ? { ...clearSurvivorWorkState(s), occupation: occ } : s
-      ),
-    });
+    // Immer: only the targeted survivor + any building referencing them
+    // get new identities; everything else keeps its ref so useShallow
+    // selectors won't re-render unrelated subscribers.
+    set(produce(get(), (draft) => {
+      for (const b of draft.buildings) {
+        if (b.assignedBuilderId === id) { b.assignedBuilderId = null; b.stalledTicks = 0; }
+        if (b.assignedWorkerId === id) b.assignedWorkerId = null;
+        if (b.farm && b.farm.assignedFarmerId === id) b.farm.assignedFarmerId = null;
+      }
+      const s = draft.survivors.find(x => x.id === id);
+      if (s) {
+        s.workTarget = null;
+        s.commitment = null;
+        s.carrying = null;
+        s.occupation = occ;
+      }
+    }));
   },
 
   talkToSurvivor: (targetId, topic) => {
@@ -664,30 +672,32 @@ export const useGame = create<GameState>((set, get) => ({
 
 
   assignBuilder: (buildingId, survivorId) => {
-    const st = get();
-    // First release the new survivor from any prior job (and clear any old builder of this site).
-    const cleared = survivorId
-      ? releaseSurvivorFromAssignments(st.buildings, survivorId)
-      : st.buildings;
-    set({
-      buildings: cleared.map(b =>
-        b.id === buildingId ? { ...b, assignedBuilderId: survivorId, stalledTicks: 0 } : b
-      ),
-      survivors: survivorId
-        ? st.survivors.map(s => s.id === survivorId
-            ? {
-                ...s,
-                occupation: "builder" as const,
-                // Drop stale gather/haul state so they commit to the new site
-                // immediately instead of ping-ponging to the stockpile.
-                workTarget: { kind: "building" as const, id: buildingId },
-                carrying: null,
-                commitment: { kind: "construction" as const, buildingId, phase: "returning" as const, sinceTick: st.time.tick },
-              }
-            : s)
-        : st.survivors,
-      pendingBuildAssignment: st.pendingBuildAssignment === buildingId ? null : st.pendingBuildAssignment,
-    });
+    set(produce(get(), (draft) => {
+      if (survivorId) {
+        for (const b of draft.buildings) {
+          if (b.assignedBuilderId === survivorId) { b.assignedBuilderId = null; b.stalledTicks = 0; }
+          if (b.assignedWorkerId === survivorId) b.assignedWorkerId = null;
+          if (b.farm && b.farm.assignedFarmerId === survivorId) b.farm.assignedFarmerId = null;
+        }
+      }
+      const target = draft.buildings.find(b => b.id === buildingId);
+      if (target) {
+        target.assignedBuilderId = survivorId;
+        target.stalledTicks = 0;
+      }
+      if (survivorId) {
+        const s = draft.survivors.find(x => x.id === survivorId);
+        if (s) {
+          s.occupation = "builder";
+          // Drop stale gather/haul state so they commit to the new site
+          // immediately instead of ping-ponging to the stockpile.
+          s.workTarget = { kind: "building", id: buildingId };
+          s.carrying = null;
+          s.commitment = { kind: "construction", buildingId, phase: "returning", sinceTick: draft.time.tick };
+        }
+      }
+      if (draft.pendingBuildAssignment === buildingId) draft.pendingBuildAssignment = null;
+    }));
   },
 
   autoAssignBuilder: (buildingId) => {
@@ -728,8 +738,8 @@ export const useGame = create<GameState>((set, get) => ({
 
   closeBuildAssignment: () => set({ pendingBuildAssignment: null }),
 
-  setLeaderHelp: (mode, on) => set((st) => ({
-    leaderHelp: { ...st.leaderHelp, [mode]: on },
+  setLeaderHelp: (mode, on) => set(produce(get(), (draft) => {
+    draft.leaderHelp[mode] = on;
   })),
 
   configureFarm: (buildingId, cropId, farmerId) => {
@@ -894,57 +904,68 @@ export const useGame = create<GameState>((set, get) => ({
       }
     }
 
-    // ── Apply atomically: rebuild survivors + rebuild ALL occupantIds from homeIds ──
-    const survivors = st.survivors.map(s => {
-      if (s.id !== survivorId) return s;
-      if (!buildingId || !target) {
-        return { ...s, homeId: null };
+    // ── Apply atomically via Immer: only the moved survivor + any building
+    // whose occupantIds actually changes get new identities. Everything else
+    // keeps its ref, so useShallow subscribers don't re-render.
+    set(produce(st, (draft) => {
+      const s = draft.survivors.find(x => x.id === survivorId);
+      if (s) {
+        if (!buildingId || !target) {
+          s.homeId = null;
+        } else {
+          const prevKind = s.lastHomeKind ?? null;
+          const prevQ = prevKind ? (BUILDINGS[prevKind]?.housingQuality ?? 0) : 0;
+          const newQ = BUILDINGS[target.kind]?.housingQuality ?? 0;
+          const upgraded = newQ > prevQ;
+          const downgraded = newQ < prevQ && !!prevKind;
+          const newMemory = upgraded
+            ? { id: nanoid(6), tick: st.time.tick, year: st.time.year, season: st.time.season, day: st.time.day,
+                text: `The Founder gave us a ${BUILDINGS[target.kind]?.name ?? target.kind}.`,
+                emotion: "trust" as const, weight: 55, aboutSurvivorId: st.currentLeaderId,
+                kind: "housing-upgrade", floor: 12, decayRate: 0.4 }
+            : downgraded
+            ? { id: nanoid(6), tick: st.time.tick, year: st.time.year, season: st.time.season, day: st.time.day,
+                text: `Moved from our ${BUILDINGS[prevKind!]?.name ?? prevKind} to a ${BUILDINGS[target.kind]?.name ?? target.kind}.`,
+                emotion: "anger" as const, weight: 60, aboutSurvivorId: st.currentLeaderId,
+                kind: "housing-downgrade", floor: 20, decayRate: 0.3 }
+            : null;
+          s.homeId = buildingId;
+          s.lastHomeKind = target.kind;
+          if (upgraded) s.housingGratitude = (s.housingGratitude ?? 0) + 10;
+          if (newMemory) s.memories = [newMemory, ...s.memories].slice(0, 64);
+        }
       }
-      const prevKind = s.lastHomeKind ?? null;
-      const prevQ = prevKind ? (BUILDINGS[prevKind]?.housingQuality ?? 0) : 0;
-      const newQ = BUILDINGS[target.kind]?.housingQuality ?? 0;
-      const upgraded = newQ > prevQ;
-      const downgraded = newQ < prevQ && !!prevKind;
-      const newMemory = upgraded
-        ? { id: nanoid(6), tick: st.time.tick, year: st.time.year, season: st.time.season, day: st.time.day,
-            text: `The Founder gave us a ${BUILDINGS[target.kind]?.name ?? target.kind}.`,
-            emotion: "trust" as const, weight: 55, aboutSurvivorId: st.currentLeaderId,
-            kind: "housing-upgrade", floor: 12, decayRate: 0.4 }
-        : downgraded
-        ? { id: nanoid(6), tick: st.time.tick, year: st.time.year, season: st.time.season, day: st.time.day,
-            text: `Moved from our ${BUILDINGS[prevKind!]?.name ?? prevKind} to a ${BUILDINGS[target.kind]?.name ?? target.kind}.`,
-            emotion: "anger" as const, weight: 60, aboutSurvivorId: st.currentLeaderId,
-            kind: "housing-downgrade", floor: 20, decayRate: 0.3 }
-        : null;
-      return {
-        ...s,
-        homeId: buildingId,
-        lastHomeKind: target.kind,
-        housingGratitude: upgraded ? (s.housingGratitude ?? 0) + 10 : (s.housingGratitude ?? 0),
-        memories: newMemory ? [newMemory, ...s.memories].slice(0, 64) : s.memories,
-      };
-    });
 
-    // Rebuild every building's occupantIds from the canonical survivor.homeId.
-    // This guarantees occupantIds is always perfectly in sync after an assignment.
-    const occByHome = new Map<string, string[]>();
-    for (const s of survivors) {
-      if (s.health <= 0 || !s.homeId) continue;
-      const arr = occByHome.get(s.homeId) ?? [];
-      arr.push(s.id);
-      occByHome.set(s.homeId, arr);
-    }
-    const buildings = st.buildings.map(b =>
-      isResidential(b.kind)
-        ? { ...b, occupantIds: occByHome.get(b.id) ?? [] }
-        : b,
-    );
+      // Rebuild every residential building's occupantIds from the canonical
+      // survivor.homeId — but only assign when it actually differs so
+      // untouched buildings keep their identity.
+      const occByHome = new Map<string, string[]>();
+      for (const sv of draft.survivors) {
+        if (sv.health <= 0 || !sv.homeId) continue;
+        const arr = occByHome.get(sv.homeId) ?? [];
+        arr.push(sv.id);
+        occByHome.set(sv.homeId, arr);
+      }
+      for (const b of draft.buildings) {
+        if (!isResidential(b.kind)) continue;
+        const next = occByHome.get(b.id) ?? [];
+        const cur = b.occupantIds;
+        let same = cur.length === next.length;
+        if (same) {
+          for (let i = 0; i < cur.length; i++) {
+            if (cur[i] !== next[i]) { same = false; break; }
+          }
+        }
+        if (!same) b.occupantIds = next;
+      }
+    }));
 
-    set({ buildings, survivors });
-    const movedSurv = survivors.find(s => s.id === survivorId)!;
+    const after = get();
+    const movedSurv = after.survivors.find(s => s.id === survivorId)!;
     if (buildingId && target) {
-      console.log("[housing] assigned", movedSurv.name, "→", target.kind, target.id,
-        `occ ${(occByHome.get(buildingId) ?? []).length}/${BUILDINGS[target.kind]?.housingCapacity ?? 0}`);
+      const cap = BUILDINGS[target.kind]?.housingCapacity ?? 0;
+      const occCount = after.survivors.filter(o => o.homeId === buildingId && o.health > 0).length;
+      console.log("[housing] assigned", movedSurv.name, "→", target.kind, target.id, `occ ${occCount}/${cap}`);
       toast.success(`${movedSurv.name} moved into ${BUILDINGS[target.kind]?.name ?? target.kind}.`);
     } else {
       console.log("[housing] cleared home for", movedSurv.name);
@@ -953,12 +974,10 @@ export const useGame = create<GameState>((set, get) => ({
   },
 
   setHomeReserved: (buildingId, reserved) => {
-    const st = get();
-    set({
-      buildings: st.buildings.map(b =>
-        b.id === buildingId ? { ...b, reserved } : b
-      ),
-    });
+    set(produce(get(), (draft) => {
+      const b = draft.buildings.find(x => x.id === buildingId);
+      if (b) b.reserved = reserved;
+    }));
   },
 
   demolishBuilding: (buildingId) => {
@@ -1021,14 +1040,14 @@ export const useGame = create<GameState>((set, get) => ({
     set({ buildings, survivors });
   },
 
-  setPreferredHeir: (id) => set({ preferredHeirId: id }),
+  setPreferredHeir: (id) => set(produce(get(), (draft) => {
+    draft.preferredHeirId = id;
+  })),
   setEducationFocus: (childId, focus) => {
-    const st = get();
-    set({
-      survivors: st.survivors.map((s) =>
-        s.id === childId ? { ...s, educationFocus: focus } : s,
-      ),
-    });
+    set(produce(get(), (draft) => {
+      const s = draft.survivors.find(x => x.id === childId);
+      if (s) s.educationFocus = focus;
+    }));
   },
 
 
@@ -2209,12 +2228,10 @@ export const useGame = create<GameState>((set, get) => ({
   },
 
   setFenceStyle: (buildingId, style) => {
-    const st = get();
-    set({
-      buildings: st.buildings.map(b =>
-        b.id === buildingId && b.kind === "fence" ? { ...b, fenceStyle: style } : b,
-      ),
-    });
+    set(produce(get(), (draft) => {
+      const b = draft.buildings.find(x => x.id === buildingId);
+      if (b && b.kind === "fence") b.fenceStyle = style;
+    }));
   },
 
   appointMinister: (role, survivorId) => {
