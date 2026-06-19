@@ -6,7 +6,7 @@ import type {
 } from "../types";
 import {
   DAYS_PER_SEASON, SEASONS, TICKS_PER_DAY,
-  decayNeeds, tickSurvivor, touchRelationship, markAsSpouses, markAsKin,
+  decayNeeds, tickSurvivor, touchRelationship, markAsSpouses, markAsKin, workplaceSmallTalk,
   findRelationship, decayMemoriesDaily, opinionScore,
 } from "./ai";
 import { normalizeConstructionBuilding, recoverStalledConstruction } from "./construction";
