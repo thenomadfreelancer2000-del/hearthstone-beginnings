@@ -1675,11 +1675,26 @@ export function MapView() {
               if (dx * dx + dy * dy <= 2.6 * 2.6) { partner = o; break; }
             }
           }
+          // Coworker small-talk: when working, a nearby worker triggers a
+          // brief, intermittent speech bubble — without hiding the work icon.
+          let workMate: typeof survivors[number] | undefined;
+          if (!dead && s.state === "working") {
+            for (const o of survivors) {
+              if (o.id === s.id || o.health <= 0) continue;
+              if (o.state !== "working" && o.state !== "socializing") continue;
+              const dx = o.x - s.x, dy = o.y - s.y;
+              if (dx * dx + dy * dy <= 1.8 * 1.8) { workMate = o; break; }
+            }
+          }
           // Face the partner: mirror sprite if partner sits to the left.
           const faceLeft = partner ? (partner.x < s.x) : false;
           // Stagger speech-bubble timing so the conversation looks turn-based.
           const speakOffset = partner
             ? ((s.id < partner.id) ? "0s" : "1.4s")
+            : "0s";
+          // Stagger work small-talk by hashing id so coworkers don't sync.
+          const workTalkOffset = workMate
+            ? `${(s.id.charCodeAt(0) % 6) * 0.7}s`
             : "0s";
           return (
             <g key={s.id} style={{ pointerEvents: "all", cursor: "pointer" }} transform={`translate(${cx}, ${cy})`}>
@@ -1697,6 +1712,9 @@ export function MapView() {
                 <line x1={-4} y1={-3} x2={4} y2={3} stroke={PAL.ink} strokeWidth={0.8} />
               )}
               {!dead && <ActivityGlyph survivor={s} partnerNearby={!!partner} speakOffset={speakOffset} />}
+              {!dead && workMate && <WorkSmallTalkBubble begin={workTalkOffset} />}
+            </g>
+          );
             </g>
           );
         })}
