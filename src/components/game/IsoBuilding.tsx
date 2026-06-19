@@ -1,4 +1,7 @@
 import React from "react";
+import { getWorkshopVisual, workshopBaseKind, isWorkshopKind } from "@/game/workshop/registry";
+
+
 
 // ──────────────────────────────────────────────────────────────
 // Isometric building primitives + per-kind visual config.
