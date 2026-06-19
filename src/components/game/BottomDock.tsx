@@ -6,6 +6,7 @@ import { useWorkshop } from "@/game/workshop/store";
 import { workshopKindOf, WORKSHOP_CATEGORIES, type WorkshopCategory } from "@/game/workshop/types";
 import { WorkshopPanel } from "./WorkshopPanel";
 import type { BuildingKind } from "@/game/types";
+import { MoodFace } from "./MoodFace";
 
 
 export function BottomDock() {
