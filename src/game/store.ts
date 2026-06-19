@@ -738,8 +738,8 @@ export const useGame = create<GameState>((set, get) => ({
 
   closeBuildAssignment: () => set({ pendingBuildAssignment: null }),
 
-  setLeaderHelp: (mode, on) => set((st) => ({
-    leaderHelp: { ...st.leaderHelp, [mode]: on },
+  setLeaderHelp: (mode, on) => set(produce(get(), (draft) => {
+    draft.leaderHelp[mode] = on;
   })),
 
   configureFarm: (buildingId, cropId, farmerId) => {
