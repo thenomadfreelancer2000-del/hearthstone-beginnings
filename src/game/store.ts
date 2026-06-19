@@ -2254,6 +2254,15 @@ export const useGame = create<GameState>((set, get) => ({
     });
   },
 
+  setFenceStyle: (buildingId, style) => {
+    const st = get();
+    set({
+      buildings: st.buildings.map(b =>
+        b.id === buildingId && b.kind === "fence" ? { ...b, fenceStyle: style } : b,
+      ),
+    });
+  },
+
   appointMinister: (role, survivorId) => {
     const st = get();
     if (survivorId === st.founderId) {
