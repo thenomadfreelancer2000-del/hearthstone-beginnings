@@ -100,7 +100,7 @@ function Roof({ corners, wallH, style, T }: {
           fill={style.color} stroke={INK} strokeWidth={0.9} strokeLinejoin="round" />
         {/* NE slope (lit-mid) */}
         <polygon points={poly(Nu, Eu, apex)}
-          fill={style.color} stroke={INK} strokeWidth={0.9} strokeLinejoin="round" opacity={0.96} />
+          fill={style.color} stroke={INK} strokeWidth={0.9} strokeLinejoin="round" />
         {/* shingle hint lines on SW slope */}
         {[0.3, 0.55, 0.8].map((t, i) => (
           <line key={i}
