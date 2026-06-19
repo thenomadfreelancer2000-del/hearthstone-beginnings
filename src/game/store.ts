@@ -1795,16 +1795,16 @@ export const useGame = create<GameState>((set, get) => ({
 
     // Resolve any expeditions that returned during this advance.
     const expeditionPatch = resolveDueExpeditions(
-      get(), eng.time.tick, eng.time.year, eng.time.season, eng.time.day,
+      get(), next.time.tick, next.time.year, next.time.season, next.time.day,
     );
     if (expeditionPatch) set(expeditionPatch);
 
     // Toast newly-required player proposals.
     const prevPending = new Set(st.proposals.filter(p => p.requiresPlayer && p.status === "pending").map(p => p.id));
-    for (const p of eng.proposals) {
+    for (const p of next.proposals) {
       if (p.requiresPlayer && p.status === "pending" && !prevPending.has(p.id)) {
-        const a = eng.survivors.find(s => s.id === p.aId);
-        const b = eng.survivors.find(s => s.id === p.bId);
+        const a = next.survivors.find(s => s.id === p.aId);
+        const b = next.survivors.find(s => s.id === p.bId);
         if (a && b) toast(`Marriage proposal: ${a.name} & ${b.name}`, { description: "A House awaits your blessing." });
       }
     }
