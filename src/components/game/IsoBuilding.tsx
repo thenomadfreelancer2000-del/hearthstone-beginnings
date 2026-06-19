@@ -1661,6 +1661,16 @@ export function IsoBuilding({
 }) {
   // Special-case dispatchers first
   switch (kind) {
+    case "homestead": {
+      const cfg = (VISUALS.homestead as { type: "block"; cfg: BlockProps }).cfg;
+      return (
+        <g>
+          <RanchYard gridW={gridW} gridH={gridH} T={tile} layer="back" />
+          <IsoBlock {...cfg} gridW={gridW} gridH={gridH} T={tile} />
+          <RanchYard gridW={gridW} gridH={gridH} T={tile} layer="front" />
+        </g>
+      );
+    }
     case "campfire": return <IsoCampfire gridW={gridW} gridH={gridH} T={tile} />;
     case "well": return <IsoWell gridW={gridW} gridH={gridH} T={tile} />;
     case "stone-well": return <IsoWell gridW={gridW} gridH={gridH} T={tile} />;
