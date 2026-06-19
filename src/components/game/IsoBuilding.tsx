@@ -992,8 +992,39 @@ function IsoPasture({ gridW, gridH, T, kind }: { gridW: number; gridH: number; T
           })}
         </g>
       ))}
-      {/* gate gap on SW edge */}
-      <rect x={lerp(S, W, 0.5)[0] - 2} y={lerp(S, W, 0.5)[1] - 2.4} width={4} height={2.4} fill={grass} />
+      {/* GATE on SW edge — clear entrance marker for pens/pastures */}
+      {(() => {
+        const gm = lerp(S, W, 0.5);
+        const gl = lerp(S, W, 0.38);
+        const gr = lerp(S, W, 0.62);
+        const postH = 4.4;
+        return (
+          <g>
+            {/* knock-out the rails behind the gate */}
+            <rect x={gm[0] - 4} y={gm[1] - 2.4} width={8} height={2.4} fill={grass} />
+            {/* tall gate posts */}
+            <rect x={gl[0] - 0.6} y={gl[1] - postH} width={1.2} height={postH}
+              fill="#3d2810" stroke={INK} strokeWidth={0.4} />
+            <rect x={gr[0] - 0.6} y={gr[1] - postH} width={1.2} height={postH}
+              fill="#3d2810" stroke={INK} strokeWidth={0.4} />
+            {/* crossbar / lintel */}
+            <rect x={gl[0]} y={gl[1] - postH - 0.6}
+              width={gr[0] - gl[0]} height={1}
+              fill="#5a3820" stroke={INK} strokeWidth={0.4} />
+            {/* swung open gate panel */}
+            <polygon points={poly(
+              [gl[0] + 0.6, gl[1] - 0.2] as P,
+              [gl[0] + 3.2, gl[1] - 0.8] as P,
+              [gl[0] + 3.2, gl[1] - postH * 0.85] as P,
+              [gl[0] + 0.6, gl[1] - postH * 0.85 + 0.4] as P,
+            )} fill="#a87a3e" stroke={INK} strokeWidth={0.5} />
+            {/* gate plaque */}
+            <rect x={(gl[0] + gr[0]) / 2 - 1.6} y={gl[1] - postH - 0.4}
+              width={3.2} height={1.4} fill="#c9a06a" stroke={INK} strokeWidth={0.4} />
+          </g>
+        );
+      })()}
+
       {/* shed */}
       <g transform={`translate(${shedCenter[0]}, ${shedCenter[1]})`}>
         <rect x={-shedSize / 2} y={-shedSize * 0.4} width={shedSize} height={shedSize * 0.4}
