@@ -2228,12 +2228,10 @@ export const useGame = create<GameState>((set, get) => ({
   },
 
   setFenceStyle: (buildingId, style) => {
-    const st = get();
-    set({
-      buildings: st.buildings.map(b =>
-        b.id === buildingId && b.kind === "fence" ? { ...b, fenceStyle: style } : b,
-      ),
-    });
+    set(produce(get(), (draft) => {
+      const b = draft.buildings.find(x => x.id === buildingId);
+      if (b && b.kind === "fence") b.fenceStyle = style;
+    }));
   },
 
   appointMinister: (role, survivorId) => {
