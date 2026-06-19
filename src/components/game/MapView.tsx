@@ -1562,30 +1562,79 @@ export function MapView() {
 
 
 
+        {/* Conversation links — Sims-style "they're chatting" arcs */}
+        {(() => {
+          const links: { a: typeof survivors[number]; b: typeof survivors[number]; key: string }[] = [];
+          const seen = new Set<string>();
+          for (const a of survivors) {
+            if (a.health <= 0 || a.state !== "socializing") continue;
+            for (const b of survivors) {
+              if (b.id === a.id || b.health <= 0) continue;
+              if (b.state !== "socializing") continue;
+              const dx = b.x - a.x, dy = b.y - a.y;
+              if (dx * dx + dy * dy > 2.6 * 2.6) continue;
+              const k = a.id < b.id ? `${a.id}|${b.id}` : `${b.id}|${a.id}`;
+              if (seen.has(k)) continue;
+              seen.add(k);
+              links.push({ a, b, key: k });
+            }
+          }
+          return links.map(({ a, b, key }) => {
+            const ax = a.x * TILE + TILE / 2;
+            const ay = a.y * TILE + TILE / 2 - 6;
+            const bx = b.x * TILE + TILE / 2;
+            const by = b.y * TILE + TILE / 2 - 6;
+            const mx = (ax + bx) / 2;
+            const my = (ay + by) / 2 - 4;
+            return (
+              <g key={`talk-${key}`} pointerEvents="none">
+                <path d={`M${ax} ${ay} Q${mx} ${my} ${bx} ${by}`}
+                  fill="none" stroke="#c9a14a" strokeWidth={0.4}
+                  strokeDasharray="0.8 1.2" opacity={0.55} />
+              </g>
+            );
+          });
+        })()}
+
         {/* Survivors */}
-        {survivors.map((s) => {
+        {survivors.map((s, idx) => {
           const sel = selection.kind === "survivor" && selection.id === s.id;
           const cx = s.x * TILE + TILE / 2;
           const cy = s.y * TILE + TILE / 2;
           const dead = s.health <= 0;
           const sleeping = !dead && s.state === "resting";
-          // Detect "talking" — another survivor very close & both socializing/idle.
-          const partner = !dead && (s.state === "socializing")
-            ? survivors.find(o => o.id !== s.id && !(o.health <= 0)
-                && Math.abs(o.x - s.x) < 1.2 && Math.abs(o.y - s.y) < 1.2)
-            : undefined;
+          // Find a nearby chat partner (Sims-style pairing).
+          let partner: typeof survivors[number] | undefined;
+          if (!dead && s.state === "socializing") {
+            for (const o of survivors) {
+              if (o.id === s.id || o.health <= 0) continue;
+              if (o.state !== "socializing") continue;
+              const dx = o.x - s.x, dy = o.y - s.y;
+              if (dx * dx + dy * dy <= 2.6 * 2.6) { partner = o; break; }
+            }
+          }
+          // Face the partner: mirror sprite if partner sits to the left.
+          const faceLeft = partner ? (partner.x < s.x) : false;
+          // Stagger speech-bubble timing so the conversation looks turn-based.
+          const speakOffset = partner
+            ? ((s.id < partner.id) ? "0s" : "1.4s")
+            : "0s";
           return (
             <g key={s.id} style={{ pointerEvents: "all", cursor: "pointer" }} transform={`translate(${cx}, ${cy})`}>
               {sel && (
                 <circle cx={0} cy={1} r={10} fill="none" stroke={PAL.gold} strokeWidth={1.3} strokeDasharray="2 2" />
               )}
-              <g transform={sleeping ? "rotate(-78) translate(0,-1)" : undefined}>
+              <g transform={
+                sleeping
+                  ? "rotate(-78) translate(0,-1)"
+                  : (faceLeft ? "scale(-1,1)" : undefined)
+              }>
                 <SurvivorArt founder={!!s.isFounder} dead={dead} female={s.gender === "f"} stage={s.stage} pregnant={!!s.pregnant} />
               </g>
               {dead && (
                 <line x1={-4} y1={-3} x2={4} y2={3} stroke={PAL.ink} strokeWidth={0.8} />
               )}
-              {!dead && <ActivityGlyph survivor={s} partnerNearby={!!partner} />}
+              {!dead && <ActivityGlyph survivor={s} partnerNearby={!!partner} speakOffset={speakOffset} />}
             </g>
           );
         })}
