@@ -1104,19 +1104,20 @@ const VISUALS: Record<string, VisualKind> = {
   homestead: {
     type: "block",
     cfg: {
-      walls: { lit: PLANK_LIT, shade: PLANK_SHADE },
-      roof: { type: "gable", color: ROOF_RUST, shade: ROOF_RUST_SHADE, ridge: "ne", gable: "#c9a06a" },
-      story: 1.5,
-      door: "double", doorColor: TRIM_DARK,
-      windows: 2, windowColor: WINDOW_WARM,
-      trim: TRIM_DARK, trimRows: 3,
-      chimney: true, chimneyColor: "#6a594a",
-      banner: { color: "#7a3a2a" },
-      inset: 0.08,
+      walls: { lit: "#d8b079", shade: "#8a5a2c" },
+      roof: { type: "gable", color: "#8a3a22", shade: "#5a2010", ridge: "ne", gable: "#e7c693" },
+      // 10% smaller overall vs the previous pass (story 1.5 → 1.35,
+      // footprint inset 0.08 → 0.17 so each side pulls in ~9%).
+      story: 1.35,
+      door: "double", doorColor: "#3a2410",
+      windows: 3, windowColor: "#ffd87a",
+      trim: "#3d2810", trimRows: 4,
+      chimney: true, chimneyColor: "#7a5a48",
+      banner: { color: "#a6432a" },
+      inset: 0.17,
       noShadow: true,
-      porch: "grand", porchColor: "#7a5028",
+      porch: "grand", porchColor: "#8a5a2c",
     },
-
   },
   tent: {
     type: "block",
