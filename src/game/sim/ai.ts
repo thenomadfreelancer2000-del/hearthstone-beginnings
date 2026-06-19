@@ -43,6 +43,8 @@ const PASSABLE_BUILDINGS = new Set<string>([
   "campfire", "stockpile", "food-stockpile", "well", "stone-well", "deep-well",
   "water-collector", "water-barrel", "field", "large-field", "farm-plot",
   "orchard", "foraging-camp", "workbench",
+  // Gates are walk-through openings in a fence run.
+  "gate",
   // Roads — survivors walk on them, they never block.
   "dirt-path", "dirt-road", "gravel-road", "paved-road", "stone-road",
 ]);
@@ -74,10 +76,13 @@ function tileAt(tiles: Tile[], mapW: number, gx: number, gy: number): Tile | und
   return tiles[gy * mapW + gx];
 }
 
+const FENCE_KINDS = new Set<string>(["fence", "palisade", "stone-wall"]);
+
 function isBlocked(
   x: number, y: number,
   deps: { tiles: Tile[]; mapW: number; buildings: Building[]; nodes: ResourceNode[] },
   allowBuildingId?: string,
+  ignoreFences?: boolean,
 ): boolean {
   const t = tileAt(deps.tiles, deps.mapW, Math.floor(x), Math.floor(y));
   if (t) {
@@ -87,6 +92,7 @@ function isBlocked(
     if (b.id === allowBuildingId) continue;
     if (PASSABLE_BUILDINGS.has(b.kind)) continue;
     if (b.builtProgress < 1) continue; // ghosts/under-construction don't block
+    if (ignoreFences && FENCE_KINDS.has(b.kind)) continue;
     if (buildingContains(b, x, y, -0.1)) return true;
   }
   for (const n of deps.nodes) {
@@ -167,8 +173,19 @@ function moveToward(s: Survivor, dt: number, deps?: SimDeps) {
           if (!isBlocked(detourX, detourY, deps, allow)) {
             nx = detourX; ny = detourY;
           } else {
-            // Stuck — hold position
-            return;
+            // Last resort: survivor is boxed in (e.g. fully fenced
+            // homestead with no gate). Allow them to slip through
+            // fence/wall tiles so they don't freeze forever.
+            if (!isBlocked(nx, ny, deps, allow, true)) {
+              // proceed through fence
+            } else if (!isBlocked(s.x + Math.sign(dx) * speed, s.y, deps, allow, true)) {
+              nx = s.x + Math.sign(dx) * speed; ny = s.y;
+            } else if (!isBlocked(s.x, s.y + Math.sign(dy) * speed, deps, allow, true)) {
+              nx = s.x; ny = s.y + Math.sign(dy) * speed;
+            } else {
+              // Truly stuck — hold position
+              return;
+            }
           }
         }
       }
