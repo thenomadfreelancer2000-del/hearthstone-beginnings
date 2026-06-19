@@ -37,7 +37,7 @@ const TILE_PAL: Record<Tile["kind"], { base: string; alt: string; detail: string
   dirt:         { base: "#94632a", alt: "#a17132", detail: "#b88947" },
   forest:       { base: "#3e5c2a", alt: "#476833", detail: "#5e8240" },
   stone:        { base: "#8a8278", alt: "#9a9388", detail: "#b0a89c" },
-  water:        { base: "#4a7a96", alt: "#5589a6", detail: "#9ec6db" },
+  water:        { base: "#2e5874", alt: "#3a6a86", detail: "#a8d0e0" },
   road:         { base: "#6b4a26", alt: "#78532b", detail: "#8a6432" },
   ruin:         { base: "#5c4d3a", alt: "#6a5944", detail: "#8a7558" },
 };
