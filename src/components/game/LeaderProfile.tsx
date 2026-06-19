@@ -39,6 +39,8 @@ export function LeaderProfile({ dockOpen = false }: LeaderProfileProps) {
               alt={`${leader.name} ${leader.surname}`}
               width={160}
               height={160}
+              loading="lazy"
+              decoding="async"
               className="w-full h-full object-cover pointer-events-none"
             />
           ) : (

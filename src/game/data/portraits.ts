@@ -1,19 +1,19 @@
-import m1 from "@/assets/portraits/m1.jpg";
-import m2 from "@/assets/portraits/m2.jpg";
-import m3 from "@/assets/portraits/m3.jpg";
-import m4 from "@/assets/portraits/m4.jpg";
-import m5 from "@/assets/portraits/m5.jpg";
-import m6 from "@/assets/portraits/m6.jpg";
-import m7 from "@/assets/portraits/m7.jpg";
-import m8 from "@/assets/portraits/m8.jpg";
-import f1 from "@/assets/portraits/f1.jpg";
-import f2 from "@/assets/portraits/f2.jpg";
-import f3 from "@/assets/portraits/f3.jpg";
-import f4 from "@/assets/portraits/f4.jpg";
-import f5 from "@/assets/portraits/f5.jpg";
-import f6 from "@/assets/portraits/f6.jpg";
-import f7 from "@/assets/portraits/f7.jpg";
-import f8 from "@/assets/portraits/f8.jpg";
+import m1 from "@/assets/portraits/m1.webp";
+import m2 from "@/assets/portraits/m2.webp";
+import m3 from "@/assets/portraits/m3.webp";
+import m4 from "@/assets/portraits/m4.webp";
+import m5 from "@/assets/portraits/m5.webp";
+import m6 from "@/assets/portraits/m6.webp";
+import m7 from "@/assets/portraits/m7.webp";
+import m8 from "@/assets/portraits/m8.webp";
+import f1 from "@/assets/portraits/f1.webp";
+import f2 from "@/assets/portraits/f2.webp";
+import f3 from "@/assets/portraits/f3.webp";
+import f4 from "@/assets/portraits/f4.webp";
+import f5 from "@/assets/portraits/f5.webp";
+import f6 from "@/assets/portraits/f6.webp";
+import f7 from "@/assets/portraits/f7.webp";
+import f8 from "@/assets/portraits/f8.webp";
 
 export type Ethnicity = "white" | "arab" | "black" | "chinese";
 
