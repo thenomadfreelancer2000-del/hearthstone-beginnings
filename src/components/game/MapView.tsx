@@ -635,6 +635,25 @@ function SurvivorArt({ founder, dead, female, stage, pregnant }: { founder: bool
 // Shows what they're doing right now: ZZZ for sleep, fork for eating,
 // droplet for drinking, hammer/sickle/axe/pick for working, speech
 // bubble for socializing. Pure SVG, no extra deps.
+// Brief on/off speech bubble for coworkers chatting *while* they work.
+// Sits to the upper-right of the work glyph so it doesn't replace it,
+// and stays visible only ~0.9s every 6s so it reads as "small talk".
+function WorkSmallTalkBubble({ begin }: { begin: string }) {
+  return (
+    <g transform="translate(4 -10)" pointerEvents="none">
+      <path d="M-2 -1.3 Q-2 -2.2 -1.2 -2.2 L1.3 -2.2 Q2.1 -2.2 2.1 -1.3 L2.1 0.3 Q2.1 1.2 1.3 1.2 L-0.1 1.2 L-0.7 2 L-0.9 1.2 L-1.2 1.2 Q-2 1.2 -2 0.3 Z"
+            fill="#f1e2bf" stroke={PAL.ink} strokeWidth={0.3} />
+      <circle cx={-0.7} cy={-0.5} r={0.22} fill={PAL.ink} />
+      <circle cx={0.25} cy={-0.5} r={0.22} fill={PAL.ink} />
+      <circle cx={1.2}  cy={-0.5} r={0.22} fill={PAL.ink} />
+      <animate attributeName="opacity"
+        values="0;0;1;1;0;0"
+        keyTimes="0;0.05;0.1;0.25;0.3;1"
+        dur="6s" begin={begin} repeatCount="indefinite" />
+    </g>
+  );
+}
+
 function ActivityGlyph({ survivor: s, partnerNearby, speakOffset = "0s" }: {
   survivor: import("@/game/types").Survivor;
   partnerNearby: boolean;
