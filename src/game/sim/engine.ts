@@ -6,7 +6,7 @@ import type {
 } from "../types";
 import {
   DAYS_PER_SEASON, SEASONS, TICKS_PER_DAY,
-  decayNeeds, tickSurvivor, touchRelationship, markAsSpouses, markAsKin,
+  decayNeeds, tickSurvivor, touchRelationship, markAsSpouses, markAsKin, workplaceSmallTalk,
   findRelationship, decayMemoriesDaily, opinionScore,
 } from "./ai";
 import { normalizeConstructionBuilding, recoverStalledConstruction } from "./construction";
@@ -176,6 +176,8 @@ export function advance(eng: Engine, n: number, opts?: { onArrival?: (s: Survivo
       if (s.health <= 0) continue;
       if (!eng.foundingPhase) decayNeeds(s, dt);
       tickSurvivor(s, dt, deps);
+      // Coworkers chat *while* they work — no state change, no stall.
+      if (s.state === "working") workplaceSmallTalk(s, dt, deps);
     }
 
     recoverStalledConstruction(eng.buildings, eng.survivors, eng.time.tick, previousConstructionEffort);

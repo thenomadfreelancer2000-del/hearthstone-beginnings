@@ -700,6 +700,41 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
   }
 }
 
+// ── Workplace small talk ─────────────────────────────────────────
+// Called after tickSurvivor when the survivor stayed in "working" state.
+// Coworkers within ~1.8 tiles trade quiet small talk: tiny relationship
+// gains, occasional flavor in s.action, and a transient speech bubble in
+// the UI. Crucially: no state change, no task interruption, no stall.
+export function workplaceSmallTalk(s: Survivor, dt: number, deps: SimDeps) {
+  // Limit to one chat partner per tick so big crews don't snowball relations.
+  let partner: Survivor | null = null;
+  let bestD = 1.8;
+  for (const o of deps.survivors) {
+    if (o.id === s.id) continue;
+    if (o.health <= 0) continue;
+    if (o.state !== "working" && o.state !== "socializing") continue;
+    const d = dist(s.x, s.y, o.x, o.y);
+    if (d < bestD) { bestD = d; partner = o; }
+  }
+  if (!partner) return;
+  const bias = traitPairBias(s.traits, partner.traits);
+  const existing = findRelationship(deps.relationships, s.id, partner.id);
+  const existingScore = existing ? opinionScore(existing) : 0;
+  const friendMult = existingScore >= 60 ? 1.4 : existingScore >= 30 ? 1.15 : 1.0;
+  // ~1/5 of the campfire rate — they're working, not talking full time.
+  touchRelationship(deps.relationships, s.id, partner.id, {
+    affection: ((+0.005 + bias * 0.003) * friendMult) * dt,
+    trust: +0.002 * friendMult * dt,
+    friendship: (+0.007 + bias * 0.002) * friendMult * dt,
+    respect: +0.002 * dt,
+    rivalry: bias < -0.6 || existingScore <= -60 ? +0.005 * dt : 0,
+  });
+  // Tiny belonging trickle — being around people while you work matters.
+  s.needs.belonging = Math.min(100, s.needs.belonging + 0.04 * dt / 24);
+}
+
+
+
 // ── Construction commitment handler ──────────────────────────────
 // Returns true if the commitment fully handled this tick (caller should return).
 // Assigned builders only break off for *critical* food/water/rest, then
