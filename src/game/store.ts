@@ -100,11 +100,14 @@ interface GameState {
   ministerRequests: MinisterRequest[];
   ministerReports: MinisterReport[];
 
-
+  /** Per-tile foot-traffic counter, keyed "x,y". Tiles above a threshold are
+   *  drawn as procedural worn footpaths and may auto-upgrade to dirt paths. */
+  wornPaths: Record<string, number>;
 
 
   selection: Selection;
   buildPlacement: BuildPlacement;
+
 
   // Arrival event (transient — pauses the simulation while open)
   pendingArrival: ArrivalEvent | null;
