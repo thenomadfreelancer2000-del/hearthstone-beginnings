@@ -2917,11 +2917,8 @@ export function MapView() {
             const tx = Number(sx), ty = Number(sy);
             if (!Number.isFinite(tx) || !Number.isFinite(ty)) continue;
             // Don't draw under a road or building footprint.
-            const covered = buildings.some(b =>
-              b.builtProgress >= 1 &&
-              tx >= b.x && tx < b.x + b.w && ty >= b.y && ty < b.y + b.h,
-            );
-            if (covered) continue;
+            if (builtTiles.has(`${tx},${ty}`)) continue;
+
             const t = Math.min(1, (w - PATH_MIN) / (PATH_FULL - PATH_MIN));
             out.push(
               <g key={key} transform={`translate(${tx * TILE}, ${ty * TILE})`} opacity={0.25 + t * 0.5}>
