@@ -791,6 +791,264 @@ function BuildingArt({ kind, w, h, farmStage, farmGrowth }: { kind: string; w: n
         </g>
       );
     }
+    // ── Housing: tent variants ────────────────────────────────────
+    case "tent":
+    case "family-tent": {
+      const big = kind === "family-tent";
+      const pad = Math.max(1.5, w * 0.08);
+      const yx = pad, yy = pad;
+      const yw = w - pad * 2, yh = h - pad * 2;
+      const peakX = yx + yw / 2;
+      const peakY = yy + yh * 0.08;
+      return (
+        <g>
+          <ellipse cx={cx} cy={h - 1.5} rx={w * 0.45} ry={2.5} fill={PAL.shadow} />
+          {/* trampled dirt yard */}
+          <rect x={yx} y={yy} width={yw} height={yh} rx={2} fill="#5a4a2a" stroke={PAL.ink} strokeWidth={0.6} opacity={0.7} />
+          {/* tent body — diamond top-down */}
+          <polygon points={`${peakX},${peakY} ${yx + yw - pad * 0.5},${yy + yh * 0.5} ${peakX},${yy + yh - pad * 0.5} ${yx + pad * 0.5},${yy + yh * 0.5}`}
+            fill={big ? "#a87a3e" : "#8a6a3a"} stroke={PAL.ink} strokeWidth={1.1} />
+          {/* ridge seams from peak */}
+          <line x1={peakX} y1={peakY} x2={yx + pad * 0.5} y2={yy + yh * 0.5} stroke={PAL.inkSoft} strokeWidth={0.6} opacity={0.75} />
+          <line x1={peakX} y1={peakY} x2={yx + yw - pad * 0.5} y2={yy + yh * 0.5} stroke={PAL.inkSoft} strokeWidth={0.6} opacity={0.75} />
+          <line x1={peakX} y1={peakY} x2={peakX} y2={yy + yh - pad * 0.5} stroke={PAL.inkSoft} strokeWidth={0.6} opacity={0.75} />
+          {/* shaded half */}
+          <polygon points={`${peakX},${peakY} ${peakX},${yy + yh - pad * 0.5} ${yx + pad * 0.5},${yy + yh * 0.5}`}
+            fill="#000" opacity={0.18} />
+          {/* door flap on south */}
+          <polygon points={`${peakX - w * 0.07},${yy + yh - pad * 0.5} ${peakX},${yy + yh * 0.62} ${peakX + w * 0.07},${yy + yh - pad * 0.5}`}
+            fill="#3d2810" stroke={PAL.ink} strokeWidth={0.5} />
+          {/* tent peg dots */}
+          {[[yx, yy], [yx + yw, yy], [yx, yy + yh], [yx + yw, yy + yh]].map(([px, py], i) => (
+            <circle key={i} cx={px} cy={py} r={0.7} fill={PAL.ink} />
+          ))}
+          {/* second tent if family */}
+          {big && (
+            <circle cx={peakX} cy={peakY} r={1.4} fill="#d4a93a" stroke={PAL.ink} strokeWidth={0.4} />
+          )}
+        </g>
+      );
+    }
+
+    // ── Housing: cabin variants ───────────────────────────────────
+    case "cabin":
+    case "family-cabin":
+    case "guest-house": {
+      const pad = Math.max(1.5, w * 0.06);
+      const yx = pad, yy = pad;
+      const yw = w - pad * 2, yh = h - pad * 2;
+      const wallY = yy + yh * 0.32;
+      return (
+        <g>
+          <ellipse cx={cx} cy={h - 1.5} rx={w * 0.45} ry={3} fill={PAL.shadow} />
+          {/* yard */}
+          <rect x={yx} y={yy} width={yw} height={yh} rx={2} fill="#566432" stroke={PAL.ink} strokeWidth={0.6} opacity={0.75} />
+          {/* log walls */}
+          <rect x={yx + pad * 0.3} y={wallY} width={yw - pad * 0.6} height={yh - (wallY - yy) - pad * 0.3}
+            fill="#8a5a30" stroke={PAL.ink} strokeWidth={1} />
+          {/* log seams */}
+          {[0.55, 0.72, 0.88].map((t, i) => (
+            <line key={i} x1={yx + pad * 0.5} y1={yy + yh * t}
+              x2={yx + yw - pad * 0.5} y2={yy + yh * t} stroke={PAL.inkSoft} strokeWidth={0.4} opacity={0.55} />
+          ))}
+          {/* door */}
+          <rect x={cx - w * 0.06} y={yy + yh * 0.74} width={w * 0.12} height={yh * 0.24}
+            fill="#3d2810" stroke={PAL.ink} strokeWidth={0.5} />
+          {/* small window */}
+          <rect x={cx - w * 0.22} y={yy + yh * 0.5} width={w * 0.1} height={yh * 0.1}
+            fill="#d9c98a" stroke={PAL.ink} strokeWidth={0.4} />
+          {/* pitched roof */}
+          <polygon points={`${yx},${wallY + 1} ${cx},${yy + 0.5} ${yx + yw},${wallY + 1}`}
+            fill="#4a2f18" stroke={PAL.ink} strokeWidth={1.1} />
+          <polygon points={`${yx + 1.2},${wallY} ${cx},${yy + 2.5} ${yx + yw - 1.2},${wallY}`}
+            fill="#5a3820" opacity={0.55} />
+          <line x1={cx} y1={yy + 0.5} x2={cx} y2={wallY} stroke="#2a1808" strokeWidth={0.6} opacity={0.7} />
+          {/* chimney */}
+          <rect x={yx + yw * 0.7} y={yy + yh * 0.05} width={w * 0.07} height={yh * 0.22}
+            fill="#6e6258" stroke={PAL.ink} strokeWidth={0.5} />
+        </g>
+      );
+    }
+
+    // ── Housing: house variants ───────────────────────────────────
+    case "house":
+    case "family-house":
+    case "large-house":
+    case "orphan-house":
+    case "elder-house": {
+      const big = kind === "large-house" || kind === "orphan-house";
+      const pad = Math.max(1.5, w * 0.05);
+      const yx = pad, yy = pad;
+      const yw = w - pad * 2, yh = h - pad * 2;
+      const wallY = yy + yh * 0.3;
+      const porchH = yh * 0.12;
+      return (
+        <g>
+          <ellipse cx={cx} cy={h - 1.5} rx={w * 0.46} ry={3} fill={PAL.shadow} />
+          {/* yard */}
+          <rect x={yx} y={yy} width={yw} height={yh} rx={2}
+            fill={big ? "#566432" : "#5e6a36"} stroke={PAL.ink} strokeWidth={0.6} opacity={0.75} />
+          {/* walls */}
+          <rect x={yx + pad * 0.4} y={wallY} width={yw - pad * 0.8} height={yh - (wallY - yy) - porchH - pad * 0.2}
+            fill={big ? "#b0784a" : "#9a6c40"} stroke={PAL.ink} strokeWidth={1} />
+          {/* clapboard seams */}
+          {[0.5, 0.62, 0.74].map((t, i) => (
+            <line key={i} x1={yx + pad * 0.6} y1={yy + yh * t}
+              x2={yx + yw - pad * 0.6} y2={yy + yh * t}
+              stroke={PAL.inkSoft} strokeWidth={0.35} opacity={0.45} />
+          ))}
+          {/* porch */}
+          <rect x={yx + yw * 0.2} y={yy + yh - porchH - pad * 0.2} width={yw * 0.6} height={porchH}
+            fill="#a87a3e" stroke={PAL.ink} strokeWidth={0.7} />
+          {/* porch posts */}
+          <rect x={yx + yw * 0.21} y={yy + yh - porchH - pad * 0.6} width={1} height={porchH + pad * 0.4} fill="#5a3820" />
+          <rect x={yx + yw * 0.79 - 1} y={yy + yh - porchH - pad * 0.6} width={1} height={porchH + pad * 0.4} fill="#5a3820" />
+          {/* door */}
+          <rect x={cx - w * 0.06} y={yy + yh - porchH - pad * 0.2 - yh * 0.18} width={w * 0.12} height={yh * 0.18}
+            fill="#3d2810" stroke={PAL.ink} strokeWidth={0.5} />
+          {/* windows */}
+          {[0.22, 0.78].map((t, i) => (
+            <g key={i}>
+              <rect x={yx + yw * t - w * 0.06} y={yy + yh * 0.45} width={w * 0.12} height={yh * 0.12}
+                fill="#d9c98a" stroke={PAL.ink} strokeWidth={0.4} />
+              <line x1={yx + yw * t} y1={yy + yh * 0.45} x2={yx + yw * t} y2={yy + yh * 0.57} stroke={PAL.ink} strokeWidth={0.3} />
+            </g>
+          ))}
+          {/* hipped roof */}
+          <polygon points={`${yx - 0.5},${wallY + 0.5} ${yx + yw * 0.18},${yy} ${yx + yw * 0.82},${yy} ${yx + yw + 0.5},${wallY + 0.5}`}
+            fill="#4a2f18" stroke={PAL.ink} strokeWidth={1.1} />
+          <polygon points={`${yx + 1},${wallY - 0.2} ${yx + yw * 0.2},${yy + 1.5} ${yx + yw * 0.8},${yy + 1.5} ${yx + yw - 1},${wallY - 0.2}`}
+            fill="#5a3820" opacity={0.55} />
+          <line x1={yx + yw * 0.18} y1={yy} x2={yx + yw * 0.82} y2={yy}
+            stroke="#2a1808" strokeWidth={0.9} strokeLinecap="round" />
+          {/* shingle hint */}
+          {[0.08, 0.16].map((t, i) => (
+            <line key={i} x1={yx} y1={wallY - yh * t} x2={yx + yw} y2={wallY - yh * t}
+              stroke="#2a1808" strokeWidth={0.3} opacity={0.4} />
+          ))}
+          {/* chimney */}
+          <rect x={yx + yw * 0.74} y={yy - yh * 0.06} width={w * 0.08} height={yh * 0.2}
+            fill="#6e6258" stroke={PAL.ink} strokeWidth={0.5} />
+          <rect x={yx + yw * 0.73} y={yy - yh * 0.08} width={w * 0.1} height={yh * 0.03} fill="#3d2810" />
+        </g>
+      );
+    }
+
+    // ── Housing: manor variants ───────────────────────────────────
+    case "manor":
+    case "founder-manor": {
+      const founder = kind === "founder-manor";
+      const pad = Math.max(1.5, w * 0.05);
+      const yx = pad, yy = pad;
+      const yw = w - pad * 2, yh = h - pad * 2;
+      const wallY = yy + yh * 0.28;
+      const porchH = yh * 0.16;
+      return (
+        <g>
+          <ellipse cx={cx} cy={h - 1.5} rx={w * 0.47} ry={3.2} fill={PAL.shadow} />
+          {/* manicured yard */}
+          <rect x={yx} y={yy} width={yw} height={yh} rx={2}
+            fill="#62763a" stroke={PAL.ink} strokeWidth={0.7} opacity={0.85} />
+          <rect x={yx + 1} y={yy + 1} width={yw - 2} height={yh - 2} rx={1.5}
+            fill="#6e8442" opacity={0.5} />
+          {/* path to porch */}
+          <rect x={cx - w * 0.04} y={yy + yh * 0.62} width={w * 0.08} height={yh * 0.38}
+            fill="#c9a06a" stroke="#8a5a30" strokeWidth={0.4} />
+          {/* wraparound porch */}
+          <rect x={yx + yw * 0.08} y={yy + yh - porchH - pad * 0.2} width={yw * 0.84} height={porchH}
+            fill="#a87a3e" stroke={PAL.ink} strokeWidth={0.8} />
+          {/* porch posts */}
+          {[0.1, 0.32, 0.5, 0.68, 0.9].map((t, i) => (
+            <rect key={i} x={yx + yw * t - 0.6} y={yy + yh - porchH - pad * 0.7} width={1.2} height={porchH + pad * 0.5}
+              fill="#5a3820" stroke={PAL.ink} strokeWidth={0.3} />
+          ))}
+          {/* main walls */}
+          <rect x={yx + yw * 0.1} y={wallY} width={yw * 0.8} height={(yy + yh - porchH - pad * 0.2) - wallY}
+            fill={founder ? "#c08854" : "#a87642"} stroke={PAL.ink} strokeWidth={1.1} />
+          {/* clapboard seams */}
+          {[0.42, 0.52, 0.62, 0.72].map((t, i) => (
+            <line key={i} x1={yx + yw * 0.12} y1={yy + yh * t} x2={yx + yw * 0.88} y2={yy + yh * t}
+              stroke={PAL.inkSoft} strokeWidth={0.4} opacity={0.5} />
+          ))}
+          {/* double door */}
+          <rect x={cx - w * 0.08} y={yy + yh - porchH - pad * 0.2 - yh * 0.2} width={w * 0.16} height={yh * 0.2}
+            fill="#3d2810" stroke={PAL.ink} strokeWidth={0.6} />
+          <line x1={cx} y1={yy + yh - porchH - pad * 0.2 - yh * 0.2} x2={cx} y2={yy + yh - porchH - pad * 0.2}
+            stroke={PAL.inkSoft} strokeWidth={0.5} />
+          {/* windows — 4 across upper half */}
+          {[0.2, 0.4, 0.6, 0.8].map((t, i) => (
+            <g key={i}>
+              <rect x={yx + yw * t - w * 0.05} y={yy + yh * 0.4} width={w * 0.1} height={yh * 0.12}
+                fill="#d9c98a" stroke={PAL.ink} strokeWidth={0.4} />
+              <line x1={yx + yw * t} y1={yy + yh * 0.4} x2={yx + yw * t} y2={yy + yh * 0.52} stroke={PAL.ink} strokeWidth={0.3} />
+              <line x1={yx + yw * t - w * 0.05} y1={yy + yh * 0.46} x2={yx + yw * t + w * 0.05} y2={yy + yh * 0.46} stroke={PAL.ink} strokeWidth={0.3} />
+            </g>
+          ))}
+          {/* hipped roof */}
+          <polygon points={`${yx + yw * 0.04},${wallY + 0.5} ${yx + yw * 0.2},${yy} ${yx + yw * 0.8},${yy} ${yx + yw * 0.96},${wallY + 0.5}`}
+            fill={founder ? "#5a2f18" : "#4a2f18"} stroke={PAL.ink} strokeWidth={1.2} />
+          <polygon points={`${yx + yw * 0.06},${wallY} ${yx + yw * 0.22},${yy + 1.5} ${yx + yw * 0.78},${yy + 1.5} ${yx + yw * 0.94},${wallY}`}
+            fill="#6b3a1f" opacity={0.55} />
+          <line x1={yx + yw * 0.2} y1={yy} x2={yx + yw * 0.8} y2={yy}
+            stroke="#2a1808" strokeWidth={1.1} strokeLinecap="round" />
+          {/* shingle bands */}
+          {[0.05, 0.1, 0.15, 0.2].map((t, i) => (
+            <line key={i} x1={yx + yw * 0.04} y1={wallY - yh * t} x2={yx + yw * 0.96} y2={wallY - yh * t}
+              stroke="#2a1808" strokeWidth={0.3} opacity={0.45} />
+          ))}
+          {/* twin chimneys */}
+          <rect x={yx + yw * 0.18} y={yy - yh * 0.06} width={w * 0.07} height={yh * 0.18}
+            fill="#6e6258" stroke={PAL.ink} strokeWidth={0.5} />
+          <rect x={yx + yw * 0.75} y={yy - yh * 0.06} width={w * 0.07} height={yh * 0.18}
+            fill="#6e6258" stroke={PAL.ink} strokeWidth={0.5} />
+          {/* founder accent: flag on roof ridge */}
+          {founder && (
+            <g>
+              <line x1={cx} y1={yy} x2={cx} y2={yy - yh * 0.18} stroke={PAL.ink} strokeWidth={0.7} />
+              <polygon points={`${cx},${yy - yh * 0.18} ${cx + w * 0.1},${yy - yh * 0.14} ${cx},${yy - yh * 0.1}`}
+                fill="#a83a3a" stroke={PAL.ink} strokeWidth={0.4} />
+            </g>
+          )}
+        </g>
+      );
+    }
+
+    // ── Bunkhouse: long low building with multiple doors ──────────
+    case "bunkhouse": {
+      const pad = Math.max(1.5, w * 0.04);
+      const yx = pad, yy = pad;
+      const yw = w - pad * 2, yh = h - pad * 2;
+      const wallY = yy + yh * 0.35;
+      const doors = 3;
+      return (
+        <g>
+          <ellipse cx={cx} cy={h - 1.5} rx={w * 0.47} ry={3} fill={PAL.shadow} />
+          <rect x={yx} y={yy} width={yw} height={yh} rx={2} fill="#5a6a32" stroke={PAL.ink} strokeWidth={0.6} opacity={0.7} />
+          {/* walls */}
+          <rect x={yx + pad * 0.3} y={wallY} width={yw - pad * 0.6} height={yh - (wallY - yy) - pad * 0.3}
+            fill="#8a5a30" stroke={PAL.ink} strokeWidth={1} />
+          {/* plank seams */}
+          {[0.55, 0.7, 0.85].map((t, i) => (
+            <line key={i} x1={yx + pad * 0.5} y1={yy + yh * t}
+              x2={yx + yw - pad * 0.5} y2={yy + yh * t} stroke={PAL.inkSoft} strokeWidth={0.4} opacity={0.55} />
+          ))}
+          {/* doors */}
+          {Array.from({ length: doors }).map((_, i) => {
+            const t = (i + 1) / (doors + 1);
+            return (
+              <rect key={i} x={yx + yw * t - w * 0.04} y={yy + yh * 0.78}
+                width={w * 0.08} height={yh * 0.2} fill="#3d2810" stroke={PAL.ink} strokeWidth={0.4} />
+            );
+          })}
+          {/* slanted long roof */}
+          <polygon points={`${yx},${wallY + 0.5} ${yx + yw * 0.1},${yy} ${yx + yw * 0.9},${yy} ${yx + yw},${wallY + 0.5}`}
+            fill="#4a2f18" stroke={PAL.ink} strokeWidth={1.1} />
+          <line x1={yx + yw * 0.1} y1={yy} x2={yx + yw * 0.9} y2={yy}
+            stroke="#2a1808" strokeWidth={0.9} strokeLinecap="round" />
+        </g>
+      );
+    }
+
     default:
       return <rect x={2} y={2} width={w - 4} height={h - 4} fill="#6b4a24" stroke={PAL.ink} strokeWidth={1} />;
   }
