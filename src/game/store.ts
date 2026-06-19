@@ -1856,6 +1856,8 @@ export const useGame = create<GameState>((set, get) => ({
       ministers: eng.ministers,
       ministerRequests: eng.ministerRequests,
       ministerReports: eng.ministerReports,
+      wornPaths: eng.wornPaths ?? st.wornPaths,
+
       pendingArrival,
       pendingCouncilVote,
       pendingFoundingCharter,
