@@ -1082,7 +1082,10 @@ const VISUALS: Record<string, VisualKind> = {
       chimney: true, chimneyColor: "#6a594a",
       banner: { color: "#7a3a2a" },
       inset: 0.08,
+      noShadow: true,
+      porch: "grand", porchColor: "#7a5028",
     },
+
   },
   tent: {
     type: "block",
