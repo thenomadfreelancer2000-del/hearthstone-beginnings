@@ -367,6 +367,7 @@ function BuildingArt({ kind, w, h, farmStage, farmGrowth }: { kind: string; w: n
       // axes so it sits in any wall run.
       const inset = Math.max(0.8, Math.min(w, h) * 0.06);
       const pillar = Math.max(2.4, Math.min(w, h) * 0.22);
+      const cy = h / 2;
       return (
         <g>
           {/* 4 stone corner pillars */}
