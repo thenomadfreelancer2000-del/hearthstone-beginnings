@@ -136,6 +136,22 @@ function BuildMenu({ onOpenWorkshop }: { onOpenWorkshop: () => void }) {
             {c.label}
           </button>
         ))}
+        {allWorkshopKinds.length > 0 && (
+          <button
+            onClick={() => setCat("workshop")}
+            className={`px-2 py-1 ranch-label text-[10px] border ${cat === "workshop" ? "border-amber text-amber bg-amber/10" : "border-amber/30 text-amber/80 hover:text-amber"}`}
+            title="Buildings from enabled workshop packs"
+          >
+            ✦ Workshop ({allWorkshopKinds.length})
+          </button>
+        )}
+        <button
+          onClick={onOpenWorkshop}
+          className="px-2 py-1 ranch-label text-[10px] border border-amber/20 text-dust hover:text-amber ml-auto"
+          title="Manage community packs"
+        >
+          + manage packs
+        </button>
         {orphans.length > 0 && (
           <button
             onClick={() => setCat("other")}
@@ -144,6 +160,7 @@ function BuildMenu({ onOpenWorkshop }: { onOpenWorkshop: () => void }) {
             Other
           </button>
         )}
+
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
         {kinds.map((k) => {
