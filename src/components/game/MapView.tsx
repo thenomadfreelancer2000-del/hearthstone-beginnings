@@ -1967,8 +1967,9 @@ const StaticTileLayers = React.memo(function StaticTileLayers({ tiles, width, he
             const nb = at(nx, ny);
             if (!nb || nb.kind === "water") continue;
             if (!nb) continue;
-            // shallow water band (lighter)
-            drawShoreEdge(px, py, dir, TILE_PAL.water.detail, 0.45, 2.6, 31, t.x, t.y);
+            // Shallow turquoise band where land meets water
+            drawShoreEdge(px, py, dir, "#7ab0c4", 0.65, 3.2, 31, t.x, t.y);
+            drawShoreEdge(px, py, dir, "#a8d0e0", 0.4, 1.4, 37, t.x, t.y);
             // a few irregular nibbles of the land color biting into the water
             drawShoreEdge(px, py, dir, TILE_PAL[nb.kind].base, 0.85, 1.2, 47, t.x, t.y);
             // tiny sand fleck on top
