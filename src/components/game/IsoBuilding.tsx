@@ -2133,9 +2133,31 @@ export function IsoBuilding({
   farmStage?: string;
   farmGrowth?: number;
 }) {
+  // Workshop / community-pack buildings: route through the workshop visual.
+  if (isWorkshopKind(kind)) {
+    const v = getWorkshopVisual(kind);
+    if (v?.type === "sprite") {
+      return <IsoSprite gridW={gridW} gridH={gridH} T={tile} src={v.dataUrl} />;
+    }
+    const base = workshopBaseKind(kind) ?? "cabin";
+    if (base !== kind) {
+      return (
+        <IsoBuilding
+          kind={base}
+          gridW={gridW}
+          gridH={gridH}
+          tile={tile}
+          farmStage={farmStage}
+          farmGrowth={farmGrowth}
+        />
+      );
+    }
+  }
+
   // Special-case dispatchers first
   switch (kind) {
     case "homestead": {
+
       const cfg = (VISUALS.homestead as Extract<VisualKind, { type: "block" }>).cfg;
       return (
         <g>
