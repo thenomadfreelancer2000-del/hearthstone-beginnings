@@ -598,17 +598,19 @@ export const useGame = create<GameState>((set, get) => ({
       }
     }
     set({
-      buildings: [...st.buildings, b],
+      buildings: [...workingBuildings, b],
       resources: newResources,
       animals,
       livestockRequests,
       survivors,
       families,
-      buildPlacement: null,
+      // Roads stay "sticky" so the player can paint a run of tiles without
+      // re-clicking the menu after every placement.
+      buildPlacement: isRoadKind ? bp : null,
       // Open assignment modal only for buildings that actually need labor.
       // Granted family pens skip this; the family handles them.
       pendingBuildAssignment:
-        isInstant || isGranted || bp.kind === "farm-plot" ||
+        isInstant || isGranted || bp.kind === "farm-plot" || isRoadKind ||
         st.ministers.some((m) => m.role === "head-builder")
           ? null
           : b.id,
@@ -618,6 +620,7 @@ export const useGame = create<GameState>((set, get) => ({
     });
     return true;
   },
+
 
   setOccupation: (id, occ) => {
     const st = get();
