@@ -1297,33 +1297,46 @@ function BuildingArt({ kind, w, h, farmStage, farmGrowth }: { kind: string; w: n
 function NodeArt({ kind, size, seed }: { kind: string; size: number; seed: number }) {
   const s = size;
   if (kind === "trees") {
-    // Stylized pine — triangular tiers
+    // Stylized tree — shaded canopy with NW highlight + SE shadow + trunk
     const variant = seed % 3;
     return (
       <g>
-        <ellipse cx={s / 2} cy={s * 0.92} rx={s * 0.28} ry={s * 0.06} fill={PAL.shadow} />
+        <ellipse cx={s / 2} cy={s * 0.92} rx={s * 0.32} ry={s * 0.07} fill={PAL.shadow} />
         <rect x={s * 0.46} y={s * 0.62} width={s * 0.08} height={s * 0.3} fill="#3d2810" stroke={PAL.ink} strokeWidth={0.6} />
+        <rect x={s * 0.46} y={s * 0.62} width={s * 0.025} height={s * 0.3} fill="#5a3820" opacity={0.7} />
         {variant === 0 ? (
-          <>
-            <polygon points={`${s/2},${s*0.08} ${s*0.18},${s*0.55} ${s*0.82},${s*0.55}`} fill="#3d5226" stroke={PAL.ink} strokeWidth={0.8} />
+          <g>
+            {/* layered pine tiers — darker base, lighter top, lit crescent */}
+            <polygon points={`${s/2},${s*0.08} ${s*0.18},${s*0.55} ${s*0.82},${s*0.55}`} fill="#2f4220" stroke={PAL.ink} strokeWidth={0.8} />
+            <polygon points={`${s/2},${s*0.12} ${s*0.22},${s*0.5} ${s*0.78},${s*0.5}`} fill="#3d5226" />
             <polygon points={`${s/2},${s*0.22} ${s*0.24},${s*0.65} ${s*0.76},${s*0.65}`} fill="#4a6235" stroke={PAL.ink} strokeWidth={0.8} />
-          </>
+            <polygon points={`${s/2},${s*0.26} ${s*0.28},${s*0.6} ${s*0.72},${s*0.6}`} fill="#5e7842" />
+            {/* NW lit edge */}
+            <polygon points={`${s/2},${s*0.08} ${s*0.18},${s*0.55} ${s*0.36},${s*0.55} ${s*0.46},${s*0.18}`} fill="#7a9c52" opacity={0.45} />
+          </g>
         ) : variant === 1 ? (
-          <>
-            <polygon points={`${s/2},${s*0.05} ${s*0.16},${s*0.45} ${s*0.84},${s*0.45}`} fill="#3d5226" stroke={PAL.ink} strokeWidth={0.8} />
-            <polygon points={`${s/2},${s*0.2} ${s*0.2},${s*0.6} ${s*0.8},${s*0.6}`} fill="#4a6235" stroke={PAL.ink} strokeWidth={0.8} />
-            <polygon points={`${s/2},${s*0.35} ${s*0.24},${s*0.7} ${s*0.76},${s*0.7}`} fill="#566e3e" stroke={PAL.ink} strokeWidth={0.8} />
-          </>
+          <g>
+            <polygon points={`${s/2},${s*0.05} ${s*0.16},${s*0.45} ${s*0.84},${s*0.45}`} fill="#2f4220" stroke={PAL.ink} strokeWidth={0.8} />
+            <polygon points={`${s/2},${s*0.2} ${s*0.2},${s*0.6} ${s*0.8},${s*0.6}`} fill="#3d5226" stroke={PAL.ink} strokeWidth={0.8} />
+            <polygon points={`${s/2},${s*0.35} ${s*0.24},${s*0.7} ${s*0.76},${s*0.7}`} fill="#4a6235" stroke={PAL.ink} strokeWidth={0.8} />
+            <polygon points={`${s/2},${s*0.05} ${s*0.16},${s*0.45} ${s*0.32},${s*0.45} ${s*0.45},${s*0.15}`} fill="#7a9c52" opacity={0.5} />
+            <polygon points={`${s/2},${s*0.35} ${s*0.24},${s*0.7} ${s*0.4},${s*0.7} ${s*0.46},${s*0.42}`} fill="#88a85a" opacity={0.4} />
+          </g>
         ) : (
-          <>
+          <g>
+            {/* broadleaf — shadow + body + NW highlight + small accent leaves */}
+            <circle cx={s * 0.52} cy={s * 0.46} r={s * 0.34} fill="#2f4220" opacity={0.7} />
             <circle cx={s/2} cy={s * 0.4} r={s * 0.32} fill="#3d5226" stroke={PAL.ink} strokeWidth={0.8} />
             <circle cx={s * 0.4} cy={s * 0.5} r={s * 0.18} fill="#4a6235" />
             <circle cx={s * 0.62} cy={s * 0.48} r={s * 0.16} fill="#566e3e" />
-          </>
+            <circle cx={s * 0.4} cy={s * 0.32} r={s * 0.14} fill="#7a9c52" opacity={0.7} />
+            <circle cx={s * 0.55} cy={s * 0.28} r={s * 0.08} fill="#9ab86a" opacity={0.6} />
+          </g>
         )}
       </g>
     );
   }
+
   if (kind === "rocks") {
     return (
       <g>
