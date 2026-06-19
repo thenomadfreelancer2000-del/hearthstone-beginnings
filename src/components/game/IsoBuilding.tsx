@@ -1104,19 +1104,22 @@ const VISUALS: Record<string, VisualKind> = {
   homestead: {
     type: "block",
     cfg: {
-      walls: { lit: "#d8b079", shade: "#8a5a2c" },
-      roof: { type: "gable", color: "#8a3a22", shade: "#5a2010", ridge: "ne", gable: "#e7c693" },
-      // 10% smaller overall vs the previous pass (story 1.5 → 1.35,
-      // footprint inset 0.08 → 0.17 so each side pulls in ~9%).
-      story: 1.35,
-      door: "double", doorColor: "#3a2410",
-      windows: 3, windowColor: "#ffd87a",
-      trim: "#3d2810", trimRows: 4,
-      chimney: true, chimneyColor: "#8a8278",
-      banner: { color: "#a6432a" },
-      inset: 0.17,
+      // Painted clapboard manor — creamy white walls, deep forest-green
+      // trim, classic barn-red roof. Reads as a prestige building even
+      // when zoomed out.
+      walls: { lit: "#f3e4c2", shade: "#c8a87a" },
+      roof: { type: "gable", color: "#9a2a1c", shade: "#5e160c", ridge: "ne", gable: "#f3e4c2" },
+      story: 1.6,
+      door: "double", doorColor: "#1f3a2a",
+      windows: 4, windowColor: "#ffd87a",
+      trim: "#1f3a2a", trimRows: 5,
+      // Rooftop chimney is OFF — a bespoke stone side-chimney is drawn
+      // separately by HomesteadFlair so it dominates the silhouette.
+      chimney: false,
+      banner: { color: "#1f3a2a" },
+      inset: 0.10,
       noShadow: true,
-      porch: "grand", porchColor: "#8a5a2c",
+      porch: "grand", porchColor: "#1f3a2a",
     },
   },
   tent: {
