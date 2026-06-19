@@ -225,12 +225,87 @@ function moveToward(s: Survivor, dt: number, deps?: SimDeps) {
 }
 
 
+// ── Spatial caches ─────────────────────────────────────────────────────
+// Keyed on the array identity. Because reducers and tickReal use Immer,
+// the host array reference only changes when its contents change, so the
+// cache is automatically invalidated by reference equality. In-place
+// mutation of the array (without a new reference) would leave a stale
+// cache — current code paths don't do that for tiles/buildings/nodes.
+const waterTilesCache = new WeakMap<Tile[], Tile[]>();
+const stockpileCache = new WeakMap<Building[], Building[]>();
+const campfireCache = new WeakMap<Building[], Building[]>();
+const shelterCache = new WeakMap<Building[], Building[]>();
+const unfinishedCache = new WeakMap<Building[], Building[]>();
+const nodesByKindCache = new WeakMap<ResourceNode[], Map<ResourceKind, ResourceNode[]>>();
+
+function getWaterTiles(tiles: Tile[]): Tile[] {
+  let cached = waterTilesCache.get(tiles);
+  if (!cached) {
+    cached = tiles.filter(t => t.kind === "water");
+    waterTilesCache.set(tiles, cached);
+  }
+  return cached;
+}
+
+function getStockpiles(buildings: Building[]): Building[] {
+  let cached = stockpileCache.get(buildings);
+  if (!cached) {
+    cached = buildings.filter(b =>
+      (b.kind === "stockpile" || b.kind === "homestead") && b.builtProgress >= 1,
+    );
+    stockpileCache.set(buildings, cached);
+  }
+  return cached;
+}
+
+function getCampfires(buildings: Building[]): Building[] {
+  let cached = campfireCache.get(buildings);
+  if (!cached) {
+    cached = buildings.filter(b => b.kind === "campfire" && b.builtProgress >= 1);
+    campfireCache.set(buildings, cached);
+  }
+  return cached;
+}
+
+function getShelters(buildings: Building[]): Building[] {
+  let cached = shelterCache.get(buildings);
+  if (!cached) {
+    cached = buildings.filter(b =>
+      b.builtProgress >= 1 && (b.kind === "tent" || b.kind === "cabin" || b.kind === "homestead"),
+    );
+    shelterCache.set(buildings, cached);
+  }
+  return cached;
+}
+
+function getUnfinished(buildings: Building[]): Building[] {
+  let cached = unfinishedCache.get(buildings);
+  if (!cached) {
+    cached = buildings.filter(b => b.builtProgress < 1);
+    unfinishedCache.set(buildings, cached);
+  }
+  return cached;
+}
+
+function getNodesByKind(nodes: ResourceNode[], wants: ResourceKind): ResourceNode[] {
+  let map = nodesByKindCache.get(nodes);
+  if (!map) {
+    map = new Map();
+    for (const n of nodes) {
+      let bucket = map.get(n.yields);
+      if (!bucket) { bucket = []; map.set(n.yields, bucket); }
+      bucket.push(n);
+    }
+    nodesByKindCache.set(nodes, map);
+  }
+  return map.get(wants) ?? [];
+}
 
 function nearestNode(s: Survivor, nodes: ResourceNode[], wants: ResourceKind): ResourceNode | null {
   let best: ResourceNode | null = null;
   let bestD = Infinity;
-  for (const n of nodes) {
-    if (n.yields !== wants) continue;
+  for (const n of getNodesByKind(nodes, wants)) {
+    // amount can change in-place via mutation each tick — re-check here.
     if (n.amount <= 0) continue;
     const d = dist(s.x, s.y, n.x, n.y);
     if (d < bestD) { bestD = d; best = n; }
@@ -241,9 +316,7 @@ function nearestNode(s: Survivor, nodes: ResourceNode[], wants: ResourceKind): R
 function nearestStockpile(s: Survivor, buildings: Building[]): Building | null {
   let best: Building | null = null;
   let bestD = Infinity;
-  for (const b of buildings) {
-    if (b.kind !== "stockpile" && b.kind !== "homestead") continue;
-    if (b.builtProgress < 1) continue;
+  for (const b of getStockpiles(buildings)) {
     const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
     const d = dist(s.x, s.y, cx, cy);
     if (d < bestD) { bestD = d; best = b; }
@@ -256,7 +329,8 @@ function nearestUnfinished(s: Survivor, buildings: Building[]): Building | null 
   // buildings get finished before new ones are started.
   let bestNear: Building | null = null; let bestNearD = Infinity;
   let bestFar: Building | null = null; let bestFarD = Infinity;
-  for (const b of buildings) {
+  for (const b of getUnfinished(buildings)) {
+    // builtProgress mutates in-place each tick — re-check completion here.
     if (b.builtProgress >= 1) continue;
     const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
     const d = dist(s.x, s.y, cx, cy);
@@ -272,8 +346,7 @@ function nearestUnfinished(s: Survivor, buildings: Building[]): Building | null 
 function nearestWater(s: Survivor, tiles: Tile[], mapW: number): Tile | null {
   let best: Tile | null = null;
   let bestD = Infinity;
-  for (const t of tiles) {
-    if (t.kind !== "water") continue;
+  for (const t of getWaterTiles(tiles)) {
     const d = dist(s.x, s.y, t.x, t.y);
     if (d < bestD) { bestD = d; best = t; }
   }
@@ -284,8 +357,7 @@ function nearestWater(s: Survivor, tiles: Tile[], mapW: number): Tile | null {
 function nearestCampfire(s: Survivor, buildings: Building[]): Building | null {
   let best: Building | null = null;
   let bestD = Infinity;
-  for (const b of buildings) {
-    if (b.kind !== "campfire" || b.builtProgress < 1) continue;
+  for (const b of getCampfires(buildings)) {
     const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
     const d = dist(s.x, s.y, cx, cy);
     if (d < bestD) { bestD = d; best = b; }
@@ -296,9 +368,7 @@ function nearestCampfire(s: Survivor, buildings: Building[]): Building | null {
 function nearestShelter(s: Survivor, buildings: Building[]): Building | null {
   let best: Building | null = null;
   let bestD = Infinity;
-  for (const b of buildings) {
-    if (b.builtProgress < 1) continue;
-    if (!["tent", "cabin", "homestead"].includes(b.kind)) continue;
+  for (const b of getShelters(buildings)) {
     const cx = b.x + b.w / 2, cy = b.y + b.h / 2;
     const d = dist(s.x, s.y, cx, cy);
     if (d < bestD) { bestD = d; best = b; }
