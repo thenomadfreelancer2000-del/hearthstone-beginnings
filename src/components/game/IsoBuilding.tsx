@@ -1907,8 +1907,6 @@ function RanchYard({
       {/* front fence with gate on SW edge */}
       {renderEdge(outer.S, outer.W, true)}
       {renderEdge(outer.E, outer.S)}
-      {/* kitchen garden in the SE front yard */}
-      {garden([seAnchor[0] - T * 0.10, seAnchor[1] + T * 0.05])}
       {/* firewood pile near the SE fence */}
       {firewood([seAnchor[0] + T * 0.45, seAnchor[1] + T * 0.55])}
       {/* benches flanking the porch */}

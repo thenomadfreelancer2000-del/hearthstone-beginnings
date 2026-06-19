@@ -2892,12 +2892,16 @@ export function MapView() {
           const hasFence = (tx: number, ty: number) => fenceAt.has(`${tx},${ty}`);
           const hasRoad = (tx: number, ty: number) => roadAt.has(`${tx},${ty}`);
           // Painter's order: sum of south-east corner coords approximates
-          // depth in iso space.
+          // depth in iso space. Fences are NOT sorted as one big sprite —
+          // each fence tile becomes its own sortable entry so trees and
+          // other small props that sit in front of a long fence run
+          // render on top of it instead of being covered.
           const ordered = [...buildings].sort(
             (a, b) => (a.x + a.w + a.y + a.h) - (b.x + b.w + b.y + b.h),
           );
 
-          return ordered.map((b) => {
+          const entries: { sort: number; node: React.ReactNode }[] = [];
+          for (const b of ordered) {
             const sel = selection.kind === "building" && selection.id === b.id;
             const x = b.x * TILE;
             const y = b.y * TILE;
@@ -2909,7 +2913,7 @@ export function MapView() {
             // (renders as a diamond outline on the ground) plus an upright
             // progress label.
             if (!built) {
-              return (
+              entries.push({ sort: b.x + b.w + b.y + b.h, node: (
                 <g key={b.id} opacity={0.85}>
                   <rect x={x + 2} y={y + 2} width={w - 4} height={h - 4}
                     fill="rgba(60,42,16,0.55)" stroke="#8b6a1a" strokeWidth={1} strokeDasharray="3 2" />
@@ -2923,7 +2927,8 @@ export function MapView() {
                     </text>
                   </g>
                 </g>
-              );
+              ) });
+              continue;
             }
 
             // Fences render per-tile with auto-connecting variants.
@@ -2945,7 +2950,7 @@ export function MapView() {
               const conn = { n: !!nKind, e: !!eKind, s: !!sKind, w: !!wKind };
               const nbInfo = (k?: string) => (k ? { kind: k, tier: ROAD_TIER[k] ?? 1 } : undefined);
               const neighbors = { n: nbInfo(nKind), e: nbInfo(eKind), s: nbInfo(sKind), w: nbInfo(wKind) };
-              return (
+              entries.push({ sort: b.x + b.w + b.y + b.h, node: (
                 <g key={b.id}>
                   <RoadTile
                     x={tx * TILE} y={ty * TILE} t={TILE}
@@ -2957,7 +2962,8 @@ export function MapView() {
                       fill="none" stroke={PAL.gold} strokeWidth={1.5} strokeDasharray="3 2" />
                   )}
                 </g>
-              );
+              ) });
+              continue;
             }
 
             // Fences / walls / gates render per-tile with auto-connecting
@@ -2972,43 +2978,34 @@ export function MapView() {
                 : b.kind === "palisade" ? "dark"
                 : b.kind === "gate" ? "white"
                 : (b.fenceStyle ?? "natural");
-              const tiles: React.ReactNode[] = [];
-              const tileSort: { tx: number; ty: number; node: React.ReactNode }[] = [];
               for (let dy = 0; dy < b.h; dy++) {
                 for (let dx = 0; dx < b.w; dx++) {
                   const tx = b.x + dx;
                   const ty = b.y + dy;
-                  // For a single-tile wall, include self-tile connections
-                  // to its own footprint so multi-wide gates draw as a
-                  // continuous rail.
                   const conn: FenceConn = {
                     n: hasFence(tx, ty - 1),
                     e: hasFence(tx + 1, ty) || (dx + 1 < b.w),
                     s: hasFence(tx, ty + 1),
                     w: hasFence(tx - 1, ty) || dx > 0,
                   };
-                  tileSort.push({
-                    tx, ty,
-                    node: (
-                      <g key={`${tx},${ty}`}
-                         transform={`translate(${tx * TILE}, ${ty * TILE})`}>
-                        <FenceArt w={TILE} h={TILE} connections={conn} style={style} />
-                      </g>
-                    ),
-                  });
+                  // Per-tile sort key (matches a 1×1 building at this tile)
+                  // so trees and props in front of a long fence run can
+                  // correctly draw on top of it.
+                  entries.push({ sort: tx + ty + 2, node: (
+                    <g key={`${b.id}-${tx}-${ty}`}
+                       transform={`translate(${tx * TILE}, ${ty * TILE})`}>
+                      <FenceArt w={TILE} h={TILE} connections={conn} style={style} />
+                    </g>
+                  ) });
                 }
               }
-              tileSort.sort((a, c) => (a.tx + a.ty) - (c.tx + c.ty));
-              for (const t of tileSort) tiles.push(t.node);
-              return (
-                <g key={b.id}>
-                  {tiles}
-                  {sel && (
-                    <rect x={x + 1} y={y + 1} width={w - 2} height={h - 2}
-                      fill="none" stroke={PAL.gold} strokeWidth={1.5} strokeDasharray="3 2" />
-                  )}
-                </g>
-              );
+              if (sel) {
+                entries.push({ sort: b.x + b.w + b.y + b.h + 0.5, node: (
+                  <rect key={`${b.id}-sel`} x={x + 1} y={y + 1} width={w - 2} height={h - 2}
+                    fill="none" stroke={PAL.gold} strokeWidth={1.5} strokeDasharray="3 2" />
+                ) });
+              }
+              continue;
             }
 
             // Built building: selection halo stays in iso space (diamond
@@ -3025,7 +3022,7 @@ export function MapView() {
               "farm-plot", "field", "large-field", "orchard",
             ]);
             const showFoundation = !foundationKinds.has(b.kind);
-            return (
+            entries.push({ sort: b.x + b.w + b.y + b.h, node: (
               <g key={b.id}>
                 {showFoundation && (
                   <g>
@@ -3053,8 +3050,10 @@ export function MapView() {
                   </text>
                 </g>
               </g>
-            );
-          });
+            ) });
+          }
+          entries.sort((a, c) => a.sort - c.sort);
+          return entries.map((e, i) => <React.Fragment key={i}>{e.node}</React.Fragment>);
         })()}
 
         {/* Animals — clustered around their pen */}
