@@ -153,7 +153,7 @@ function Roof({ corners, wallH, style, T }: {
         <polygon points={poly(Nu, Eu, ridgeA)}
           fill={style.color} stroke={INK} strokeWidth={0.9} strokeLinejoin="round" />
         <polygon points={poly(Eu, ridgeB, ridgeA)}
-          fill={style.color} stroke={INK} strokeWidth={0.9} strokeLinejoin="round" opacity={0.92} />
+          fill={style.color} stroke={INK} strokeWidth={0.9} strokeLinejoin="round" />
         {/* SW slope (shaded) */}
         <polygon points={poly(Wu, Nu, ridgeA, ridgeB)}
           fill={style.shade} stroke={INK} strokeWidth={0.9} strokeLinejoin="round" />
