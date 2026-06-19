@@ -280,6 +280,110 @@ function FenceArt({ w, h, connections, style }: { w: number; h: number; connecti
   );
 }
 
+// ── Road tile renderer ─────────────────────────────────────────
+// Draws a single 1×1 road segment in world space (the parent iso
+// transform shears it into a diamond). The look is chosen by `kind`,
+// neighbor connections decide where the strip extends, and a darker
+// "shoulder" rim is drawn on edges without a neighbor so isolated tiles
+// read as a finished slab instead of bleeding into the grass.
+type RoadConn = { n: boolean; e: boolean; s: boolean; w: boolean };
+function RoadTile({
+  x, y, t, kind, tier, connections,
+}: {
+  x: number; y: number; t: number;
+  kind: string; tier: number; connections: RoadConn;
+}) {
+  // Palette per tier (1=dirt-path .. 5=stone-road)
+  const PAL_ROAD: Record<string, { base: string; alt: string; rim: string; stripe?: string }> = {
+    "dirt-path":   { base: "#8a6b3e", alt: "#7a5a30", rim: "#5a3e1e" },
+    "dirt-road":   { base: "#7a5b2a", alt: "#684b22", rim: "#4a3414" },
+    "gravel-road": { base: "#9a907c", alt: "#7e7461", rim: "#4a4438", stripe: "#bcb29c" },
+    "paved-road":  { base: "#8e8a82", alt: "#74706a", rim: "#3a3833", stripe: "#d9d5cb" },
+    "stone-road":  { base: "#a8a098", alt: "#7e756a", rim: "#3a342c", stripe: "#cfc7b8" },
+  };
+  const p = PAL_ROAD[kind] ?? PAL_ROAD["dirt-path"];
+  const { n, e, s, w } = connections;
+  const inset = 1.4;
+  // Width of the road strip — paths are narrower than full roads.
+  const narrow = tier <= 1 ? 0.40 : tier === 2 ? 0.65 : 0.85;
+  const half = (t * narrow) / 2;
+  const cx = t / 2, cy = t / 2;
+  // Compute the extent of the strip in each direction; if a neighbor
+  // exists we stretch out to the tile edge so the joint is seamless.
+  const left   = w ? 0 : cx - half;
+  const right  = e ? t : cx + half;
+  const top    = n ? 0 : cy - half;
+  const bottom = s ? t : cy + half;
+  const hasAny = n || e || s || w;
+  return (
+    <g transform={`translate(${x}, ${y})`}>
+
+      {/* base slab (full tile) — slight inset so adjacent grass is visible */}
+      <rect x={inset} y={inset} width={t - inset * 2} height={t - inset * 2}
+        fill={p.alt} opacity={0.0} />
+      {/* horizontal strip (E-W) */}
+      {(e || w || !hasAny) && (
+        <rect x={left} y={cy - half} width={Math.max(0, right - left)} height={half * 2}
+          fill={p.base} stroke={p.rim} strokeWidth={0.6} />
+      )}
+      {/* vertical strip (N-S) */}
+      {(n || s) && (
+        <rect x={cx - half} y={top} width={half * 2} height={Math.max(0, bottom - top)}
+          fill={p.base} stroke={p.rim} strokeWidth={0.6} />
+      )}
+      {/* center cap for junctions / single tiles */}
+      {(!hasAny || (n || s) && (e || w)) && (
+        <rect x={cx - half} y={cy - half} width={half * 2} height={half * 2}
+          fill={p.base} stroke={p.rim} strokeWidth={0.4} />
+      )}
+      {/* surface detail: gravel speckle / paving lines / stone plates */}
+      {tier === 1 && Array.from({ length: 6 }).map((_, i) => {
+        const u = ((i * 23 + 11) % 100) / 100;
+        const v = ((i * 41 + 17) % 100) / 100;
+        const px = (e || w ? left + u * (right - left) : cx - half + u * half * 2);
+        const py = (n || s ? top + v * (bottom - top) : cy - half + v * half * 2);
+        return <circle key={i} cx={px} cy={py} r={0.6} fill={p.alt} opacity={0.6} />;
+      })}
+      {tier === 2 && Array.from({ length: 5 }).map((_, i) => {
+        const u = (i + 0.5) / 5;
+        if (e || w) return <line key={i} x1={left + (right - left) * u} y1={cy - half * 0.7} x2={left + (right - left) * u} y2={cy + half * 0.7} stroke={p.alt} strokeWidth={0.5} opacity={0.7} />;
+        if (n || s) return <line key={i} x1={cx - half * 0.7} y1={top + (bottom - top) * u} x2={cx + half * 0.7} y2={top + (bottom - top) * u} stroke={p.alt} strokeWidth={0.5} opacity={0.7} />;
+        return null;
+      })}
+      {tier === 3 && Array.from({ length: 10 }).map((_, i) => {
+        const u = ((i * 37) % 100) / 100;
+        const v = ((i * 73) % 100) / 100;
+        const px = (e || w ? left + u * (right - left) : cx - half + u * half * 2);
+        const py = (n || s ? top + v * (bottom - top) : cy - half + v * half * 2);
+        return <circle key={i} cx={px} cy={py} r={0.55} fill={p.stripe ?? p.alt} opacity={0.85} />;
+      })}
+      {tier === 4 && p.stripe && ((e || w) ? (
+        <line x1={left + 2} y1={cy} x2={right - 2} y2={cy} stroke={p.stripe} strokeWidth={0.6} strokeDasharray="3 2" opacity={0.85} />
+      ) : (n || s) ? (
+        <line x1={cx} y1={top + 2} x2={cx} y2={bottom - 2} stroke={p.stripe} strokeWidth={0.6} strokeDasharray="3 2" opacity={0.85} />
+      ) : null)}
+      {tier === 5 && (
+        <g>
+          {/* stone plates — small interior rectangles arranged in a grid */}
+          {Array.from({ length: 3 }).map((_, r) =>
+            Array.from({ length: 3 }).map((_, c) => {
+              const u = (c + 0.5) / 3, v = (r + 0.5) / 3;
+              const px = (e || w ? left + u * (right - left) : cx - half + u * half * 2) - 1.6;
+              const py = (n || s ? top + v * (bottom - top) : cy - half + v * half * 2) - 1.6;
+              return <rect key={`${r}${c}`} x={px} y={py} width={3.2} height={3.2}
+                fill={p.alt} stroke={p.rim} strokeWidth={0.3} opacity={0.85} />;
+            }),
+          )}
+        </g>
+      )}
+    </g>
+  );
+}
+
+// ── Hand-drawn building renderers — keep below ──────────────────
+function _RoadTileSpacer(){return null;}
+
+
 // ── Hand-drawn building renderers (unified style) ────────────────
 function BuildingArt({ kind, w, h, farmStage, farmGrowth }: { kind: string; w: number; h: number; farmStage?: string; farmGrowth?: number }) {
   // All buildings share: dark ink outline, warm wood tones, simple silhouettes.
@@ -2269,6 +2373,8 @@ export function MapView() {
   const buildings = useGame((s) => s.buildings);
   const survivors = useGame((s) => s.survivors);
   const animals = useGame((s) => s.animals);
+  const wornPaths = useGame((s) => s.wornPaths);
+
   const selection = useGame((s) => s.selection);
   const selectSurvivor = useGame((s) => s.selectSurvivor);
   const selectBuilding = useGame((s) => s.selectBuilding);
@@ -2617,28 +2723,74 @@ export function MapView() {
 
         <StaticResourceLayer nodes={nodes} width={W} height={H} />
 
+        {/* Worn footpaths — tiles repeatedly walked over darken into a
+            visible dirt trail. Intensity rises with traffic and caps so
+            very busy routes feel like proper paths. */}
+        {(() => {
+          if (!wornPaths) return null;
+          const PATH_MIN = 60;      // wear threshold before a tile starts to show
+          const PATH_FULL = 360;    // wear level at which it is fully visible
+          const out: React.ReactElement[] = [];
+          for (const key in wornPaths) {
+            const w = wornPaths[key];
+            if (w < PATH_MIN) continue;
+            const [sx, sy] = key.split(",");
+            const tx = Number(sx), ty = Number(sy);
+            if (!Number.isFinite(tx) || !Number.isFinite(ty)) continue;
+            // Don't draw under a road or building footprint.
+            const covered = buildings.some(b =>
+              b.builtProgress >= 1 &&
+              tx >= b.x && tx < b.x + b.w && ty >= b.y && ty < b.y + b.h,
+            );
+            if (covered) continue;
+            const t = Math.min(1, (w - PATH_MIN) / (PATH_FULL - PATH_MIN));
+            out.push(
+              <g key={key} transform={`translate(${tx * TILE}, ${ty * TILE})`} opacity={0.25 + t * 0.5}>
+                <rect x={TILE * 0.18} y={TILE * 0.18}
+                  width={TILE * 0.64} height={TILE * 0.64}
+                  fill="#6e4d22" stroke="#4a3414" strokeWidth={0.5} rx={TILE * 0.15} />
+              </g>,
+            );
+          }
+          return out;
+        })()}
+
         {/* Buildings — drawn back-to-front so closer buildings overlap
             farther ones in the iso projection. Each built building is
             wrapped in a counter-transform so it stands upright on top of
             its diamond footprint instead of being sheared. */}
+
         {(() => {
-          // Build a fence-tile occupancy map once per render so each fence
-          // tile can pick the right auto-connect variant.
+          // Tile-occupancy maps for auto-connecting visuals.
+          //   • fenceAt: any wall/gate kind (so mixed runs connect cleanly)
+          //   • roadAt:  any road kind, plus the material at each tile so
+          //              joints render with the higher-tier surface visible.
+          const FENCE_KINDS = new Set(["fence", "palisade", "stone-wall", "gate"]);
+          const ROAD_TIER: Record<string, number> = {
+            "dirt-path": 1, "dirt-road": 2, "gravel-road": 3, "paved-road": 4, "stone-road": 5,
+          };
           const fenceAt = new Set<string>();
+          const roadAt = new Map<string, string>();
           for (const b of buildings) {
-            if (b.kind !== "fence" || b.builtProgress < 1) continue;
-            for (let dy = 0; dy < b.h; dy++) {
-              for (let dx = 0; dx < b.w; dx++) {
-                fenceAt.add(`${b.x + dx},${b.y + dy}`);
-              }
+            if (b.builtProgress < 1) continue;
+            if (FENCE_KINDS.has(b.kind)) {
+              for (let dy = 0; dy < b.h; dy++)
+                for (let dx = 0; dx < b.w; dx++)
+                  fenceAt.add(`${b.x + dx},${b.y + dy}`);
+            } else if (ROAD_TIER[b.kind]) {
+              for (let dy = 0; dy < b.h; dy++)
+                for (let dx = 0; dx < b.w; dx++)
+                  roadAt.set(`${b.x + dx},${b.y + dy}`, b.kind);
             }
           }
           const hasFence = (tx: number, ty: number) => fenceAt.has(`${tx},${ty}`);
+          const hasRoad = (tx: number, ty: number) => roadAt.has(`${tx},${ty}`);
           // Painter's order: sum of south-east corner coords approximates
           // depth in iso space.
           const ordered = [...buildings].sort(
             (a, b) => (a.x + a.w + a.y + a.h) - (b.x + b.w + b.y + b.h),
           );
+
           return ordered.map((b) => {
             const sel = selection.kind === "building" && selection.id === b.id;
             const x = b.x * TILE;
@@ -2671,28 +2823,67 @@ export function MapView() {
             // Fences render per-tile with auto-connecting variants.
             // Each tile is its own upright sprite anchored at the south
             // corner of the tile diamond so posts read as standing rails.
-            if (b.kind === "fence") {
-              const style: FenceStyleKey = (b.fenceStyle ?? "natural");
+            // Roads — render as iso ground tiles with auto-connecting
+            // edges. We draw them in raw world space (no isoUpright counter
+            // transform) so the rectangle projects naturally into a diamond.
+            if (ROAD_TIER[b.kind]) {
+              const tx = b.x, ty = b.y;
+              const here = b.kind;
+              const tierHere = ROAD_TIER[here];
+              // Connect to any neighbor road, but the higher tier wins
+              // at the joint so seams read clean.
+              const nKind = roadAt.get(`${tx},${ty - 1}`);
+              const eKind = roadAt.get(`${tx + 1},${ty}`);
+              const sKind = roadAt.get(`${tx},${ty + 1}`);
+              const wKind = roadAt.get(`${tx - 1},${ty}`);
+              const conn = { n: !!nKind, e: !!eKind, s: !!sKind, w: !!wKind };
+              return (
+                <g key={b.id}>
+                  <RoadTile
+                    x={tx * TILE} y={ty * TILE} t={TILE}
+                    kind={here} tier={tierHere} connections={conn}
+                  />
+                  {sel && (
+                    <rect x={tx * TILE + 1} y={ty * TILE + 1} width={TILE - 2} height={TILE - 2}
+                      fill="none" stroke={PAL.gold} strokeWidth={1.5} strokeDasharray="3 2" />
+                  )}
+                </g>
+              );
+            }
+
+            // Fences / walls / gates render per-tile with auto-connecting
+            // variants. We render them in world space (no isoUpright wrap)
+            // so the rails project onto the iso ground axes — that is, an
+            // "east" rail runs along the NE-SW iso edge, matching the
+            // neighbor relationship. Posts pick up a vertical lift in the
+            // FenceArt sprite so they still read as standing rails.
+            if (FENCE_KINDS.has(b.kind)) {
+              const style: FenceStyleKey =
+                b.kind === "stone-wall" ? "weathered"
+                : b.kind === "palisade" ? "dark"
+                : b.kind === "gate" ? "white"
+                : (b.fenceStyle ?? "natural");
               const tiles: React.ReactNode[] = [];
               const tileSort: { tx: number; ty: number; node: React.ReactNode }[] = [];
               for (let dy = 0; dy < b.h; dy++) {
                 for (let dx = 0; dx < b.w; dx++) {
                   const tx = b.x + dx;
                   const ty = b.y + dy;
+                  // For a single-tile wall, include self-tile connections
+                  // to its own footprint so multi-wide gates draw as a
+                  // continuous rail.
                   const conn: FenceConn = {
                     n: hasFence(tx, ty - 1),
-                    e: hasFence(tx + 1, ty),
+                    e: hasFence(tx + 1, ty) || (dx + 1 < b.w),
                     s: hasFence(tx, ty + 1),
-                    w: hasFence(tx - 1, ty),
+                    w: hasFence(tx - 1, ty) || dx > 0,
                   };
                   tileSort.push({
                     tx, ty,
                     node: (
                       <g key={`${tx},${ty}`}
-                         transform={isoUpright((tx + 1) * TILE, (ty + 1) * TILE)}>
-                        <g transform={`translate(${-TILE / 2}, ${-TILE})`}>
-                          <FenceArt w={TILE} h={TILE} connections={conn} style={style} />
-                        </g>
+                         transform={`translate(${tx * TILE}, ${ty * TILE})`}>
+                        <FenceArt w={TILE} h={TILE} connections={conn} style={style} />
                       </g>
                     ),
                   });
@@ -2722,6 +2913,7 @@ export function MapView() {
                     fill="none" stroke={PAL.gold} strokeWidth={1.5} strokeDasharray="3 2" />
                 )}
                 <g transform={isoUpright(x + w, y + h)}>
+
                   <IsoBuilding kind={b.kind} gridW={b.w} gridH={b.h} tile={TILE}
                     farmStage={b.farm?.stage} farmGrowth={b.farm?.growth} />
                   <text

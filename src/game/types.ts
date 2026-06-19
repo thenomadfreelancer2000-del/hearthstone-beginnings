@@ -305,7 +305,9 @@ export type BuildingKind =
   | "food-stockpile" | "warehouse" | "granary" | "root-cellar" | "cold-storage"
   | "water-barrel" | "stone-well" | "deep-well" | "water-tower" | "reservoir"
   | "learning-tent" | "schoolhouse" | "academy" | "library"
-  | "medical-tent" | "clinic" | "infirmary" | "hospital";
+  | "medical-tent" | "clinic" | "infirmary" | "hospital"
+  | "dirt-path" | "dirt-road" | "gravel-road" | "paved-road" | "stone-road";
+
 
 export interface Territory {
   cx: number;     // center tile x (usually homestead center)

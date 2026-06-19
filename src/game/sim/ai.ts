@@ -43,7 +43,31 @@ const PASSABLE_BUILDINGS = new Set<string>([
   "campfire", "stockpile", "food-stockpile", "well", "stone-well", "deep-well",
   "water-collector", "water-barrel", "field", "large-field", "farm-plot",
   "orchard", "foraging-camp", "workbench",
+  // Roads — survivors walk on them, they never block.
+  "dirt-path", "dirt-road", "gravel-road", "paved-road", "stone-road",
 ]);
+
+const ROAD_SPEED: Record<string, number> = {
+  "dirt-path": 1.10,
+  "dirt-road": 1.20,
+  "gravel-road": 1.35,
+  "paved-road": 1.55,
+  "stone-road": 1.75,
+};
+
+/** Lookup the best road speed multiplier under a position. Returns 1 when off-road. */
+function roadSpeedAt(x: number, y: number, buildings: Building[]): number {
+  let best = 1;
+  for (const b of buildings) {
+    if (b.builtProgress < 1) continue;
+    const bonus = ROAD_SPEED[b.kind];
+    if (!bonus) continue;
+    if (x < b.x || x >= b.x + b.w || y < b.y || y >= b.y + b.h) continue;
+    if (bonus > best) best = bonus;
+  }
+  return best;
+}
+
 
 function tileAt(tiles: Tile[], mapW: number, gx: number, gy: number): Tile | undefined {
   if (gx < 0 || gy < 0) return undefined;
@@ -96,7 +120,10 @@ function moveToward(s: Survivor, dt: number, deps?: SimDeps) {
   const dx = s.targetX - s.x;
   const dy = s.targetY - s.y;
   const d = Math.sqrt(dx * dx + dy * dy);
-  const speed = 0.04 * dt;
+  // Movement speed: roads give a real travel bonus.
+  const roadMult = deps ? roadSpeedAt(s.x, s.y, deps.buildings) : 1;
+  const speed = 0.04 * dt * roadMult;
+
   if (d <= speed) {
     s.x = s.targetX;
     s.y = s.targetY;
@@ -147,8 +174,25 @@ function moveToward(s: Survivor, dt: number, deps?: SimDeps) {
       }
     }
   }
+  // Record foot traffic on the new tile — long-used routes auto-form
+  // visible dirt paths over time. Skip if we're already on a road
+  // (the road handles the look) or on water/stone.
+  if (deps?.bumpWear) {
+    const tx = Math.floor(nx);
+    const ty = Math.floor(ny);
+    const ptx = Math.floor(s.x);
+    const pty = Math.floor(s.y);
+    if (tx !== ptx || ty !== pty) {
+      const tile = tileAt(deps.tiles, deps.mapW, tx, ty);
+      if (tile && tile.kind !== "water" && tile.kind !== "stone") {
+        const onRoad = roadSpeedAt(nx, ny, deps.buildings) > 1;
+        if (!onRoad) deps.bumpWear(`${tx},${ty}`, 1);
+      }
+    }
+  }
   s.x = nx; s.y = ny;
 }
+
 
 
 function nearestNode(s: Survivor, nodes: ResourceNode[], wants: ResourceKind): ResourceNode | null {
@@ -292,7 +336,10 @@ export interface SimDeps {
   ministers?: import("../types").Minister[];
   leaderHelp?: { build: boolean; farm: boolean };
   emitMemory: (s: Survivor, text: string, emotion: import("../types").Memory["emotion"], weight: number) => void;
+  /** Optional foot-traffic accumulator. Increments wear count for a tile key "x,y". */
+  bumpWear?: (key: string, amount: number) => void;
 }
+
 
 /** Workers who dislike each other (opinion <= -30) drag down a shared build site. */
 function rivalryWorkMult(s: Survivor, b: Building, deps: SimDeps): number {

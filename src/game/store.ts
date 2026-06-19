@@ -15,7 +15,7 @@ import {
 
 import { advance, type Engine } from "./sim/engine";
 import { createArrangedProposal } from "./sim/marriage";
-import { BUILDINGS } from "./data/content";
+import { BUILDINGS, ROAD_KINDS } from "./data/content";
 import { makeAnimal, SPECIES_BUILDING, SPECIES_LABEL } from "./sim/livestock";
 import {
   ROLE_OCCUPATION, makeMinister, applyApproval, applyRejection,
@@ -100,11 +100,14 @@ interface GameState {
   ministerRequests: MinisterRequest[];
   ministerReports: MinisterReport[];
 
-
+  /** Per-tile foot-traffic counter, keyed "x,y". Tiles above a threshold are
+   *  drawn as procedural worn footpaths and may auto-upgrade to dirt paths. */
+  wornPaths: Record<string, number>;
 
 
   selection: Selection;
   buildPlacement: BuildPlacement;
+
 
   // Arrival event (transient — pauses the simulation while open)
   pendingArrival: ArrivalEvent | null;
@@ -322,9 +325,11 @@ export const useGame = create<GameState>((set, get) => ({
   ministers: [],
   ministerRequests: [],
   ministerReports: [],
+  wornPaths: {},
   selection: { kind: "none" },
   buildPlacement: null,
   pendingArrival: null,
+
   pendingCouncilVote: null,
   councilReactionLog: [],
   laws: [],
@@ -463,10 +468,26 @@ export const useGame = create<GameState>((set, get) => ({
     if (!bp) return false;
     const def = BUILDINGS[bp.kind];
     if (x < 0 || y < 0 || x + def.size.w > st.mapW || y + def.size.h > st.mapH) return false;
-    for (const b of st.buildings) {
+    // Roads upgrade in-place: clear any existing road tile beneath us before
+    // checking for overlaps. Roads cannot overlap non-road buildings.
+    const isRoadKind = ROAD_KINDS.includes(bp.kind);
+    let workingBuildings = st.buildings;
+    if (isRoadKind) {
+      workingBuildings = workingBuildings.filter(b => {
+        const overlaps =
+          x + def.size.w > b.x && b.x + b.w > x &&
+          y + def.size.h > b.y && b.y + b.h > y;
+        if (!overlaps) return true;
+        // Allow placing on top of any existing road (replaces it).
+        if (ROAD_KINDS.includes(b.kind)) return false;
+        return true;
+      });
+    }
+    for (const b of workingBuildings) {
       if (x + def.size.w <= b.x || y + def.size.h <= b.y || b.x + b.w <= x || b.y + b.h <= y) continue;
       return false;
     }
+
     for (let dy = 0; dy < def.size.h; dy++) {
       for (let dx = 0; dx < def.size.w; dx++) {
         const t = st.tiles[(y + dy) * st.mapW + (x + dx)];
@@ -577,17 +598,19 @@ export const useGame = create<GameState>((set, get) => ({
       }
     }
     set({
-      buildings: [...st.buildings, b],
+      buildings: [...workingBuildings, b],
       resources: newResources,
       animals,
       livestockRequests,
       survivors,
       families,
-      buildPlacement: null,
+      // Roads stay "sticky" so the player can paint a run of tiles without
+      // re-clicking the menu after every placement.
+      buildPlacement: isRoadKind ? bp : null,
       // Open assignment modal only for buildings that actually need labor.
       // Granted family pens skip this; the family handles them.
       pendingBuildAssignment:
-        isInstant || isGranted || bp.kind === "farm-plot" ||
+        isInstant || isGranted || bp.kind === "farm-plot" || isRoadKind ||
         st.ministers.some((m) => m.role === "head-builder")
           ? null
           : b.id,
@@ -597,6 +620,7 @@ export const useGame = create<GameState>((set, get) => ({
     });
     return true;
   },
+
 
   setOccupation: (id, occ) => {
     const st = get();
@@ -1156,7 +1180,9 @@ export const useGame = create<GameState>((set, get) => ({
       ministers: [],
       ministerRequests: [],
       ministerReports: [],
+      wornPaths: {},
     });
+
   },
 
   resumeFromSave: () => {
@@ -1215,7 +1241,9 @@ export const useGame = create<GameState>((set, get) => ({
       ministerReports: save.ministerReports ?? [],
       expeditions: save.expeditions ?? [],
       borderMode: false,
+      wornPaths: {},
     });
+
     return true;
   },
 
@@ -1568,7 +1596,9 @@ export const useGame = create<GameState>((set, get) => ({
       ministerReports: st.ministerReports.map(r => ({ ...r })),
       foundingPhase: st.foundingPhase,
       leaderHelp: { ...st.leaderHelp },
+      wornPaths: { ...st.wornPaths },
     };
+
 
     const prevTick = st.time.tick;
     const prevFounderAlive = (st.survivors.find(s => s.id === st.founderId)?.health ?? 0) > 0;
@@ -1830,6 +1860,8 @@ export const useGame = create<GameState>((set, get) => ({
       ministers: eng.ministers,
       ministerRequests: eng.ministerRequests,
       ministerReports: eng.ministerReports,
+      wornPaths: eng.wornPaths ?? st.wornPaths,
+
       pendingArrival,
       pendingCouncilVote,
       pendingFoundingCharter,
