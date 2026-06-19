@@ -176,7 +176,6 @@ export function FamilyPanel({ familyId }: { familyId: string }) {
 }
 
 function MemberRow({ s, isHead, isLeader, onClick }: { s: Survivor; isHead: boolean; isLeader: boolean; onClick: () => void }) {
-  const moodTone = s.mood >= 10 ? "text-success" : s.mood <= -20 ? "text-danger" : "text-dust";
   return (
     <button onClick={onClick} className="w-full text-left hover:bg-amber/5 px-1 py-0.5">
       <div className="flex justify-between items-baseline gap-2">
@@ -185,11 +184,11 @@ function MemberRow({ s, isHead, isLeader, onClick }: { s: Survivor; isHead: bool
         </span>
         <span className="ranch-data text-[10px] text-dust">{cap(s.stage)} · {Math.floor(s.age)}</span>
       </div>
-      <div className="flex justify-between ranch-data text-[9px] mt-0.5">
+      <div className="flex justify-between items-center ranch-data text-[9px] mt-0.5">
         <span className="text-amber">{isHead ? "head" : s.spouseId ? "wed" : "—"}</span>
-        <span>
-          <span className={moodTone}>mood {Math.round(s.mood)}</span>
-          <span className="text-dust ml-2">loyalty {Math.round(s.loyaltyToFounder)}</span>
+        <span className="flex items-center gap-2">
+          <MoodFace survivor={s} size="xs" showLabel={false} />
+          <span className="text-dust">loyalty {Math.round(s.loyaltyToFounder)}</span>
         </span>
       </div>
     </button>
