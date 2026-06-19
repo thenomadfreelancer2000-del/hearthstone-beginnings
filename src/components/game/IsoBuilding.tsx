@@ -1106,22 +1106,18 @@ const VISUALS: Record<string, VisualKind> = {
   homestead: {
     type: "block",
     cfg: {
-      // Painted clapboard manor — creamy white walls, deep forest-green
-      // trim, classic barn-red roof. Reads as a prestige building even
-      // when zoomed out.
-      walls: { lit: "#f3e4c2", shade: "#c8a87a" },
-      roof: { type: "gable", color: "#9a2a1c", shade: "#5e160c", ridge: "ne", gable: "#f3e4c2" },
-      story: 1.6,
-      door: "double", doorColor: "#1f3a2a",
-      windows: 4, windowColor: "#ffd87a",
-      trim: "#1f3a2a", trimRows: 5,
-      // Rooftop chimney is OFF — a bespoke stone side-chimney is drawn
-      // separately by HomesteadFlair so it dominates the silhouette.
+      // Ranch estate manor: smaller footprint inside the plot, solid barn-red
+      // roof, warm clapboard siding, and custom porch/yard details.
+      walls: { lit: "#ead7a6", shade: "#b98d58" },
+      roof: { type: "hip", color: "#9b2f1d", shade: "#5f190f", pitch: 0.46 },
+      story: 1.32,
+      door: "double", doorColor: "#214331",
+      windows: 3, windowColor: "#ffd96f",
+      trim: "#6f4b25", trimRows: 6,
       chimney: false,
-      banner: { color: "#1f3a2a" },
-      inset: 0.10,
+      inset: 0.22,
       noShadow: true,
-      porch: "grand", porchColor: "#1f3a2a",
+      porch: "none",
     },
   },
   tent: {
