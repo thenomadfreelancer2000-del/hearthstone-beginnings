@@ -3055,9 +3055,30 @@ export function MapView() {
               </g>
             ) });
           }
+          // Merge resource nodes into the same depth-sorted list so a
+          // tree on tile (tx,ty) draws BEHIND any building/fence whose
+          // south corner is further down-right, and IN FRONT of those
+          // further up-left. Treat each node as a 1×1 footprint.
+          for (const n of nodes) {
+            if (n.amount <= 0) continue;
+            const size = TILE * (n.kind === "trees" ? 1.3 : n.kind === "rocks" ? 1.05 : 0.95);
+            const depleted = n.amount < 30;
+            const seed = Math.abs((n.x * 73856093) ^ (n.y * 19349663));
+            const anchorX = (n.x + 1) * TILE;
+            const anchorY = (n.y + 1) * TILE;
+            entries.push({ sort: n.x + n.y + 2, node: (
+              <g key={`node-${n.id}`} transform={isoUpright(anchorX, anchorY)}
+                 opacity={depleted ? 0.6 : 1} pointerEvents="none">
+                <g transform={`translate(${-size / 2}, ${-size})`}>
+                  <NodeArt kind={n.kind} size={size} seed={seed} />
+                </g>
+              </g>
+            ) });
+          }
           entries.sort((a, c) => a.sort - c.sort);
           return entries.map((e, i) => <React.Fragment key={i}>{e.node}</React.Fragment>);
         })()}
+
 
         {/* Animals — clustered around their pen */}
         {(() => {
