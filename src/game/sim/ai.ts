@@ -43,6 +43,8 @@ const PASSABLE_BUILDINGS = new Set<string>([
   "campfire", "stockpile", "food-stockpile", "well", "stone-well", "deep-well",
   "water-collector", "water-barrel", "field", "large-field", "farm-plot",
   "orchard", "foraging-camp", "workbench",
+  // Gates are walk-through openings in a fence run.
+  "gate",
   // Roads — survivors walk on them, they never block.
   "dirt-path", "dirt-road", "gravel-road", "paved-road", "stone-road",
 ]);
