@@ -974,12 +974,10 @@ export const useGame = create<GameState>((set, get) => ({
   },
 
   setHomeReserved: (buildingId, reserved) => {
-    const st = get();
-    set({
-      buildings: st.buildings.map(b =>
-        b.id === buildingId ? { ...b, reserved } : b
-      ),
-    });
+    set(produce(get(), (draft) => {
+      const b = draft.buildings.find(x => x.id === buildingId);
+      if (b) b.reserved = reserved;
+    }));
   },
 
   demolishBuilding: (buildingId) => {
