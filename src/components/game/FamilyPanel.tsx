@@ -35,10 +35,8 @@ export function FamilyPanel({ familyId }: { familyId: string }) {
     standing.avgLoyalty >= 25 ? "text-success"
     : standing.avgLoyalty <= -25 ? "text-danger"
     : "text-dust-light";
-  const moodColor =
-    standing.avgMood >= 15 ? "text-success"
-    : standing.avgMood <= -15 ? "text-danger"
-    : "text-dust-light";
+
+
 
   return (
     <aside className="parchment-panel w-full sm:w-[340px] p-4 border-l border-amber/20 overflow-auto scroll-amber">
