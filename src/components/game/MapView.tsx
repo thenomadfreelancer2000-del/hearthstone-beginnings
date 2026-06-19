@@ -2827,7 +2827,10 @@ export function MapView() {
         })()}
 
 
-        <StaticResourceLayer nodes={nodes} width={W} height={H} />
+        {/* Resource nodes (trees / rocks / berries / fiber) are merged
+            into the depth-sorted entity list below so buildings, fences
+            and props in front correctly cover them. */}
+
 
         {/* Worn footpaths — tiles repeatedly walked over darken into a
             visible dirt trail. Intensity rises with traffic and caps so
