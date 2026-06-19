@@ -468,10 +468,26 @@ export const useGame = create<GameState>((set, get) => ({
     if (!bp) return false;
     const def = BUILDINGS[bp.kind];
     if (x < 0 || y < 0 || x + def.size.w > st.mapW || y + def.size.h > st.mapH) return false;
-    for (const b of st.buildings) {
+    // Roads upgrade in-place: clear any existing road tile beneath us before
+    // checking for overlaps. Roads cannot overlap non-road buildings.
+    const isRoadKind = ROAD_KINDS.includes(bp.kind);
+    let workingBuildings = st.buildings;
+    if (isRoadKind) {
+      workingBuildings = workingBuildings.filter(b => {
+        const overlaps =
+          x + def.size.w > b.x && b.x + b.w > x &&
+          y + def.size.h > b.y && b.y + b.h > y;
+        if (!overlaps) return true;
+        // Allow placing on top of any existing road (replaces it).
+        if (ROAD_KINDS.includes(b.kind)) return false;
+        return true;
+      });
+    }
+    for (const b of workingBuildings) {
       if (x + def.size.w <= b.x || y + def.size.h <= b.y || b.x + b.w <= x || b.y + b.h <= y) continue;
       return false;
     }
+
     for (let dy = 0; dy < def.size.h; dy++) {
       for (let dx = 0; dx < def.size.w; dx++) {
         const t = st.tiles[(y + dy) * st.mapW + (x + dx)];
