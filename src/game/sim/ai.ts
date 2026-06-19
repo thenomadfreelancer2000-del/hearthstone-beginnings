@@ -336,7 +336,10 @@ export interface SimDeps {
   ministers?: import("../types").Minister[];
   leaderHelp?: { build: boolean; farm: boolean };
   emitMemory: (s: Survivor, text: string, emotion: import("../types").Memory["emotion"], weight: number) => void;
+  /** Optional foot-traffic accumulator. Increments wear count for a tile key "x,y". */
+  bumpWear?: (key: string, amount: number) => void;
 }
+
 
 /** Workers who dislike each other (opinion <= -30) drag down a shared build site. */
 function rivalryWorkMult(s: Survivor, b: Building, deps: SimDeps): number {
