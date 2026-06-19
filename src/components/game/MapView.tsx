@@ -37,7 +37,7 @@ const TILE_PAL: Record<Tile["kind"], { base: string; alt: string; detail: string
   dirt:         { base: "#94632a", alt: "#a17132", detail: "#b88947" },
   forest:       { base: "#3e5c2a", alt: "#476833", detail: "#5e8240" },
   stone:        { base: "#8a8278", alt: "#9a9388", detail: "#b0a89c" },
-  water:        { base: "#4a7a96", alt: "#5589a6", detail: "#9ec6db" },
+  water:        { base: "#2e5874", alt: "#3a6a86", detail: "#a8d0e0" },
   road:         { base: "#6b4a26", alt: "#78532b", detail: "#8a6432" },
   ruin:         { base: "#5c4d3a", alt: "#6a5944", detail: "#8a7558" },
 };
@@ -1851,11 +1851,39 @@ const StaticTileLayers = React.memo(function StaticTileLayers({ tiles, width, he
               }
             }
           } else {
-            // Water: horizontal ripple bands using alt tone
+            // Water: depth-shaded — tiles touching land get a lighter shallow
+            // tint; tiles surrounded by water get a deeper tone. Then layer
+            // soft horizontal ripple bands of varying alpha so the surface
+            // reads as water rather than a flat blue square.
+            let landNeighbors = 0;
+            for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]] as const) {
+              const nb = at(t.x + dx, t.y + dy);
+              if (nb && nb.kind !== "water") landNeighbors++;
+            }
+            // Deep-water darkening when no land touches this tile
+            if (landNeighbors === 0) {
+              ctx.fillStyle = "#1f4360";
+              ctx.globalAlpha = 0.55;
+              ctx.fillRect(px, py, TILE, TILE);
+              ctx.globalAlpha = 1;
+            } else {
+              // Shallow tint near shore
+              ctx.fillStyle = "#5a8aa6";
+              ctx.globalAlpha = Math.min(0.45, 0.12 + landNeighbors * 0.07);
+              ctx.fillRect(px, py, TILE, TILE);
+              ctx.globalAlpha = 1;
+            }
+            // Two ripple bands per tile, offsets jittered by tile coord
             ctx.fillStyle = pal.alt;
-            ctx.globalAlpha = 0.6;
-            const bandY = ((t.y * 3 + Math.floor(rand(t.x, t.y, 2) * 4)) % 4) * 2;
-            ctx.fillRect(px, py + bandY, TILE, 2);
+            for (let b = 0; b < 2; b++) {
+              const r = rand(t.x, t.y, 17 + b);
+              const bandY = Math.floor(r * (TILE - 3));
+              const bandH = 1 + Math.floor(rand(t.x, t.y, 31 + b) * 2);
+              ctx.globalAlpha = 0.35 + r * 0.2;
+              const xOff = Math.floor(rand(t.x, t.y, 41 + b) * 4);
+              const xLen = TILE - xOff - Math.floor(rand(t.x, t.y, 53 + b) * 4);
+              ctx.fillRect(px + xOff, py + bandY, xLen, bandH);
+            }
             ctx.globalAlpha = 1;
           }
         }
@@ -1939,8 +1967,9 @@ const StaticTileLayers = React.memo(function StaticTileLayers({ tiles, width, he
             const nb = at(nx, ny);
             if (!nb || nb.kind === "water") continue;
             if (!nb) continue;
-            // shallow water band (lighter)
-            drawShoreEdge(px, py, dir, TILE_PAL.water.detail, 0.45, 2.6, 31, t.x, t.y);
+            // Shallow turquoise band where land meets water
+            drawShoreEdge(px, py, dir, "#7ab0c4", 0.65, 3.2, 31, t.x, t.y);
+            drawShoreEdge(px, py, dir, "#a8d0e0", 0.4, 1.4, 37, t.x, t.y);
             // a few irregular nibbles of the land color biting into the water
             drawShoreEdge(px, py, dir, TILE_PAL[nb.kind].base, 0.85, 1.2, 47, t.x, t.y);
             // tiny sand fleck on top
@@ -1958,16 +1987,28 @@ const StaticTileLayers = React.memo(function StaticTileLayers({ tiles, width, he
           ctx.strokeStyle = pal.detail;
           ctx.fillStyle = pal.detail;
           if (t.kind === "water") {
-            // Subtle wave highlights
+            // Curved wave highlights — varied, fewer than the old grid
             ctx.strokeStyle = pal.detail;
-            ctx.globalAlpha = 0.55;
+            ctx.globalAlpha = 0.5;
             ctx.lineWidth = 0.7;
-            for (const oy of [6, 14, 22]) {
-              const ox = (rand(t.x, t.y, oy) - 0.5) * 4;
+            const nWaves = 2 + Math.floor(rand(t.x, t.y, 3) * 2);
+            for (let i = 0; i < nWaves; i++) {
+              const wy = py + 4 + rand(t.x, t.y, 70 + i) * (TILE - 8);
+              const wx = px + 2 + rand(t.x, t.y, 80 + i) * (TILE * 0.4);
+              const wlen = 5 + rand(t.x, t.y, 90 + i) * 7;
               ctx.beginPath();
-              ctx.moveTo(px + 3 + ox, py + oy);
-              ctx.quadraticCurveTo(px + TILE / 2, py + oy - 1.5, px + TILE - 3 + ox, py + oy);
+              ctx.moveTo(wx, wy);
+              ctx.quadraticCurveTo(wx + wlen / 2, wy - 1.2, wx + wlen, wy);
               ctx.stroke();
+            }
+            // Tiny sun-sparkle dots — sparse, give the surface life
+            if (rand(t.x, t.y, 200) > 0.7) {
+              ctx.fillStyle = "#e8f4fa";
+              ctx.globalAlpha = 0.75;
+              const sx = px + 3 + rand(t.x, t.y, 201) * (TILE - 6);
+              const sy = py + 3 + rand(t.x, t.y, 202) * (TILE - 6);
+              ctx.fillRect(sx, sy, 1.2, 1.2);
+              ctx.fillRect(sx + 1.5, sy + 0.5, 0.8, 0.8);
             }
             ctx.globalAlpha = 1;
           } else if (t.kind === "grass" || t.kind === "tall-grass") {
