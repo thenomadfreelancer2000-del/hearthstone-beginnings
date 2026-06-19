@@ -2021,8 +2021,8 @@ function HomesteadFlair({ gridW, gridH, T }: { gridW: number; gridH: number; T: 
   // wall top) up to the ridge. Place the dormer at the midpoint of
   // the SW eave, pushed slightly up the slope.
   const swEaveMid = lift(mid(c.S, c.W), wallH);
-  const dormerBase: P = [swEaveMid[0], swEaveMid[1] - T * 0.25];
-  const dW = T * 0.55, dH = T * 0.45;
+  const dormerBase: P = [swEaveMid[0], swEaveMid[1] - T * 0.20];
+  const dW = T * 0.34, dH = T * 0.28;
   const dormer = (
     <g>
       {/* dormer side walls — small rectangle facing camera */}
@@ -2031,17 +2031,17 @@ function HomesteadFlair({ gridW, gridH, T }: { gridW: number; gridH: number; T: 
         [dormerBase[0] + dW / 2, dormerBase[1]],
         [dormerBase[0] + dW / 2, dormerBase[1] - dH],
         [dormerBase[0] - dW / 2, dormerBase[1] - dH],
-      )} fill="#f3e4c2" stroke={INK} strokeWidth={0.5} />
+      )} fill="#ead7a6" stroke={INK} strokeWidth={0.5} />
       {/* dormer roof — small triangle peak */}
       <polygon points={poly(
         [dormerBase[0] - dW / 2 - 1, dormerBase[1] - dH],
         [dormerBase[0] + dW / 2 + 1, dormerBase[1] - dH],
         [dormerBase[0],              dormerBase[1] - dH - T * 0.30],
-      )} fill="#9a2a1c" stroke={INK} strokeWidth={0.5} />
+      )} fill="#9b2f1d" stroke={INK} strokeWidth={0.5} />
       {/* lit window */}
       <rect x={dormerBase[0] - dW / 2 + 2} y={dormerBase[1] - dH + 2}
         width={dW - 4} height={dH - 4}
-        fill="#ffd87a" stroke="#1f3a2a" strokeWidth={0.5} />
+        fill="#ffd96f" stroke="#6f4b25" strokeWidth={0.5} />
       <line x1={dormerBase[0]} y1={dormerBase[1] - dH + 2}
         x2={dormerBase[0]} y2={dormerBase[1] - 2}
         stroke="#1f3a2a" strokeWidth={0.4} />
