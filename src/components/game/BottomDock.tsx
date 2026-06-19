@@ -223,7 +223,7 @@ function PeopleList() {
               {s.isFounder && "★ "}{s.name} {s.surname}
             </td>
             <td className="text-center text-dust-light">{s.occupation}</td>
-            <td className={`text-center ${s.mood >= 0 ? "text-success" : "text-danger"}`}>{Math.round(s.mood)}</td>
+            <td className="text-center"><MoodFace survivor={s} size="sm" showLabel={false} /></td>
             <td className={`text-center ${s.health < 30 ? "text-danger" : "text-dust-light"}`}>{Math.round(s.health)}</td>
             <td className="text-dust ranch-handwritten">{s.action}</td>
           </tr>
