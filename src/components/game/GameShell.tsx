@@ -160,10 +160,11 @@ export function GameShell() {
       <AssignBuilderModal />
       <FarmSetupModal />
       <Toaster
-        position="top-center"
+        position="bottom-right"
         theme="dark"
-        offset={isMobile ? 96 : 64}
+        offset={isMobile ? 96 : 24}
         mobileOffset={96}
+        swipeDirections={["right", "left", "bottom", "top"]}
         toastOptions={{
           unstyled: true,
           classNames: {
