@@ -1526,13 +1526,13 @@ const VISUALS: Record<string, VisualKind> = {
 function RanchYard({
   gridW, gridH, T, layer,
 }: { gridW: number; gridH: number; T: number; layer: "back" | "front" }) {
-  // Fence sits flush with the tile footprint; the building inside
-  // is rendered at inset 0.17 so the ring between them is the yard.
-  const outer = isoCorners(gridW, gridH, T, -0.02);
-  const inner = isoCorners(gridW, gridH, T, 0.10);
-  const PICKET = "#efe2bf";
-  const PICKET_SHADE = "#a89366";
-  const RAIL = "#c9b282";
+  // Keep the entire estate dressing INSIDE the building footprint so the
+  // black paved foundation always sits under fences, path, flowers and stairs.
+  const outer = isoCorners(gridW, gridH, T, 0.05);
+  const inner = isoCorners(gridW, gridH, T, 0.22);
+  const PICKET = "#f5ead0";
+  const PICKET_SHADE = "#9d875d";
+  const RAIL = "#d1b67d";
   const ph = T * 0.42;
 
   // Picket-fence edge renderer (with optional centered gate gap).
