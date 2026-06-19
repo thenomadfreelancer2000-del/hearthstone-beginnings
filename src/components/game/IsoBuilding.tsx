@@ -2199,6 +2199,14 @@ export function IsoBuilding({
       );
     }
 
+    case "tent":
+    case "family-tent": {
+      return (
+        <IsoSprite gridW={gridW} gridH={gridH} T={tile} src={tentAsset.url} />
+      );
+    }
+
+
     case "campfire": return <IsoCampfire gridW={gridW} gridH={gridH} T={tile} />;
     case "well": return <IsoWell gridW={gridW} gridH={gridH} T={tile} />;
     case "stone-well": return <IsoWell gridW={gridW} gridH={gridH} T={tile} />;
