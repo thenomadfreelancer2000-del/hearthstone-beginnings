@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useGame, territoryDims } from "@/game/store";
+import { PASSABLE_BUILDINGS } from "@/game/sim/ai";
+
 import { useView } from "@/game/viewStore";
 import { BUILDINGS } from "@/game/data/content";
 import { useIsMobile } from "@/hooks/use-mobile";
