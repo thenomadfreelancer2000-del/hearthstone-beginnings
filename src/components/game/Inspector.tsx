@@ -134,6 +134,11 @@ export function Inspector({ onHide }: { onHide?: () => void } = {}) {
           <p className="ranch-body italic text-dust-light text-xs mt-2 leading-snug">{s.action}</p>
         )}
 
+        {!isDead && !isLeader && (s.stage === "adult" || s.stage === "youth" || s.stage === "elder") && (
+          <TalkToBar targetId={s.id} targetName={s.name} />
+        )}
+
+
         {/* Tab nav */}
         <div className="mt-3 flex gap-0.5 overflow-x-auto scroll-amber border-b border-amber/30 shrink-0">
           {SURVIVOR_TABS.map((t) => (
