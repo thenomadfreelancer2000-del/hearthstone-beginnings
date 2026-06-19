@@ -693,17 +693,56 @@ function ActivityGlyph({ survivor: s, partnerNearby, speakOffset = "0s" }: {
     );
   }
   if (st === "socializing" || partnerNearby) {
-    // Speech bubble that pops in and out — pairs alternate via speakOffset
-    // so the conversation reads as turn-taking, like Sims.
+    // Pick a glyph that fits what they're saying. The AI writes phrases
+    // like "Laughing with X." / "Sharing stories with X." / "Chatting...".
+    const a = (s.action || "").toLowerCase();
+    const mood: "laugh" | "love" | "story" | "curious" | "chat" =
+      a.includes("laugh")             ? "laugh" :
+      a.includes("sharing stories")   ? "story" :
+      a.includes("getting to know")   ? "curious" :
+      (s.mood ?? 50) >= 70 && partnerNearby ? "love" :
+                                        "chat";
+    const bubble = (() => {
+      switch (mood) {
+        case "laugh":
+          return (
+            <text x={0} y={0.6} fontSize={2.2} textAnchor="middle"
+                  fontFamily="ui-serif, Georgia, serif" fontWeight={700}
+                  fill={PAL.ink}>Ha!</text>
+          );
+        case "love":
+          return (
+            <path d="M0 1 L-1.1 0 Q-1.7 -0.6 -1.1 -1.2 Q-0.5 -1.7 0 -1 Q0.5 -1.7 1.1 -1.2 Q1.7 -0.6 1.1 0 Z"
+                  fill="#b14a3a" stroke={PAL.ink} strokeWidth={0.2} />
+          );
+        case "story":
+          return (
+            <text x={0} y={0.7} fontSize={2.6} textAnchor="middle"
+                  fontFamily="ui-serif, Georgia, serif" fill={PAL.ink}>♪</text>
+          );
+        case "curious":
+          return (
+            <text x={0} y={0.8} fontSize={2.4} textAnchor="middle"
+                  fontFamily="ui-serif, Georgia, serif" fontWeight={700}
+                  fill={PAL.ink}>?</text>
+          );
+        case "chat":
+        default:
+          return (
+            <g fill={PAL.ink}>
+              <circle cx={-1} cy={-0.4} r={0.3} />
+              <circle cx={0.1} cy={-0.4} r={0.3} />
+              <circle cx={1.2} cy={-0.4} r={0.3} />
+            </g>
+          );
+      }
+    })();
     return (
       <g transform={`translate(0 ${gy})`} pointerEvents="none">
         <g>
           <path d="M-2.4 -1.6 Q-2.4 -2.6 -1.4 -2.6 L1.6 -2.6 Q2.6 -2.6 2.6 -1.6 L2.6 0.4 Q2.6 1.4 1.6 1.4 L0 1.4 L-0.8 2.4 L-1 1.4 L-1.4 1.4 Q-2.4 1.4 -2.4 0.4 Z"
                 fill="#f1e2bf" stroke={PAL.ink} strokeWidth={0.35} />
-          <circle cx={-1} cy={-0.6} r={0.28} fill={PAL.ink} />
-          <circle cx={0.1} cy={-0.6} r={0.28} fill={PAL.ink} />
-          <circle cx={1.2} cy={-0.6} r={0.28} fill={PAL.ink} />
-          {/* Pop in for 1.4s, then hide for 1.4s — partner takes the other slot */}
+          <g transform="translate(0 -0.6)">{bubble}</g>
           <animate attributeName="opacity"
             values="0;1;1;0;0"
             keyTimes="0;0.1;0.5;0.55;1"
@@ -714,8 +753,8 @@ function ActivityGlyph({ survivor: s, partnerNearby, speakOffset = "0s" }: {
             dur="2.8s" begin={speakOffset} repeatCount="indefinite"
             additive="sum" />
         </g>
-        {/* Tiny floating heart for very close bonds — affection drives it */}
-        {partnerNearby && (
+        {/* Floating heart on top of long, warm chats */}
+        {(mood === "love" || mood === "laugh") && (
           <g>
             <path d="M0 1 L-0.9 0.1 Q-1.4 -0.4 -0.9 -0.9 Q-0.4 -1.3 0 -0.7 Q0.4 -1.3 0.9 -0.9 Q1.4 -0.4 0.9 0.1 Z"
                   fill="#b14a3a" opacity={0.85} transform="translate(3.2 -1)" />
