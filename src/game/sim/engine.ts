@@ -170,7 +170,12 @@ export function advance(eng: Engine, n: number, opts?: { onArrival?: (s: Survivo
       leaderHelp: eng.leaderHelp ?? { build: false, farm: false },
       emitMemory: (s: Survivor, text: string, emotion: Memory["emotion"], weight: number) =>
         emitMem(eng, s, text, emotion, weight),
+      bumpWear: (key: string, amount: number) => {
+        const wp = eng.wornPaths ?? (eng.wornPaths = {});
+        wp[key] = (wp[key] ?? 0) + amount;
+      },
     };
+
 
     for (const s of eng.survivors) {
       if (s.health <= 0) continue;
