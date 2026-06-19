@@ -19,6 +19,7 @@ import { AuthorityPanel } from "./AuthorityPanel";
 import { FamilyPanel } from "./FamilyPanel";
 import { rankHeirs, heirRating, EDUCATION_LABEL, type EducationFocus } from "@/game/sim/heirs";
 import { lifeStageLabel } from "@/game/sim/legacy";
+import { MoodFace } from "./MoodFace";
 
 const OCCUPATIONS: Occupation[] = [
   "idle", "forager", "woodcutter", "miner", "farmer", "builder", "hauler",
