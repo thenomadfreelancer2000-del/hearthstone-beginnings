@@ -2149,6 +2149,9 @@ function SurvivorArtCore({ founder, dead, female, elderTint, pregnant }: { found
       <rect x={-2} y={-9} width={4} height={2} rx={0.5} fill={hat} stroke={PAL.ink} strokeWidth={0.5} />
     </g>
   );
+}
+
+
 
 
 
