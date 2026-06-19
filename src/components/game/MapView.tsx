@@ -1425,15 +1425,24 @@ export function MapView() {
           const cx = s.x * TILE + TILE / 2;
           const cy = s.y * TILE + TILE / 2;
           const dead = s.health <= 0;
+          const sleeping = !dead && s.state === "resting";
+          // Detect "talking" — another survivor very close & both socializing/idle.
+          const partner = !dead && (s.state === "socializing")
+            ? survivors.find(o => o.id !== s.id && !(o.health <= 0)
+                && Math.abs(o.x - s.x) < 1.2 && Math.abs(o.y - s.y) < 1.2)
+            : undefined;
           return (
             <g key={s.id} style={{ pointerEvents: "all", cursor: "pointer" }} transform={`translate(${cx}, ${cy})`}>
               {sel && (
                 <circle cx={0} cy={1} r={10} fill="none" stroke={PAL.gold} strokeWidth={1.3} strokeDasharray="2 2" />
               )}
-              <SurvivorArt founder={!!s.isFounder} dead={dead} female={s.gender === "f"} stage={s.stage} pregnant={!!s.pregnant} />
+              <g transform={sleeping ? "rotate(-78) translate(0,-1)" : undefined}>
+                <SurvivorArt founder={!!s.isFounder} dead={dead} female={s.gender === "f"} stage={s.stage} pregnant={!!s.pregnant} />
+              </g>
               {dead && (
                 <line x1={-4} y1={-3} x2={4} y2={3} stroke={PAL.ink} strokeWidth={0.8} />
               )}
+              {!dead && <ActivityGlyph survivor={s} partnerNearby={!!partner} />}
             </g>
           );
         })}
