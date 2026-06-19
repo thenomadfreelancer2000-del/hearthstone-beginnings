@@ -46,7 +46,7 @@ export const BACKGROUNDS: { id: Background; name: string; blurb: string; skills:
 export const BUILDINGS: Record<BuildingKind, BuildingDef> = {
   homestead: {
     kind: "homestead", name: "Homestead", blurb: "The original house. Where it all began.",
-    size: { w: 8, h: 8 },
+    size: { w: 5, h: 5 },
     cost: {}, buildEffort: 0, housingCapacity: 4, housingQuality: 3, storageCapacity: 200, social: true,
     produces: null,
   },
