@@ -1106,16 +1106,16 @@ const VISUALS: Record<string, VisualKind> = {
   homestead: {
     type: "block",
     cfg: {
-      // Ranch estate manor: smaller footprint inside the plot, solid barn-red
-      // roof, warm clapboard siding, and custom porch/yard details.
-      walls: { lit: "#ead7a6", shade: "#b98d58" },
-      roof: { type: "hip", color: "#9b2f1d", shade: "#5f190f", pitch: 0.46 },
-      story: 1.32,
-      door: "double", doorColor: "#214331",
-      windows: 3, windowColor: "#ffd96f",
-      trim: "#6f4b25", trimRows: 6,
+      // Ranch estate manor: small brown-wood cabin nested well inside the
+      // fenced yard. All-brown timber walls and matching shingle roof.
+      walls: { lit: "#8a5a2b", shade: "#5a3819" },
+      roof: { type: "hip", color: "#6b3d1c", shade: "#3a200d", pitch: 0.46 },
+      story: 1.05,
+      door: "double", doorColor: "#3a230f",
+      windows: 2, windowColor: "#ffd96f",
+      trim: "#3d2510", trimRows: 5,
       chimney: false,
-      inset: 0.22,
+      inset: 0.36,
       noShadow: true,
       porch: "none",
     },
