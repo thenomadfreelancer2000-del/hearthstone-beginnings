@@ -2,9 +2,15 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useGame } from "@/game/store";
 import { BUILDABLE_KINDS, BUILDINGS } from "@/game/data/content";
+import { useWorkshop } from "@/game/workshop/store";
+import { workshopKindOf, WORKSHOP_CATEGORIES, type WorkshopCategory } from "@/game/workshop/types";
+import { WorkshopPanel } from "./WorkshopPanel";
+import type { BuildingKind } from "@/game/types";
+
 
 export function BottomDock() {
   const [tab, setTab] = useState<"build" | "people" | "chronicle" | null>(null);
+  const [workshopOpen, setWorkshopOpen] = useState(false);
   const open = tab !== null;
   return (
     <div className="parchment-panel border-t border-amber/30">
@@ -18,6 +24,13 @@ export function BottomDock() {
             {t}
           </button>
         ))}
+        <button
+          onClick={() => setWorkshopOpen(true)}
+          className="px-3 sm:px-4 py-2 ranch-label text-[11px] text-dust hover:text-amber"
+          title="Community building packs"
+        >
+          ✦ workshop
+        </button>
         {open && (
           <button
             onClick={() => setTab(null)}
@@ -30,14 +43,16 @@ export function BottomDock() {
       </div>
       {open && (
         <div className="p-2 sm:p-3 max-h-[45vh] sm:max-h-[200px] overflow-auto scroll-amber">
-          {tab === "build" && <BuildMenu />}
+          {tab === "build" && <BuildMenu onOpenWorkshop={() => setWorkshopOpen(true)} />}
           {tab === "people" && <PeopleList />}
           {tab === "chronicle" && <ChronicleList />}
         </div>
       )}
+      <WorkshopPanel open={workshopOpen} onOpenChange={setWorkshopOpen} />
     </div>
   );
 }
+
 
 const BUILD_CATEGORIES: { id: string; label: string; kinds: import("@/game/types").BuildingKind[] }[] = [
   { id: "shelter",   label: "Shelter",   kinds: ["tent", "family-tent", "cabin", "family-cabin", "house", "family-house", "large-house", "manor", "founder-manor", "bunkhouse", "guest-house", "orphan-house", "elder-house"] },
@@ -55,18 +70,58 @@ const BUILD_CATEGORIES: { id: string; label: string; kinds: import("@/game/types
 
 ];
 
-function BuildMenu() {
+// Maps a workshop category to the existing build menu category id so
+// custom buildings show up next to their vanilla cousins.
+const WORKSHOP_TO_DOCK: Record<WorkshopCategory, string> = {
+  housing: "shelter",
+  homestead: "shelter",
+  farm: "farming",
+  livestock: "livestock",
+  storage: "storage",
+  water: "water",
+  school: "education",
+  medical: "medical",
+  decoration: "social",
+  road: "roads",
+  fence: "defense",
+};
+
+function BuildMenu({ onOpenWorkshop }: { onOpenWorkshop: () => void }) {
   const buildPlacement = useGame((s) => s.buildPlacement);
   const startBuild = useGame((s) => s.startBuild);
   const cancelBuild = useGame((s) => s.cancelBuild);
   const resources = useGame((s) => s.resources);
+  const wsPacks = useWorkshop((s) => s.packs);
+  const wsEnabled = useWorkshop((s) => s.enabled);
+  const workshopActive = wsPacks.flatMap((p) =>
+    wsEnabled[p.id] ? p.buildings.map((building) => ({ pack: p, building })) : [],
+  );
+
   const [cat, setCat] = useState<string>("food");
 
-  const active = BUILD_CATEGORIES.find(c => c.id === cat) ?? BUILD_CATEGORIES[0];
-  // Surface any kinds not yet bucketed so nothing is hidden.
-  const known = new Set(BUILD_CATEGORIES.flatMap(c => c.kinds));
-  const orphans = BUILDABLE_KINDS.filter(k => !known.has(k));
-  const kinds = cat === "other" ? orphans : active.kinds;
+  // Workshop kinds bucketed into their target dock category, plus a
+  // dedicated "workshop" category that shows them all together.
+  const workshopKindsByDockCat = new Map<string, BuildingKind[]>();
+  const allWorkshopKinds: BuildingKind[] = [];
+  for (const { pack, building } of workshopActive) {
+    const k = workshopKindOf(pack.id, building.id);
+    allWorkshopKinds.push(k);
+    const dockCat = WORKSHOP_TO_DOCK[building.category];
+    const arr = workshopKindsByDockCat.get(dockCat) ?? [];
+    arr.push(k);
+    workshopKindsByDockCat.set(dockCat, arr);
+  }
+
+  const active = BUILD_CATEGORIES.find((c) => c.id === cat) ?? BUILD_CATEGORIES[0];
+  const known = new Set(BUILD_CATEGORIES.flatMap((c) => c.kinds));
+  const orphans = BUILDABLE_KINDS.filter((k) => !known.has(k));
+  const kinds =
+    cat === "workshop"
+      ? allWorkshopKinds
+      : cat === "other"
+      ? orphans
+      : [...active.kinds, ...(workshopKindsByDockCat.get(active.id) ?? [])];
+
 
   return (
     <div>
@@ -86,6 +141,22 @@ function BuildMenu() {
             {c.label}
           </button>
         ))}
+        {allWorkshopKinds.length > 0 && (
+          <button
+            onClick={() => setCat("workshop")}
+            className={`px-2 py-1 ranch-label text-[10px] border ${cat === "workshop" ? "border-amber text-amber bg-amber/10" : "border-amber/30 text-amber/80 hover:text-amber"}`}
+            title="Buildings from enabled workshop packs"
+          >
+            ✦ Workshop ({allWorkshopKinds.length})
+          </button>
+        )}
+        <button
+          onClick={onOpenWorkshop}
+          className="px-2 py-1 ranch-label text-[10px] border border-amber/20 text-dust hover:text-amber ml-auto"
+          title="Manage community packs"
+        >
+          + manage packs
+        </button>
         {orphans.length > 0 && (
           <button
             onClick={() => setCat("other")}
@@ -94,6 +165,7 @@ function BuildMenu() {
             Other
           </button>
         )}
+
       </div>
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
         {kinds.map((k) => {

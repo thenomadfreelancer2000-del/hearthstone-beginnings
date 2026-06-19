@@ -43,7 +43,7 @@ export const BACKGROUNDS: { id: Background; name: string; blurb: string; skills:
   { id: "native-born", name: "Born on the Ranch", blurb: "Knows no other world but this one.", skills: { farm: 2, build: 2, forage: 2 } },
 ];
 
-export const BUILDINGS: Record<BuildingKind, BuildingDef> = {
+const _BUILDINGS_RAW: Record<string, BuildingDef> = {
   homestead: {
     kind: "homestead", name: "Homestead", blurb: "The original house. Where it all began.",
     size: { w: 6, h: 6 },
@@ -419,6 +419,39 @@ export const BUILDINGS: Record<BuildingKind, BuildingDef> = {
     produces: null,
   },
 };
+
+/**
+ * BUILDINGS lookup. Wrapped in a Proxy so the Workshop registry can
+ * inject custom community-pack defs (kinds prefixed with `wsp:`) at
+ * runtime, and so legacy save games referencing a missing workshop
+ * kind don't crash sim code that does `BUILDINGS[b.kind].size` etc.
+ */
+export const BUILDINGS: Record<BuildingKind, BuildingDef> = new Proxy(
+  _BUILDINGS_RAW as Record<BuildingKind, BuildingDef>,
+  {
+    get(target, prop, receiver) {
+      const v = Reflect.get(target, prop, receiver) as BuildingDef | undefined;
+      if (v) return v;
+      if (typeof prop === "string" && prop.startsWith("wsp:")) {
+        // Defensive fallback for a workshop kind whose pack is missing
+        // or disabled. Lets the building stay on the map as a stub.
+        return {
+          kind: prop as BuildingKind,
+          name: "Workshop Building",
+          blurb: "From a disabled or missing community pack.",
+          size: { w: 1, h: 1 },
+          cost: {},
+          buildEffort: 0,
+          housingCapacity: 0,
+          storageCapacity: 0,
+          social: false,
+          produces: null,
+        } satisfies BuildingDef;
+      }
+      return undefined;
+    },
+  },
+);
 
 export const BUILDABLE_KINDS: BuildingKind[] = [
   "tent", "family-tent", "cabin", "family-cabin",
