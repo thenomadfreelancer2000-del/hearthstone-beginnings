@@ -2012,63 +2012,103 @@ const StaticTileLayers = React.memo(function StaticTileLayers({ tiles, width, he
             }
             ctx.globalAlpha = 1;
           } else if (t.kind === "grass" || t.kind === "tall-grass") {
-            const n = t.kind === "tall-grass" ? 6 : 4;
-            const len = t.kind === "tall-grass" ? 4.5 : 3;
-            ctx.globalAlpha = 0.9;
+            const n = t.kind === "tall-grass" ? 7 : 5;
+            const len = t.kind === "tall-grass" ? 4.8 : 3.2;
+            // Paired blades: darker shadow blade offset behind a brighter lit
+            // blade — produces depth instead of flat scribbles.
             ctx.lineWidth = 0.8;
             for (let i = 0; i < n; i++) {
               const rx = px + rand(t.x, t.y, i) * (TILE - 4) + 2;
               const ry = py + rand(t.x, t.y, i + 10) * (TILE - 4) + 2;
+              ctx.strokeStyle = "#3d4f1f";
+              ctx.globalAlpha = 0.55;
+              ctx.beginPath();
+              ctx.moveTo(rx + 0.5, ry + 0.4); ctx.lineTo(rx - 0.5, ry - len + 0.4);
+              ctx.moveTo(rx + 0.5, ry + 0.4); ctx.lineTo(rx + 0.5, ry - len - 0.1);
+              ctx.moveTo(rx + 0.5, ry + 0.4); ctx.lineTo(rx + 1.5, ry - len + 0.4);
+              ctx.stroke();
+              ctx.strokeStyle = pal.detail;
+              ctx.globalAlpha = 0.95;
               ctx.beginPath();
               ctx.moveTo(rx, ry); ctx.lineTo(rx - 1, ry - len);
               ctx.moveTo(rx, ry); ctx.lineTo(rx, ry - len - 0.5);
               ctx.moveTo(rx, ry); ctx.lineTo(rx + 1, ry - len);
               ctx.stroke();
+              ctx.fillStyle = "#b8d878";
+              ctx.globalAlpha = 0.7;
+              ctx.fillRect(rx - 0.3, ry - len - 0.8, 0.6, 0.6);
             }
-            // Tiny wildflower dot occasionally
-            if (rand(t.x, t.y, 99) > 0.88) {
-              ctx.fillStyle = rand(t.x, t.y, 100) > 0.5 ? "#e8c060" : "#d97474";
+            if (rand(t.x, t.y, 99) > 0.82) {
+              const fx = px + rand(t.x, t.y, 101) * (TILE - 6) + 3;
+              const fy = py + rand(t.x, t.y, 102) * (TILE - 6) + 3;
+              ctx.strokeStyle = "#3d4f1f";
+              ctx.globalAlpha = 0.7;
+              ctx.lineWidth = 0.5;
+              ctx.beginPath(); ctx.moveTo(fx, fy + 1.4); ctx.lineTo(fx, fy); ctx.stroke();
+              const palette = ["#e8c060", "#d97474", "#e8d8ec", "#c890e0"];
+              ctx.fillStyle = palette[Math.floor(rand(t.x, t.y, 103) * palette.length)];
               ctx.globalAlpha = 0.95;
-              ctx.beginPath();
-              ctx.arc(px + rand(t.x, t.y, 101) * (TILE - 6) + 3, py + rand(t.x, t.y, 102) * (TILE - 6) + 3, 0.9, 0, Math.PI * 2);
-              ctx.fill();
+              ctx.beginPath(); ctx.arc(fx, fy, 1.0, 0, Math.PI * 2); ctx.fill();
+              ctx.fillStyle = "#fff4c0";
+              ctx.globalAlpha = 0.9;
+              ctx.fillRect(fx - 0.3, fy - 0.3, 0.6, 0.6);
             }
           } else if (t.kind === "dirt" || t.kind === "road") {
-            // Multiple pebbles + darker speck for soil texture
-            for (let i = 0; i < 3; i++) {
-              if (rand(t.x, t.y, i) < 0.45) continue;
+            // Curved scuff strokes + pebbles + dark speck — looks tilled
+            ctx.strokeStyle = "#5e3a18";
+            ctx.globalAlpha = 0.4;
+            ctx.lineWidth = 0.5;
+            for (let i = 0; i < 2; i++) {
+              const sx = px + rand(t.x, t.y, i * 7 + 1) * (TILE - 8) + 4;
+              const sy = py + rand(t.x, t.y, i * 7 + 2) * (TILE - 8) + 4;
+              const sl = 3 + rand(t.x, t.y, i * 7 + 3) * 4;
+              ctx.beginPath();
+              ctx.moveTo(sx, sy);
+              ctx.quadraticCurveTo(sx + sl * 0.5, sy + 0.8, sx + sl, sy + 0.3);
+              ctx.stroke();
+            }
+            for (let i = 0; i < 4; i++) {
+              if (rand(t.x, t.y, i) < 0.4) continue;
               ctx.fillStyle = i === 2 ? "#5e3a18" : pal.detail;
-              ctx.globalAlpha = i === 2 ? 0.5 : 0.8;
+              ctx.globalAlpha = i === 2 ? 0.55 : 0.85;
               ctx.beginPath();
               ctx.arc(px + rand(t.x, t.y, i * 2) * (TILE - 6) + 3, py + rand(t.x, t.y, i * 2 + 1) * (TILE - 6) + 3, 0.8, 0, Math.PI * 2);
               ctx.fill();
             }
           } else if (t.kind === "stone") {
-            // Two clustered rocks
-            for (let i = 0; i < 2; i++) {
-              if (rand(t.x, t.y, i) < 0.35) continue;
+            // Clustered pebbles with shadow + lit highlight
+            for (let i = 0; i < 3; i++) {
+              if (rand(t.x, t.y, i) < 0.3) continue;
               const cx = px + rand(t.x, t.y, i * 3 + 2) * (TILE - 8) + 4;
               const cy = py + rand(t.x, t.y, i * 3 + 3) * (TILE - 8) + 4;
+              const r = 1.2 + rand(t.x, t.y, i * 5) * 0.8;
+              ctx.fillStyle = "#3a342c";
+              ctx.globalAlpha = 0.55;
+              ctx.beginPath(); ctx.arc(cx + 0.4, cy + 0.6, r, 0, Math.PI * 2); ctx.fill();
               ctx.fillStyle = pal.detail;
-              ctx.globalAlpha = 0.9;
-              ctx.beginPath(); ctx.arc(cx, cy, 1.4, 0, Math.PI * 2); ctx.fill();
-              ctx.strokeStyle = PAL.ink;
+              ctx.globalAlpha = 0.95;
+              ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+              ctx.fillStyle = "#d4ccc0";
               ctx.globalAlpha = 0.8;
-              ctx.lineWidth = 0.35;
-              ctx.stroke();
+              ctx.beginPath(); ctx.arc(cx - r * 0.35, cy - r * 0.4, r * 0.45, 0, Math.PI * 2); ctx.fill();
             }
           } else if (t.kind === "forest") {
-            // Dense canopy: several overlapping circles per tile
+            // Canopy with under-shadow + northwest highlight crescent
             for (let i = 0; i < 4; i++) {
-              const cx = px + rand(t.x, t.y, i * 2) * (TILE - 6) + 3;
-              const cy = py + rand(t.x, t.y, i * 2 + 1) * (TILE - 6) + 3;
-              const r = 1.6 + rand(t.x, t.y, i + 50) * 1.2;
+              const ccx = px + rand(t.x, t.y, i * 2) * (TILE - 6) + 3;
+              const ccy = py + rand(t.x, t.y, i * 2 + 1) * (TILE - 6) + 3;
+              const r = 1.8 + rand(t.x, t.y, i + 50) * 1.4;
+              ctx.fillStyle = "#1f2e15";
+              ctx.globalAlpha = 0.55;
+              ctx.beginPath(); ctx.arc(ccx + 0.5, ccy + 0.7, r, 0, Math.PI * 2); ctx.fill();
               ctx.fillStyle = i % 2 === 0 ? pal.detail : "#6f9148";
-              ctx.globalAlpha = 0.7;
-              ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
+              ctx.globalAlpha = 0.9;
+              ctx.beginPath(); ctx.arc(ccx, ccy, r, 0, Math.PI * 2); ctx.fill();
+              ctx.fillStyle = "#a4c878";
+              ctx.globalAlpha = 0.55;
+              ctx.beginPath(); ctx.arc(ccx - r * 0.3, ccy - r * 0.35, r * 0.55, 0, Math.PI * 2); ctx.fill();
             }
           } else if (t.kind === "ruin") {
-            // Broken stone bits
             ctx.globalAlpha = 0.75;
             ctx.lineWidth = 0.8;
             ctx.strokeStyle = pal.detail;
@@ -2084,6 +2124,25 @@ const StaticTileLayers = React.memo(function StaticTileLayers({ tiles, width, he
           }
         }
         ctx.globalAlpha = 1;
+
+        // ── Pass 4: ambient film-grain speckle — breaks the per-tile grid
+        // at distance so the map reads as one painted board.
+        for (const t of chunkTiles) {
+          if (t.kind === "water") continue;
+          const px = t.x * TILE;
+          const py = t.y * TILE;
+          for (let i = 0; i < 5; i++) {
+            const r = rand(t.x, t.y, 130 + i);
+            if (r < 0.5) continue;
+            const sx = px + rand(t.x, t.y, 140 + i) * TILE;
+            const sy = py + rand(t.x, t.y, 150 + i) * TILE;
+            ctx.fillStyle = r > 0.85 ? "#ffe8b4" : "#140c04";
+            ctx.globalAlpha = r > 0.85 ? 0.09 : 0.10;
+            ctx.fillRect(sx, sy, 1, 1);
+          }
+        }
+        ctx.globalAlpha = 1;
+
 
 
         const url = await canvasToObjectUrl(canvas);
