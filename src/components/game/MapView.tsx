@@ -2270,6 +2270,7 @@ export function MapView() {
   const [hover, setHover] = useState<{ x: number; y: number } | null>(null);
   const [pendingPlacement, setPendingPlacement] = useState<{ x: number; y: number } | null>(null);
   const ref = useRef<SVGSVGElement>(null);
+  const isoGroupRef = useRef<SVGGElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const zoom = useView((s) => s.mapZoom);
