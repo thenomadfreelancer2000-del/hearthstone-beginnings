@@ -235,12 +235,19 @@ interface WallProps {
   trimRows?: number;    // number of seam lines per face
   banner?: { color: string; symbol?: "+" | "books" | "wheat" | "leaf" };
   chimney?: boolean;
+  /** Suppress the dark ground ellipse under the building. */
+  noShadow?: boolean;
+  /** Render a porch slab + posts + lintel in front of the SW door. */
+  porch?: "none" | "stoop" | "covered" | "grand";
+  porchColor?: string;
 }
 
 function Walls({
   corners, wallH, lit, shade, door = "wood", doorColor = "#3d2810",
   windows = 1, windowColor = "#dec97a", trim, trimRows = 0, banner,
+  noShadow = false, porch = "stoop", porchColor = "#6a4724",
 }: WallProps) {
+
   const { S, E, N, W } = corners;
   const Su = lift(S, wallH);
   const Eu = lift(E, wallH);
@@ -273,9 +280,12 @@ function Walls({
   return (
     <g>
       {/* ground shadow */}
-      <ellipse cx={(W[0] + E[0]) / 2} cy={S[1] + 1.5}
-        rx={Math.abs(E[0] - W[0]) / 2 * 0.92} ry={Math.max(2.4, wallH * 0.08)}
-        fill={SHADOW} />
+      {!noShadow && (
+        <ellipse cx={(W[0] + E[0]) / 2} cy={S[1] + 1.5}
+          rx={Math.abs(E[0] - W[0]) / 2 * 0.92} ry={Math.max(2.4, wallH * 0.08)}
+          fill={SHADOW} />
+      )}
+
 
       {/* SE face (shaded / right wall) */}
       <polygon points={poly(S, E, Eu, Su)}
@@ -324,6 +334,54 @@ function Walls({
         </>
       )}
 
+      {/* Porch / stoop projecting from the SW face under the door
+          — acts as the universal entrance marker so players can spot the
+          door from any iso angle. */}
+      {door !== "none" && porch !== "none" && (() => {
+        const A = lerp(S, W, 0.36);          // left edge of porch on SW face
+        const B = lerp(S, W, 0.64);          // right edge
+        const depth = porch === "grand" ? 4.5 : porch === "covered" ? 3.5 : 2.6;
+        // Project outward from SW face (perpendicular to S→W, away from C)
+        const outX = (A[0] - corners.C[0]); const outY = (A[1] - corners.C[1]);
+        const outLen = Math.hypot(outX, outY) || 1;
+        const ox = (outX / outLen) * depth;
+        const oy = (outY / outLen) * depth * 0.6 + 1.4;
+        const A2: P = [A[0] + ox, A[1] + oy];
+        const B2: P = [B[0] + ox, B[1] + oy];
+        const slabFill = porchColor;
+        const slabShade = "#3a2410";
+        return (
+          <g>
+            {/* slab top */}
+            <polygon points={poly(A, B, B2, A2)}
+              fill={slabFill} stroke={INK} strokeWidth={0.6} strokeLinejoin="round" />
+            {/* slab front edge (thickness) */}
+            <polygon points={poly(A2, B2, [B2[0], B2[1] + 1.6] as P, [A2[0], A2[1] + 1.6] as P)}
+              fill={slabShade} stroke={INK} strokeWidth={0.5} />
+            {/* step plank line */}
+            <line x1={(A[0] + A2[0]) / 2} y1={(A[1] + A2[1]) / 2}
+              x2={(B[0] + B2[0]) / 2} y2={(B[1] + B2[1]) / 2}
+              stroke={INK_SOFT} strokeWidth={0.4} opacity={0.6} />
+            {porch !== "stoop" && (
+              <>
+                {/* porch posts */}
+                <rect x={A2[0] - 0.5} y={A2[1] - wallH * 0.85} width={1} height={wallH * 0.85}
+                  fill={slabShade} stroke={INK} strokeWidth={0.4} />
+                <rect x={B2[0] - 0.5} y={B2[1] - wallH * 0.85} width={1} height={wallH * 0.85}
+                  fill={slabShade} stroke={INK} strokeWidth={0.4} />
+                {/* porch awning */}
+                <polygon points={poly(
+                  [A2[0] - 0.8, A2[1] - wallH * 0.85] as P,
+                  [B2[0] + 0.8, B2[1] - wallH * 0.85] as P,
+                  lift(B, wallH * 0.85),
+                  lift(A, wallH * 0.85),
+                )} fill="#4a2f18" stroke={INK} strokeWidth={0.6} />
+              </>
+            )}
+          </g>
+        );
+      })()}
+
       {/* Door on SW face (front) */}
       {door !== "none" && (() => {
         const dWidth = door === "double" || door === "barn" ? 0.20 : 0.12;
@@ -332,8 +390,15 @@ function Walls({
         const top = door === "arch" ? 0.78 : door === "barn" ? 0.82 : 0.72;
         return (
           <>
+            {/* bright doorframe so the entrance reads at any zoom */}
+            <polygon points={featureOnSWFace(dt0 - 0.025, dt1 + 0.025, 0, top + 0.04)}
+              fill="none" stroke="#f4d27a" strokeWidth={1.1} strokeLinejoin="round" opacity={0.95} />
             <polygon points={featureOnSWFace(dt0, dt1, 0, top)}
               fill={doorColor} stroke={INK} strokeWidth={0.7} />
+            {door === "arch" && (
+              <polygon points={featureOnSWFace(dt0, dt1, top - 0.06, top + 0.04)}
+                fill="#2a1808" stroke={INK} strokeWidth={0.5} />
+            )}
             {door === "double" && (
               <line
                 x1={lerp(lerp(S, W, 0.5), lift(lerp(S, W, 0.5), wallH * top), 0.0)[0]}
@@ -354,9 +419,15 @@ function Walls({
                 />
               </>
             )}
+            {/* door knob — small warm dot, reinforces "this is the entrance" */}
+            <circle
+              cx={lerp(lerp(S, W, dt0 + (dt1 - dt0) * 0.78), lift(lerp(S, W, dt0 + (dt1 - dt0) * 0.78), wallH * top * 0.45), 1)[0]}
+              cy={lerp(lerp(S, W, dt0 + (dt1 - dt0) * 0.78), lift(lerp(S, W, dt0 + (dt1 - dt0) * 0.78), wallH * top * 0.45), 1)[1]}
+              r={0.55} fill="#f4d27a" stroke={INK} strokeWidth={0.3} />
           </>
         );
       })()}
+
 
       {/* Hanging banner / sign above the door */}
       {banner && (() => {
@@ -454,6 +525,9 @@ interface BlockProps {
   banner?: WallProps["banner"];
   chimney?: boolean;
   chimneyColor?: string;
+  noShadow?: boolean;
+  porch?: WallProps["porch"];
+  porchColor?: string;
 }
 
 function IsoBlock(props: BlockProps) {
@@ -469,7 +543,11 @@ function IsoBlock(props: BlockProps) {
         windows={props.windows} windowColor={props.windowColor}
         trim={props.trim} trimRows={props.trimRows ?? 0}
         banner={props.banner}
+        noShadow={props.noShadow}
+        porch={props.porch}
+        porchColor={props.porchColor}
       />
+
       <Roof corners={c} wallH={wallH} style={props.roof} T={props.T} />
       {props.chimney && <Chimney corners={c} wallH={wallH} color={props.chimneyColor} />}
     </g>
@@ -914,8 +992,39 @@ function IsoPasture({ gridW, gridH, T, kind }: { gridW: number; gridH: number; T
           })}
         </g>
       ))}
-      {/* gate gap on SW edge */}
-      <rect x={lerp(S, W, 0.5)[0] - 2} y={lerp(S, W, 0.5)[1] - 2.4} width={4} height={2.4} fill={grass} />
+      {/* GATE on SW edge — clear entrance marker for pens/pastures */}
+      {(() => {
+        const gm = lerp(S, W, 0.5);
+        const gl = lerp(S, W, 0.38);
+        const gr = lerp(S, W, 0.62);
+        const postH = 4.4;
+        return (
+          <g>
+            {/* knock-out the rails behind the gate */}
+            <rect x={gm[0] - 4} y={gm[1] - 2.4} width={8} height={2.4} fill={grass} />
+            {/* tall gate posts */}
+            <rect x={gl[0] - 0.6} y={gl[1] - postH} width={1.2} height={postH}
+              fill="#3d2810" stroke={INK} strokeWidth={0.4} />
+            <rect x={gr[0] - 0.6} y={gr[1] - postH} width={1.2} height={postH}
+              fill="#3d2810" stroke={INK} strokeWidth={0.4} />
+            {/* crossbar / lintel */}
+            <rect x={gl[0]} y={gl[1] - postH - 0.6}
+              width={gr[0] - gl[0]} height={1}
+              fill="#5a3820" stroke={INK} strokeWidth={0.4} />
+            {/* swung open gate panel */}
+            <polygon points={poly(
+              [gl[0] + 0.6, gl[1] - 0.2] as P,
+              [gl[0] + 3.2, gl[1] - 0.8] as P,
+              [gl[0] + 3.2, gl[1] - postH * 0.85] as P,
+              [gl[0] + 0.6, gl[1] - postH * 0.85 + 0.4] as P,
+            )} fill="#a87a3e" stroke={INK} strokeWidth={0.5} />
+            {/* gate plaque */}
+            <rect x={(gl[0] + gr[0]) / 2 - 1.6} y={gl[1] - postH - 0.4}
+              width={3.2} height={1.4} fill="#c9a06a" stroke={INK} strokeWidth={0.4} />
+          </g>
+        );
+      })()}
+
       {/* shed */}
       <g transform={`translate(${shedCenter[0]}, ${shedCenter[1]})`}>
         <rect x={-shedSize / 2} y={-shedSize * 0.4} width={shedSize} height={shedSize * 0.4}
@@ -1004,7 +1113,10 @@ const VISUALS: Record<string, VisualKind> = {
       chimney: true, chimneyColor: "#6a594a",
       banner: { color: "#7a3a2a" },
       inset: 0.08,
+      noShadow: true,
+      porch: "grand", porchColor: "#7a5028",
     },
+
   },
   tent: {
     type: "block",

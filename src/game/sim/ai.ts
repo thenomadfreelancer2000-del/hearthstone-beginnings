@@ -26,8 +26,73 @@ function dist(ax: number, ay: number, bx: number, by: number) {
   return Math.sqrt(dx * dx + dy * dy);
 }
 
-function moveToward(s: Survivor, dt: number) {
+// ── Obstacle / door helpers ────────────────────────────────────
+function doorPointOf(b: Building): { x: number; y: number } {
+  // Buildings face SW in iso. Their entrance is at the south-west edge of the
+  // footprint, projected slightly outside the wall so survivors stand on the
+  // porch rather than inside it.
+  return { x: b.x + b.w * 0.5 - 0.55, y: b.y + b.h - 0.05 };
+}
+
+function buildingContains(b: Building, x: number, y: number, pad = 0): boolean {
+  return x >= b.x - pad && x <= b.x + b.w + pad &&
+         y >= b.y - pad && y <= b.y + b.h + pad;
+}
+
+const PASSABLE_BUILDINGS = new Set<string>([
+  "campfire", "stockpile", "food-stockpile", "well", "stone-well", "deep-well",
+  "water-collector", "water-barrel", "field", "large-field", "farm-plot",
+  "orchard", "foraging-camp", "workbench",
+]);
+
+function tileAt(tiles: Tile[], mapW: number, gx: number, gy: number): Tile | undefined {
+  if (gx < 0 || gy < 0) return undefined;
+  return tiles[gy * mapW + gx];
+}
+
+function isBlocked(
+  x: number, y: number,
+  deps: { tiles: Tile[]; mapW: number; buildings: Building[]; nodes: ResourceNode[] },
+  allowBuildingId?: string,
+): boolean {
+  const t = tileAt(deps.tiles, deps.mapW, Math.floor(x), Math.floor(y));
+  if (t) {
+    if (t.kind === "water" || t.kind === "stone" || t.kind === "ruin") return true;
+  }
+  for (const b of deps.buildings) {
+    if (b.id === allowBuildingId) continue;
+    if (PASSABLE_BUILDINGS.has(b.kind)) continue;
+    if (b.builtProgress < 1) continue; // ghosts/under-construction don't block
+    if (buildingContains(b, x, y, -0.1)) return true;
+  }
+  for (const n of deps.nodes) {
+    if (n.amount <= 0) continue;
+    if (n.kind !== "trees" && n.kind !== "rocks") continue;
+    if (Math.abs(n.x - x) < 0.55 && Math.abs(n.y - y) < 0.55) return true;
+  }
+  return false;
+}
+
+function moveToward(s: Survivor, dt: number, deps?: SimDeps) {
   if (s.targetX == null || s.targetY == null) return;
+
+  // Route building-bound targets through the building's door so survivors
+  // approach via the entrance instead of clipping through walls.
+  if (deps && (s as Survivor & { _doorOK?: string })._doorOK !== "ok") {
+    const tx = s.targetX, ty = s.targetY;
+    const inside = deps.buildings.find(b =>
+      b.builtProgress >= 1 &&
+      !PASSABLE_BUILDINGS.has(b.kind) &&
+      buildingContains(b, tx, ty, 0.05),
+    );
+    if (inside) {
+      const door = doorPointOf(inside);
+      if (dist(s.x, s.y, door.x, door.y) > 0.6) {
+        s.targetX = door.x; s.targetY = door.y;
+      }
+    }
+  }
+
   const dx = s.targetX - s.x;
   const dy = s.targetY - s.y;
   const d = Math.sqrt(dx * dx + dy * dy);
@@ -38,12 +103,53 @@ function moveToward(s: Survivor, dt: number) {
     s.targetX = null;
     s.targetY = null;
     s.state = "idle";
-  } else {
-    s.x += (dx / d) * speed;
-    s.y += (dy / d) * speed;
-    s.state = "moving";
+    return;
   }
+  let nx = s.x + (dx / d) * speed;
+  let ny = s.y + (dy / d) * speed;
+  s.state = "moving";
+
+  if (deps) {
+    // Allow exiting current building tile; allow entering target building.
+    const standingIn = deps.buildings.find(b =>
+      b.builtProgress >= 1 &&
+      !PASSABLE_BUILDINGS.has(b.kind) &&
+      buildingContains(b, s.x, s.y, -0.1),
+    )?.id;
+    const tx = s.targetX, ty = s.targetY;
+    const targetBuilding = deps.buildings.find(b =>
+      b.builtProgress >= 1 &&
+      !PASSABLE_BUILDINGS.has(b.kind) &&
+      buildingContains(b, tx, ty, 0.6),
+    )?.id;
+    const allow = targetBuilding ?? standingIn;
+    if (isBlocked(nx, ny, deps, allow)) {
+      // Try sliding along X only
+      const slideX = s.x + Math.sign(dx) * speed;
+      if (!isBlocked(slideX, s.y, deps, allow)) {
+        nx = slideX; ny = s.y;
+      } else {
+        const slideY = s.y + Math.sign(dy) * speed;
+        if (!isBlocked(s.x, slideY, deps, allow)) {
+          nx = s.x; ny = slideY;
+        } else {
+          // Try perpendicular detour to slip around obstacle
+          const px = -dy / d, py = dx / d;
+          const detourX = s.x + px * speed;
+          const detourY = s.y + py * speed;
+          if (!isBlocked(detourX, detourY, deps, allow)) {
+            nx = detourX; ny = detourY;
+          } else {
+            // Stuck — hold position
+            return;
+          }
+        }
+      }
+    }
+  }
+  s.x = nx; s.y = ny;
 }
+
 
 function nearestNode(s: Survivor, nodes: ResourceNode[], wants: ResourceKind): ResourceNode | null {
   let best: ResourceNode | null = null;
@@ -247,7 +353,7 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
 
 
   if (s.stage === "child" || s.stage === "teen") {
-    if (s.state === "moving") { moveToward(s, dt); return; }
+    if (s.state === "moving") { moveToward(s, dt, deps); return; }
     if (s.needs.water < 28) {
       const w = nearestWater(s, deps.tiles, deps.mapW);
       if (w) {
@@ -289,7 +395,7 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
   }
 
   if (s.state === "moving") {
-    moveToward(s, dt);
+    moveToward(s, dt, deps);
     return;
   }
 
