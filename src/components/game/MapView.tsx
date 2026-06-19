@@ -1851,11 +1851,39 @@ const StaticTileLayers = React.memo(function StaticTileLayers({ tiles, width, he
               }
             }
           } else {
-            // Water: horizontal ripple bands using alt tone
+            // Water: depth-shaded — tiles touching land get a lighter shallow
+            // tint; tiles surrounded by water get a deeper tone. Then layer
+            // soft horizontal ripple bands of varying alpha so the surface
+            // reads as water rather than a flat blue square.
+            let landNeighbors = 0;
+            for (const [dx, dy] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]] as const) {
+              const nb = at(t.x + dx, t.y + dy);
+              if (nb && nb.kind !== "water") landNeighbors++;
+            }
+            // Deep-water darkening when no land touches this tile
+            if (landNeighbors === 0) {
+              ctx.fillStyle = "#1f4360";
+              ctx.globalAlpha = 0.55;
+              ctx.fillRect(px, py, TILE, TILE);
+              ctx.globalAlpha = 1;
+            } else {
+              // Shallow tint near shore
+              ctx.fillStyle = "#5a8aa6";
+              ctx.globalAlpha = Math.min(0.45, 0.12 + landNeighbors * 0.07);
+              ctx.fillRect(px, py, TILE, TILE);
+              ctx.globalAlpha = 1;
+            }
+            // Two ripple bands per tile, offsets jittered by tile coord
             ctx.fillStyle = pal.alt;
-            ctx.globalAlpha = 0.6;
-            const bandY = ((t.y * 3 + Math.floor(rand(t.x, t.y, 2) * 4)) % 4) * 2;
-            ctx.fillRect(px, py + bandY, TILE, 2);
+            for (let b = 0; b < 2; b++) {
+              const r = rand(t.x, t.y, 17 + b);
+              const bandY = Math.floor(r * (TILE - 3));
+              const bandH = 1 + Math.floor(rand(t.x, t.y, 31 + b) * 2);
+              ctx.globalAlpha = 0.35 + r * 0.2;
+              const xOff = Math.floor(rand(t.x, t.y, 41 + b) * 4);
+              const xLen = TILE - xOff - Math.floor(rand(t.x, t.y, 53 + b) * 4);
+              ctx.fillRect(px + xOff, py + bandY, xLen, bandH);
+            }
             ctx.globalAlpha = 1;
           }
         }
