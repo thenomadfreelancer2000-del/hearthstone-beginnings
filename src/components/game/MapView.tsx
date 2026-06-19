@@ -2553,6 +2553,11 @@ export function MapView() {
           </pattern>
         </defs>
 
+        {/* Isometric world projection — everything inside this group is
+            drawn in square world space and projected to 2:1 diamonds. */}
+        <g ref={isoGroupRef} transform={isoMatrixString(mapH)}>
+
+
         <StaticTileLayers tiles={tiles} width={W} height={H} />
 
         {/* Territory bounds (rectangle) */}
