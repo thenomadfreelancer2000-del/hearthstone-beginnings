@@ -1,5 +1,5 @@
 import type {
-  Building, Relationship, ResourceKind, ResourceNode, Survivor, Tile,
+  Building, ChatTopic, Relationship, ResourceKind, ResourceNode, Survivor, Tile,
 } from "../types";
 import { applyConstructionWork, hasConstructionResources, normalizeConstructionBuilding } from "./construction";
 import { traitPairBias, traitMarriageScore, traitWorkSpeed } from "../data/traits";
