@@ -9,6 +9,29 @@ import type { ResourceNode, Tile } from "@/game/types";
 const TILE = 28;
 const LAYER_CHUNK = 1024;
 
+// ── Isometric projection ────────────────────────────────────────
+// The simulation stays a square grid (tile (x,y) lives at pixel
+// (x*TILE, y*TILE) in "world" space). For presentation we apply a single
+// 2:1 isometric matrix to the root <g>, so every child — terrain canvas,
+// buildings, fences, survivors — is projected to a diamond grid without
+// touching its draw code. The matrix below maps:
+//   world (TILE, 0) → iso ( TILE,  TILE/2)
+//   world (0, TILE) → iso (-TILE,  TILE/2)
+// which is the classic TheoTown-style 2:1 diamond.
+// The translate component shifts the projected map so its min x lands at 0
+// (the western tile of the grid is at world (0, mapH) → iso (-mapH*TILE, …)).
+const ISO_MATRIX_A = 1;
+const ISO_MATRIX_B = 0.5;
+const ISO_MATRIX_C = -1;
+const ISO_MATRIX_D = 0.5;
+const isoTx = (mapH: number) => mapH * TILE;
+const isoBounds = (mapW: number, mapH: number) => ({
+  w: (mapW + mapH) * TILE,
+  h: (mapW + mapH) * TILE * 0.5,
+});
+const isoMatrixString = (mapH: number) =>
+  `matrix(${ISO_MATRIX_A}, ${ISO_MATRIX_B}, ${ISO_MATRIX_C}, ${ISO_MATRIX_D}, ${isoTx(mapH)}, 0)`;
+
 type LayerImage = {
   id: string;
   url: string;
