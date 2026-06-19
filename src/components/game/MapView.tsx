@@ -303,9 +303,10 @@ function BuildingArt({ kind, w, h, farmStage, farmGrowth }: { kind: string; w: n
           <ellipse cx={cx} cy={h - 1.5} rx={w * 0.47} ry={3} fill={PAL.shadow} />
           {/* yard ground — trampled grass / dirt */}
           <rect x={yardX} y={yardY} width={yardW} height={yardH} rx={2}
-            fill="#8a9a5b" stroke="#4a3a1f" strokeWidth={0.9} opacity={0.95} />
+            fill="#4a5a2e" stroke="#4a3a1f" strokeWidth={0.9} opacity={0.95} />
           <rect x={yardX + 1} y={yardY + 1} width={yardW - 2} height={yardH - 2} rx={1.5}
-            fill="#9caa6a" opacity={0.55} />
+            fill="#536432" opacity={0.55} />
+
 
           {/* dirt path from south gate up to porch */}
           <path d={`M${gateX} ${yardY + yardH} L${gateX} ${porchY + porchH * 0.5} L${porchX + porchW / 2 - pathW / 2} ${porchY + porchH * 0.5}`}
