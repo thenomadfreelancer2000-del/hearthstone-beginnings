@@ -1106,22 +1106,18 @@ const VISUALS: Record<string, VisualKind> = {
   homestead: {
     type: "block",
     cfg: {
-      // Painted clapboard manor — creamy white walls, deep forest-green
-      // trim, classic barn-red roof. Reads as a prestige building even
-      // when zoomed out.
-      walls: { lit: "#f3e4c2", shade: "#c8a87a" },
-      roof: { type: "gable", color: "#9a2a1c", shade: "#5e160c", ridge: "ne", gable: "#f3e4c2" },
-      story: 1.6,
-      door: "double", doorColor: "#1f3a2a",
-      windows: 4, windowColor: "#ffd87a",
-      trim: "#1f3a2a", trimRows: 5,
-      // Rooftop chimney is OFF — a bespoke stone side-chimney is drawn
-      // separately by HomesteadFlair so it dominates the silhouette.
+      // Ranch estate manor: smaller footprint inside the plot, solid barn-red
+      // roof, warm clapboard siding, and custom porch/yard details.
+      walls: { lit: "#ead7a6", shade: "#b98d58" },
+      roof: { type: "hip", color: "#9b2f1d", shade: "#5f190f", pitch: 0.46 },
+      story: 1.32,
+      door: "double", doorColor: "#214331",
+      windows: 3, windowColor: "#ffd96f",
+      trim: "#6f4b25", trimRows: 6,
       chimney: false,
-      banner: { color: "#1f3a2a" },
-      inset: 0.10,
+      inset: 0.22,
       noShadow: true,
-      porch: "grand", porchColor: "#1f3a2a",
+      porch: "none",
     },
   },
   tent: {
@@ -1530,13 +1526,13 @@ const VISUALS: Record<string, VisualKind> = {
 function RanchYard({
   gridW, gridH, T, layer,
 }: { gridW: number; gridH: number; T: number; layer: "back" | "front" }) {
-  // Fence sits flush with the tile footprint; the building inside
-  // is rendered at inset 0.17 so the ring between them is the yard.
-  const outer = isoCorners(gridW, gridH, T, -0.02);
-  const inner = isoCorners(gridW, gridH, T, 0.10);
-  const PICKET = "#efe2bf";
-  const PICKET_SHADE = "#a89366";
-  const RAIL = "#c9b282";
+  // Keep the entire estate dressing INSIDE the building footprint so the
+  // black paved foundation always sits under fences, path, flowers and stairs.
+  const outer = isoCorners(gridW, gridH, T, 0.05);
+  const inner = isoCorners(gridW, gridH, T, 0.22);
+  const PICKET = "#f5ead0";
+  const PICKET_SHADE = "#9d875d";
+  const RAIL = "#d1b67d";
   const ph = T * 0.42;
 
   // Picket-fence edge renderer (with optional centered gate gap).
@@ -1814,9 +1810,9 @@ function RanchYard({
   const benchA = lerp(inner.S, inner.W, 0.30);
   const benchB = lerp(inner.S, inner.W, 0.70);
 
-  // Wood porch stairs — 3 stepped planks at the foot of the porch,
-  // running parallel to the SW face of the house.
-  const porchFoot = mid(inner.S, inner.W);
+  // Wood porch stairs — now anchored inside the paved estate foundation,
+  // not outside the footprint where they can hang over water.
+  const porchFoot = lerp(mid(inner.S, inner.W), mid(outer.S, outer.W), 0.34);
   const swEdgeDir: P = [(inner.W[0] - inner.S[0]), (inner.W[1] - inner.S[1])];
   const swLen = Math.hypot(swEdgeDir[0], swEdgeDir[1]) || 1;
   const along: P = [swEdgeDir[0] / swLen, swEdgeDir[1] / swLen];
@@ -1824,8 +1820,8 @@ function RanchYard({
   const outDir: P = [porchFoot[0] - inner.C[0], porchFoot[1] - inner.C[1]];
   const outLen2 = Math.hypot(outDir[0], outDir[1]) || 1;
   const perp: P = [outDir[0] / outLen2, outDir[1] / outLen2];
-  const stairW = T * 0.95;
-  const stepDepth = T * 0.16;
+  const stairW = T * 0.74;
+  const stepDepth = T * 0.12;
   const stairs = (
     <g>
       {[0, 1, 2].map((i) => {
@@ -1861,10 +1857,10 @@ function RanchYard({
   // (slightly to the S of the path), with bright bloom dots.
   const gardenBed = (() => {
     const anchor: P = [
-      porchFoot[0] + along[0] * T * 0.85 + perp[0] * T * 0.18,
-      porchFoot[1] + along[1] * T * 0.85 + perp[1] * T * 0.18,
+      porchFoot[0] + along[0] * T * 0.62 - perp[0] * T * 0.04,
+      porchFoot[1] + along[1] * T * 0.62 - perp[1] * T * 0.04,
     ];
-    const w = T * 0.55;
+    const w = T * 0.36;
     const corners: P[] = [
       [anchor[0],     anchor[1]],
       [anchor[0] + w, anchor[1] - w / 2],
@@ -1937,8 +1933,8 @@ function RanchYard({
 // vane. Drawn on top of the IsoBlock body.
 // ──────────────────────────────────────────────────────────────
 function HomesteadFlair({ gridW, gridH, T }: { gridW: number; gridH: number; T: number }) {
-  const c = isoCorners(gridW, gridH, T, 0.10);
-  const wallH = 1.6 * T; // must match VISUALS.homestead.story
+  const c = isoCorners(gridW, gridH, T, 0.22);
+  const wallH = 1.32 * T; // must match VISUALS.homestead.story
 
   // ── Stone side-chimney at the NE side of the house.
   // Anchored on the ground at the midpoint of the NE wall (N→E),
@@ -1948,10 +1944,10 @@ function HomesteadFlair({ gridW, gridH, T }: { gridW: number; gridH: number; T: 
   // outward direction = away from building center
   const outX = ne[0] - c.C[0], outY = ne[1] - c.C[1];
   const outLen = Math.hypot(outX, outY) || 1;
-  const push = T * 0.18;
+  const push = T * 0.04;
   const chBase: P = [ne[0] + (outX / outLen) * push, ne[1] + (outY / outLen) * push];
-  const d = T * 0.55;   // chimney footprint half-diagonal
-  const H = wallH + T * 0.95; // taller than the roof peak
+  const d = T * 0.24;   // chimney footprint half-diagonal
+  const H = wallH + T * 0.42; // taller than the roof peak, not a tower
 
   const fS: P = chBase;
   const fW: P = [chBase[0] - d, chBase[1] - d / 2];
@@ -2025,8 +2021,8 @@ function HomesteadFlair({ gridW, gridH, T }: { gridW: number; gridH: number; T: 
   // wall top) up to the ridge. Place the dormer at the midpoint of
   // the SW eave, pushed slightly up the slope.
   const swEaveMid = lift(mid(c.S, c.W), wallH);
-  const dormerBase: P = [swEaveMid[0], swEaveMid[1] - T * 0.25];
-  const dW = T * 0.55, dH = T * 0.45;
+  const dormerBase: P = [swEaveMid[0], swEaveMid[1] - T * 0.20];
+  const dW = T * 0.34, dH = T * 0.28;
   const dormer = (
     <g>
       {/* dormer side walls — small rectangle facing camera */}
@@ -2035,17 +2031,17 @@ function HomesteadFlair({ gridW, gridH, T }: { gridW: number; gridH: number; T: 
         [dormerBase[0] + dW / 2, dormerBase[1]],
         [dormerBase[0] + dW / 2, dormerBase[1] - dH],
         [dormerBase[0] - dW / 2, dormerBase[1] - dH],
-      )} fill="#f3e4c2" stroke={INK} strokeWidth={0.5} />
+      )} fill="#ead7a6" stroke={INK} strokeWidth={0.5} />
       {/* dormer roof — small triangle peak */}
       <polygon points={poly(
         [dormerBase[0] - dW / 2 - 1, dormerBase[1] - dH],
         [dormerBase[0] + dW / 2 + 1, dormerBase[1] - dH],
         [dormerBase[0],              dormerBase[1] - dH - T * 0.30],
-      )} fill="#9a2a1c" stroke={INK} strokeWidth={0.5} />
+      )} fill="#9b2f1d" stroke={INK} strokeWidth={0.5} />
       {/* lit window */}
       <rect x={dormerBase[0] - dW / 2 + 2} y={dormerBase[1] - dH + 2}
         width={dW - 4} height={dH - 4}
-        fill="#ffd87a" stroke="#1f3a2a" strokeWidth={0.5} />
+        fill="#ffd96f" stroke="#6f4b25" strokeWidth={0.5} />
       <line x1={dormerBase[0]} y1={dormerBase[1] - dH + 2}
         x2={dormerBase[0]} y2={dormerBase[1] - 2}
         stroke="#1f3a2a" strokeWidth={0.4} />
@@ -2088,11 +2084,55 @@ function HomesteadFlair({ gridW, gridH, T }: { gridW: number; gridH: number; T: 
     </g>
   );
 
+  const porchA = lerp(c.S, c.W, 0.30);
+  const porchB = lerp(c.S, c.W, 0.70);
+  const porchMid = mid(porchA, porchB);
+  const porchOutRaw: P = [porchMid[0] - c.C[0], porchMid[1] - c.C[1]];
+  const porchOutLen = Math.hypot(porchOutRaw[0], porchOutRaw[1]) || 1;
+  const porchOut: P = [porchOutRaw[0] / porchOutLen, porchOutRaw[1] / porchOutLen];
+  const porchDepth = T * 0.23;
+  const porchA2: P = [porchA[0] + porchOut[0] * porchDepth, porchA[1] + porchOut[1] * porchDepth];
+  const porchB2: P = [porchB[0] + porchOut[0] * porchDepth, porchB[1] + porchOut[1] * porchDepth];
+  const porch = (
+    <g>
+      <polygon points={poly(porchA, porchB, porchB2, porchA2)} fill="#8b5a2b" stroke={INK} strokeWidth={0.65} strokeLinejoin="round" />
+      {[0.2, 0.4, 0.6, 0.8].map((tt, i) => {
+        const a = lerp(porchA, porchA2, tt), b = lerp(porchB, porchB2, tt);
+        return <line key={`porch-plank${i}`} x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]} stroke="#4f2f14" strokeWidth={0.35} />;
+      })}
+      {[porchA2, porchB2].map((p, i) => (
+        <g key={`porch-post${i}`}>
+          <rect x={p[0] - 0.7} y={p[1] - wallH * 0.68} width={1.4} height={wallH * 0.68}
+            fill="#5a3518" stroke={INK} strokeWidth={0.35} />
+          <circle cx={p[0]} cy={p[1] - wallH * 0.68} r={0.9} fill="#d3b078" stroke={INK} strokeWidth={0.25} />
+        </g>
+      ))}
+      <polygon points={poly(lift(porchA2, wallH * 0.68), lift(porchB2, wallH * 0.68), lift(porchB, wallH * 0.86), lift(porchA, wallH * 0.86))}
+        fill="#6f2115" stroke={INK} strokeWidth={0.55} />
+    </g>
+  );
+
+  const flowerBoxes = [0.19, 0.81].map((tt, i) => {
+    const p = lift(lerp(c.S, c.W, tt), wallH * 0.38);
+    return (
+      <g key={`front-flower-box${i}`}>
+        <rect x={p[0] - T * 0.11} y={p[1] - 1.2} width={T * 0.22} height={2.2}
+          fill="#5a3518" stroke={INK} strokeWidth={0.3} />
+        {["#e94a6a", "#f6c64a", "#e57ab3"].map((col, j) => (
+          <circle key={j} cx={p[0] + (j - 1) * T * 0.055} cy={p[1] - 2.25} r={0.8}
+            fill={col} stroke={INK} strokeWidth={0.15} />
+        ))}
+      </g>
+    );
+  });
+
   return (
     <g>
+      {porch}
       {dormer}
       {chimney}
       {vane}
+      {flowerBoxes}
     </g>
   );
 }
