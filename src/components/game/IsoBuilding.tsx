@@ -1516,24 +1516,29 @@ const VISUALS: Record<string, VisualKind> = {
 };
 
 // ──────────────────────────────────────────────────────────────
-// Ranch yard — picket fence + flower boxes + firewood pile,
-// drawn around the homestead in two layers so the building hides
-// the back fence segments naturally.
+// Ranch yard — the homestead's full estate dressing: picket fence
+// with a front gate, dirt path to the porch, large shade tree,
+// kitchen garden, benches, storage shed, crates, water barrel and
+// firewood pile. Drawn in BACK + FRONT layers so the building
+// naturally occludes anything behind it.
 // ──────────────────────────────────────────────────────────────
 function RanchYard({
   gridW, gridH, T, layer,
 }: { gridW: number; gridH: number; T: number; layer: "back" | "front" }) {
-  const c = isoCorners(gridW, gridH, T, -0.02);
+  // Fence sits flush with the tile footprint; the building inside
+  // is rendered at inset 0.17 so the ring between them is the yard.
+  const outer = isoCorners(gridW, gridH, T, -0.02);
+  const inner = isoCorners(gridW, gridH, T, 0.17);
   const PICKET = "#efe2bf";
   const PICKET_SHADE = "#a89366";
   const RAIL = "#c9b282";
   const ph = T * 0.42;
 
+  // Picket-fence edge renderer (with optional centered gate gap).
   const renderEdge = (A: P, B: P, gate = false) => {
     const segLen = Math.hypot(B[0] - A[0], B[1] - A[1]);
     const N = Math.max(5, Math.round(segLen / (T * 0.26)));
     const nodes: React.ReactNode[] = [];
-    // rails (top + middle)
     const railAt = (h: number) => {
       const a = lift(A, h), b = lift(B, h);
       if (!gate) {
@@ -1554,28 +1559,28 @@ function RanchYard({
       const tt = i / N;
       if (gate && tt > 0.40 && tt < 0.60) continue;
       const p = lerp(A, B, tt);
-      const top = lift(p, ph);
       const isGatePost = gate && (Math.abs(tt - 0.40) < 0.02 || Math.abs(tt - 0.60) < 0.02);
-      const h = isGatePost ? ph * 1.15 : ph;
+      const h = isGatePost ? ph * 1.20 : ph;
       const topY = p[1] - h;
       nodes.push(
         <line key={`p${i}`} x1={p[0]} y1={p[1]} x2={p[0]} y2={topY}
-          stroke={PICKET} strokeWidth={isGatePost ? 1.3 : 0.95} strokeLinecap="round" />,
+          stroke={PICKET} strokeWidth={isGatePost ? 1.4 : 0.95} strokeLinecap="round" />,
       );
-      // pointed cap dot
       nodes.push(
         <circle key={`c${i}`} cx={p[0]} cy={topY - 0.2} r={0.6}
           fill={PICKET_SHADE} />,
       );
-      void top;
     }
     return <g>{railAt(ph * 0.7)}{railAt(ph * 0.35)}{nodes}</g>;
   };
 
+  // ── decorations ──────────────────────────────────────────────
+  const INK_DARK = INK;
+
   const flowerBox = (p: P, w: number, palette: string[]) => (
     <g transform={`translate(${p[0]}, ${p[1]})`}>
       <rect x={-w / 2} y={-1.6} width={w} height={2.4}
-        fill="#4a3320" stroke={INK} strokeWidth={0.35} rx={0.3} />
+        fill="#4a3320" stroke={INK_DARK} strokeWidth={0.35} rx={0.3} />
       {Array.from({ length: 4 }).map((_, i) => {
         const cxp = -w / 2 + (i + 0.5) * (w / 4);
         return (
@@ -1590,26 +1595,140 @@ function RanchYard({
     </g>
   );
 
-  if (layer === "back") {
+  // Big shade tree — bushy oak silhouette with NW lighting.
+  const tree = (p: P, scale = 1.0) => {
+    const S = T * scale;
     return (
-      <g>
-        {renderEdge(c.W, c.N)}
-        {renderEdge(c.N, c.E)}
+      <g transform={`translate(${p[0]}, ${p[1]})`}>
+        <ellipse cx={0} cy={2} rx={S * 0.55} ry={S * 0.18}
+          fill="rgba(0,0,0,0.28)" />
+        <rect x={-S * 0.10} y={-S * 0.70} width={S * 0.20} height={S * 0.70}
+          fill="#4a2e16" stroke={INK_DARK} strokeWidth={0.4} />
+        <circle cx={-S * 0.30} cy={-S * 0.90} r={S * 0.42} fill="#3e6228" stroke={INK_DARK} strokeWidth={0.4} />
+        <circle cx={ S * 0.28} cy={-S * 1.00} r={S * 0.46} fill="#4a7a30" stroke={INK_DARK} strokeWidth={0.4} />
+        <circle cx={ 0}          cy={-S * 1.20} r={S * 0.44} fill="#5e9038" stroke={INK_DARK} strokeWidth={0.4} />
+        <circle cx={-S * 0.18} cy={-S * 1.20} r={S * 0.34} fill="#6fa642" />
+        <circle cx={ S * 0.10} cy={-S * 1.32} r={S * 0.28} fill="#7eb84a" />
       </g>
     );
-  }
+  };
 
-  // FRONT layer: gate on SW edge, plus flower boxes + firewood
-  const sw_q1 = lerp(c.S, c.W, 0.20);
-  const sw_q2 = lerp(c.S, c.W, 0.80);
-  const se_q1 = lerp(c.E, c.S, 0.20);
+  // Iso-styled storage shed (two visible faces + diamond roof).
+  const shed = (p: P) => {
+    const u = T * 0.45;
+    const baseS: P = [0, 0];
+    const baseW: P = [-u, -u * 0.5];
+    const baseE: P = [u, -u * 0.5];
+    const baseN: P = [0, -u];
+    const wh = T * 0.65;
+    const topS = lift(baseS, wh), topW = lift(baseW, wh), topE = lift(baseE, wh), topN = lift(baseN, wh);
+    const peak = lift(topN, T * 0.05);
+    const ridgeS = lift(topS, T * 0.05);
+    return (
+      <g transform={`translate(${p[0]}, ${p[1]})`}>
+        <ellipse cx={0} cy={1.2} rx={u * 1.1} ry={u * 0.35} fill="rgba(0,0,0,0.25)" />
+        {/* SW wall (lit) */}
+        <polygon points={poly(baseS, baseW, topW, topS)}
+          fill="#b78449" stroke={INK_DARK} strokeWidth={0.5} />
+        {/* SE wall (shade) */}
+        <polygon points={poly(baseS, baseE, topE, topS)}
+          fill="#7e552a" stroke={INK_DARK} strokeWidth={0.5} />
+        {/* roof — peaked along N-S ridge */}
+        <polygon points={poly(topW, peak, ridgeS, topS)}
+          fill="#a14a2a" stroke={INK_DARK} strokeWidth={0.5} />
+        <polygon points={poly(topE, peak, ridgeS, topS)}
+          fill="#6a2d18" stroke={INK_DARK} strokeWidth={0.5} />
+        {/* door on SW face */}
+        <rect x={-u * 0.55} y={-wh + 1} width={u * 0.35} height={wh - 2}
+          fill="#3a2210" stroke={INK_DARK} strokeWidth={0.3} />
+        <circle cx={-u * 0.28} cy={-wh / 2} r={0.4} fill="#e7c693" />
+      </g>
+    );
+  };
 
-  // firewood pile tucked just outside the SE corner
-  const woodAt = lerp(c.E, c.S, 0.45);
-  const logColor = "#7a4f24";
-  const logRing = "#d8a45a";
-  const woodPile = (
-    <g transform={`translate(${woodAt[0] + T * 0.18}, ${woodAt[1] + T * 0.10})`}>
+  // Garden patch — diamond plot with green rows.
+  const garden = (p: P) => {
+    const w = T * 1.05;
+    const corners: P[] = [[0, 0], [w, -w / 2], [0, -w], [-w, -w / 2]];
+    const rows = [0.22, 0.45, 0.68];
+    return (
+      <g transform={`translate(${p[0]}, ${p[1]})`}>
+        <polygon points={poly(...corners)}
+          fill="#5a3a1a" stroke={INK_DARK} strokeWidth={0.45} />
+        {rows.map((tt, ri) => {
+          const a = lerp(corners[0], corners[1], tt);
+          const b = lerp(corners[3], corners[2], tt);
+          return (
+            <g key={ri}>
+              <line x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]}
+                stroke="#6a4a20" strokeWidth={0.5} />
+              {[0.15, 0.35, 0.55, 0.75].map((u, ui) => {
+                const q = lerp(a, b, u);
+                const col = ri === 1 ? "#d94a4a" : "#7ec84a";
+                return <circle key={ui} cx={q[0]} cy={q[1] - 0.4} r={0.85} fill={col} stroke={INK_DARK} strokeWidth={0.2} />;
+              })}
+            </g>
+          );
+        })}
+      </g>
+    );
+  };
+
+  // Wooden bench — simple two-plank seat with legs.
+  const bench = (p: P, angle: "sw" | "se") => {
+    const w = T * 0.55, h = T * 0.18;
+    const rot = angle === "sw" ? -26 : 26;
+    return (
+      <g transform={`translate(${p[0]}, ${p[1]}) rotate(${rot})`}>
+        <rect x={-w / 2} y={-h - 0.5} width={w} height={1.4}
+          fill="#7a5028" stroke={INK_DARK} strokeWidth={0.3} rx={0.3} />
+        <rect x={-w / 2} y={-h - 2.4} width={w} height={1.4}
+          fill="#8a5a30" stroke={INK_DARK} strokeWidth={0.3} rx={0.3} />
+        <rect x={-w / 2 + 0.4} y={-h - 0.5} width={0.6} height={h + 0.5} fill="#3a2210" />
+        <rect x={w / 2 - 1.0} y={-h - 0.5} width={0.6} height={h + 0.5} fill="#3a2210" />
+      </g>
+    );
+  };
+
+  // Water barrel — blue water surface, wooden staves.
+  const waterBarrel = (p: P) => (
+    <g transform={`translate(${p[0]}, ${p[1]})`}>
+      <ellipse cx={0} cy={0.6} rx={2.8} ry={1.0} fill="rgba(0,0,0,0.28)" />
+      <rect x={-2.4} y={-5.6} width={4.8} height={5.6} rx={0.6}
+        fill="#7a4f24" stroke={INK_DARK} strokeWidth={0.4} />
+      <ellipse cx={0} cy={-5.6} rx={2.4} ry={1.0}
+        fill="#2a5c78" stroke={INK_DARK} strokeWidth={0.4} />
+      <ellipse cx={0} cy={-5.9} rx={1.6} ry={0.5} fill="#4a8aa8" opacity={0.7} />
+      <line x1={-2.4} y1={-4.0} x2={2.4} y2={-4.0} stroke="#3a2210" strokeWidth={0.5} />
+      <line x1={-2.4} y1={-1.8} x2={2.4} y2={-1.8} stroke="#3a2210" strokeWidth={0.5} />
+    </g>
+  );
+
+  // Stack of crates.
+  const crates = (p: P) => (
+    <g transform={`translate(${p[0]}, ${p[1]})`}>
+      <ellipse cx={0.5} cy={0.6} rx={3.6} ry={1.0} fill="rgba(0,0,0,0.25)" />
+      {[
+        { x: -2.6, y: -3.0 },
+        { x:  0.4, y: -3.0 },
+        { x: -1.1, y: -6.4 },
+      ].map((c, i) => (
+        <g key={i}>
+          <rect x={c.x} y={c.y} width={3.0} height={3.0}
+            fill="#a07a44" stroke={INK_DARK} strokeWidth={0.35} rx={0.3} />
+          <line x1={c.x} y1={c.y + 1.5} x2={c.x + 3.0} y2={c.y + 1.5}
+            stroke="#3a2210" strokeWidth={0.3} />
+          <line x1={c.x + 1.5} y1={c.y} x2={c.x + 1.5} y2={c.y + 3.0}
+            stroke="#3a2210" strokeWidth={0.3} />
+        </g>
+      ))}
+    </g>
+  );
+
+  // Firewood pile with an axe.
+  const firewood = (p: P) => (
+    <g transform={`translate(${p[0]}, ${p[1]})`}>
+      <ellipse cx={0} cy={0.6} rx={5.5} ry={1.0} fill="rgba(0,0,0,0.25)" />
       {[0, 1, 2].map((row) =>
         [0, 1, 2, 3].map((i) => {
           const off = row % 2 ? 0.9 : 0;
@@ -1618,28 +1737,95 @@ function RanchYard({
           return (
             <g key={`${row}-${i}`}>
               <rect x={lx} y={ly} width={1.7} height={1.3} rx={0.5}
-                fill={logColor} stroke={INK} strokeWidth={0.3} />
-              <circle cx={lx + 0.85} cy={ly + 0.65} r={0.35} fill={logRing} />
+                fill="#7a4f24" stroke={INK_DARK} strokeWidth={0.3} />
+              <circle cx={lx + 0.85} cy={ly + 0.65} r={0.35} fill="#d8a45a" />
             </g>
           );
         }),
       )}
-      {/* small axe leaning on the pile */}
       <line x1={-5.5} y1={0} x2={-4.2} y2={-4.8}
         stroke="#3a2410" strokeWidth={0.5} strokeLinecap="round" />
       <polygon points={`${-4.2},${-4.8} ${-3.2},${-5.4} ${-3.6},${-4.0}`}
-        fill="#9aa0a8" stroke={INK} strokeWidth={0.3} />
+        fill="#9aa0a8" stroke={INK_DARK} strokeWidth={0.3} />
     </g>
   );
 
+  // Dirt path from front gate to porch.
+  const dirtPath = () => {
+    const start = mid(outer.S, outer.W);  // gate
+    const end   = mid(inner.S, inner.W);  // porch foot
+    const dx = end[0] - start[0], dy = end[1] - start[1];
+    const len = Math.hypot(dx, dy) || 1;
+    const nx = -dy / len, ny = dx / len;
+    const off = T * 0.22;
+    const p1: P = [start[0] + nx * off, start[1] + ny * off];
+    const p2: P = [start[0] - nx * off, start[1] - ny * off];
+    const p3: P = [end[0]   - nx * off, end[1]   - ny * off];
+    const p4: P = [end[0]   + nx * off, end[1]   + ny * off];
+    return (
+      <g>
+        <polygon points={poly(p1, p2, p3, p4)}
+          fill="#8a6b3e" stroke="#5a3e1e" strokeWidth={0.4} />
+        {/* faint pebble accents */}
+        {[0.25, 0.5, 0.75].map((tt, i) => {
+          const c1 = lerp(p1, p4, tt), c2 = lerp(p2, p3, tt);
+          return (
+            <g key={i}>
+              <circle cx={lerp(c1, c2, 0.3)[0]} cy={lerp(c1, c2, 0.3)[1]} r={0.45} fill="#a88a55" />
+              <circle cx={lerp(c1, c2, 0.7)[0]} cy={lerp(c1, c2, 0.7)[1]} r={0.4}  fill="#6b4a26" />
+            </g>
+          );
+        })}
+      </g>
+    );
+  };
+
+  // Yard quadrant anchor points (midpoint of inner→outer along each side).
+  const nwAnchor = lerp(mid(inner.W, inner.N), mid(outer.W, outer.N), 0.55);
+  const neAnchor = lerp(mid(inner.N, inner.E), mid(outer.N, outer.E), 0.55);
+  const seAnchor = lerp(mid(inner.E, inner.S), mid(outer.E, outer.S), 0.55);
+
+  if (layer === "back") {
+    return (
+      <g>
+        {/* back fence segments */}
+        {renderEdge(outer.W, outer.N)}
+        {renderEdge(outer.N, outer.E)}
+        {/* big shade tree NW of the house */}
+        {tree([nwAnchor[0] - T * 0.15, nwAnchor[1] + T * 0.05], 1.2)}
+        {/* storage shed NE of the house */}
+        {shed([neAnchor[0] + T * 0.05, neAnchor[1] + T * 0.15])}
+        {/* crates beside shed */}
+        {crates([neAnchor[0] - T * 0.55, neAnchor[1] + T * 0.40])}
+        {/* water barrel between shed and front */}
+        {waterBarrel([neAnchor[0] + T * 0.55, neAnchor[1] + T * 0.55])}
+      </g>
+    );
+  }
+
+  // FRONT layer
+  const sw_q1 = lerp(outer.S, outer.W, 0.18);
+  const sw_q2 = lerp(outer.S, outer.W, 0.82);
+  const benchA = lerp(inner.S, inner.W, 0.30);
+  const benchB = lerp(inner.S, inner.W, 0.70);
+
   return (
     <g>
-      {renderEdge(c.S, c.W, true)}
-      {renderEdge(c.E, c.S)}
+      {/* path first so fence + benches sit on top */}
+      {dirtPath()}
+      {/* front fence with gate on SW edge */}
+      {renderEdge(outer.S, outer.W, true)}
+      {renderEdge(outer.E, outer.S)}
+      {/* kitchen garden in the SE front yard */}
+      {garden([seAnchor[0] - T * 0.10, seAnchor[1] + T * 0.05])}
+      {/* firewood pile near the SE fence */}
+      {firewood([seAnchor[0] + T * 0.45, seAnchor[1] + T * 0.55])}
+      {/* benches flanking the porch */}
+      {bench([benchA[0], benchA[1] - 1], "sw")}
+      {bench([benchB[0], benchB[1] - 1], "se")}
+      {/* flower boxes along the front fence */}
       {flowerBox(sw_q1, T * 0.36, ["#d94a4a", "#f1c64a", "#e57ab3", "#f08a3a"])}
       {flowerBox(sw_q2, T * 0.36, ["#e57ab3", "#d94a4a", "#f1c64a", "#a86ad6"])}
-      {flowerBox(se_q1, T * 0.32, ["#f08a3a", "#d94a4a", "#f1c64a", "#e57ab3"])}
-      {woodPile}
     </g>
   );
 }
