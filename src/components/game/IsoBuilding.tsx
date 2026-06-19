@@ -2107,27 +2107,12 @@ function HomesteadFlair({ gridW, gridH, T }: { gridW: number; gridH: number; T: 
     </g>
   );
 
-  const flowerBoxes = [0.19, 0.81].map((tt, i) => {
-    const p = lift(lerp(c.S, c.W, tt), wallH * 0.38);
-    return (
-      <g key={`front-flower-box${i}`}>
-        <rect x={p[0] - T * 0.11} y={p[1] - 1.2} width={T * 0.22} height={2.2}
-          fill="#5a3518" stroke={INK} strokeWidth={0.3} />
-        {["#e94a6a", "#f6c64a", "#e57ab3"].map((col, j) => (
-          <circle key={j} cx={p[0] + (j - 1) * T * 0.055} cy={p[1] - 2.25} r={0.8}
-            fill={col} stroke={INK} strokeWidth={0.15} />
-        ))}
-      </g>
-    );
-  });
-
   return (
     <g>
       {porch}
       {dormer}
       {chimney}
       {vane}
-      {flowerBoxes}
     </g>
   );
 }
