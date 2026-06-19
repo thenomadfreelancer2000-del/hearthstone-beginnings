@@ -2721,10 +2721,12 @@ export function MapView() {
                     fill="none" stroke={PAL.gold} strokeWidth={1.5} strokeDasharray="3 2" />
                 )}
                 <g transform={isoUpright(x + w, y + h)}>
-                  <g transform={`translate(${-w / 2}, ${-h})`}>
-                    <BuildingArt kind={b.kind} w={w} h={h} farmStage={b.farm?.stage} farmGrowth={b.farm?.growth} />
-                  </g>
-                  <text x={0} y={-h - 4} textAnchor="middle" fontFamily="Oswald"
+                  <IsoBuilding kind={b.kind} gridW={b.w} gridH={b.h} tile={TILE}
+                    farmStage={b.farm?.stage} farmGrowth={b.farm?.growth} />
+                  <text
+                    x={(b.h - b.w) * TILE / 2}
+                    y={-(b.w + b.h) * TILE * 0.5 - 8}
+                    textAnchor="middle" fontFamily="Oswald"
                     fontSize="8" fill={PAL.parchment} opacity={sel ? 1 : 0.55}>
                     {b.kind.replace("-", " ").toUpperCase()}
                   </text>
