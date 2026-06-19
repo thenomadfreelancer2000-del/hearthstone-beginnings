@@ -2237,6 +2237,9 @@ const StaticTileLayers = React.memo(function StaticTileLayers({ tiles, width, he
             }
             ctx.globalAlpha = 1;
           }
+          // Overlay hand-drawn tile artwork on top of the base color.
+          const tImg = TILE_IMAGE_CACHE[t.kind];
+          if (tImg) ctx.drawImage(tImg, px, py, TILE, TILE);
         }
 
         // ── Pass 2: edge blending — soft 2px rim of neighbor's base color
