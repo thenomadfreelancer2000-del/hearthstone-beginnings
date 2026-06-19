@@ -252,36 +252,31 @@ function BuildingArt({ kind, w, h, farmStage, farmGrowth }: { kind: string; w: n
       const pad = Math.max(1.5, w * 0.04);
       const yardX = pad, yardY = pad;
       const yardW = w - pad * 2, yardH = h - pad * 2;
-      // Main house occupies the upper-right portion of the yard
-      const houseW = yardW * 0.56;
-      const houseH = yardH * 0.46;
-      const houseX = yardX + yardW - houseW - pad * 0.5;
+      // Main house occupies the upper portion of the yard — wide and prominent
+      const houseW = yardW * 0.78;
+      const houseH = yardH * 0.5;
+      const houseX = yardX + (yardW - houseW) / 2;
       const houseY = yardY + pad * 0.5;
       const roofOverhang = Math.min(2.5, houseW * 0.06);
       const porchH = houseH * 0.18;
       const porchY = houseY + houseH;
-      const porchX = houseX + houseW * 0.18;
+      const porchX = houseX + houseW * 0.22;
       const porchW = houseW * 0.55;
-      // Garden lower-left
-      const gardenW = yardW * 0.36;
-      const gardenH = yardH * 0.34;
-      const gardenX = yardX + pad * 0.4;
-      const gardenY = yardY + yardH - gardenH - pad * 0.4;
       // Shed lower-right
-      const shedW = yardW * 0.22;
+      const shedW = yardW * 0.24;
       const shedH = yardH * 0.22;
-      const shedX = yardX + yardW - shedW - pad * 0.4;
-      const shedY = yardY + yardH - shedH - pad * 0.4;
-      // Well middle-left
+      const shedX = yardX + yardW - shedW - pad * 0.6;
+      const shedY = yardY + yardH - shedH - pad * 0.6;
+      // Well lower-left
       const wellR = Math.min(yardW, yardH) * 0.07;
-      const wellCx = yardX + yardW * 0.12;
-      const wellCy = yardY + yardH * 0.42;
+      const wellCx = yardX + yardW * 0.15;
+      const wellCy = yardY + yardH - yardH * 0.18;
       // Path from south gate to porch
-      const gateX = yardX + yardW * 0.42;
-      const pathW = Math.max(3, w * 0.07);
+      const gateX = yardX + yardW * 0.5;
+      const pathW = Math.max(3, w * 0.06);
       // Firewood stack near house
-      const fwX = houseX - pad * 1.4;
-      const fwY = houseY + houseH * 0.25;
+      const fwX = houseX - pad * 0.2;
+      const fwY = porchY + porchH * 1.4;
       // Fence posts around yard perimeter
       const postR = Math.max(0.9, w * 0.014);
       const perim: { x: number; y: number }[] = [];
@@ -314,21 +309,8 @@ function BuildingArt({ kind, w, h, farmStage, farmGrowth }: { kind: string; w: n
           <path d={`M${gateX} ${yardY + yardH} L${gateX} ${porchY + porchH * 0.5}`}
             stroke="#c9a06a" strokeWidth={pathW * 0.5} strokeLinecap="round" fill="none" opacity={0.7} />
 
-          {/* vegetable garden */}
-          <rect x={gardenX} y={gardenY} width={gardenW} height={gardenH}
-            fill="#6e4920" stroke={PAL.ink} strokeWidth={0.8} />
-          {Array.from({ length: 4 }).map((_, i) => {
-            const ry = gardenY + (gardenH / 4) * (i + 0.5);
-            return (
-              <g key={`gr${i}`}>
-                <line x1={gardenX + 1} y1={ry} x2={gardenX + gardenW - 1} y2={ry} stroke="#3d2810" strokeWidth={0.8} />
-                {Array.from({ length: 4 }).map((_, j) => {
-                  const gx = gardenX + 2 + ((gardenW - 4) / 3) * j;
-                  return <circle key={j} cx={gx} cy={ry - 0.6} r={0.9} fill="#4a6235" stroke="#2f3d20" strokeWidth={0.3} />;
-                })}
-              </g>
-            );
-          })}
+          {/* vegetable garden removed */}
+
 
           {/* storage shed */}
           <rect x={shedX} y={shedY + shedH * 0.35} width={shedW} height={shedH * 0.65}
