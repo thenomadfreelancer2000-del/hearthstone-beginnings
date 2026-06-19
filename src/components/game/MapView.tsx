@@ -32,6 +32,18 @@ const isoBounds = (mapW: number, mapH: number) => ({
 const isoMatrixString = (mapH: number) =>
   `matrix(${ISO_MATRIX_A}, ${ISO_MATRIX_B}, ${ISO_MATRIX_C}, ${ISO_MATRIX_D}, ${isoTx(mapH)}, 0)`;
 
+// Counter-transform: inside the iso parent group, applying this matrix
+// to a child group cancels the iso shear so that child renders
+// "screen-upright" while still anchored at the iso projection of world
+// point (worldX, worldY). Used to draw upright buildings, fences,
+// trees and survivors on top of the diamond ground.
+// Derivation: parent matrix P = [[1,-1,tx],[0.5,0.5,0]]; child C
+// = P⁻¹ ∘ translate(P·anchor). The translate component simplifies to
+// exactly (worldX, worldY).
+const isoUpright = (worldX: number, worldY: number) =>
+  `matrix(0.5, -0.5, 1, 1, ${worldX}, ${worldY})`;
+
+
 type LayerImage = {
   id: string;
   url: string;
@@ -2221,13 +2233,17 @@ const StaticResourceLayer = React.memo(function StaticResourceLayer({ nodes }: {
       {nodes.map((n) => {
         if (n.amount <= 0) return null;
         const size = TILE * (n.kind === "trees" ? 1.3 : n.kind === "rocks" ? 1.05 : 0.95);
-        const cx = n.x * TILE + TILE / 2;
-        const cy = n.y * TILE + TILE / 2;
         const depleted = n.amount < 30;
         const seed = (n.x * 73856093) ^ (n.y * 19349663);
+        // Anchor at the south corner of the tile's iso diamond so trees
+        // and rocks visually stand on the front of the ground tile.
+        const anchorX = (n.x + 1) * TILE;
+        const anchorY = (n.y + 1) * TILE;
         return (
-          <g key={n.id} transform={`translate(${cx - size / 2}, ${cy - size / 2})`} opacity={depleted ? 0.6 : 1}>
-            <NodeArt kind={n.kind} size={size} seed={Math.abs(seed)} />
+          <g key={n.id} transform={isoUpright(anchorX, anchorY)} opacity={depleted ? 0.6 : 1}>
+            <g transform={`translate(${-size / 2}, ${-size})`}>
+              <NodeArt kind={n.kind} size={size} seed={Math.abs(seed)} />
+            </g>
           </g>
         );
       })}
@@ -2600,7 +2616,10 @@ export function MapView() {
 
         <StaticResourceLayer nodes={nodes} width={W} height={H} />
 
-        {/* Buildings */}
+        {/* Buildings — drawn back-to-front so closer buildings overlap
+            farther ones in the iso projection. Each built building is
+            wrapped in a counter-transform so it stands upright on top of
+            its diamond footprint instead of being sheared. */}
         {(() => {
           // Build a fence-tile occupancy map once per render so each fence
           // tile can pick the right auto-connect variant.
@@ -2614,7 +2633,12 @@ export function MapView() {
             }
           }
           const hasFence = (tx: number, ty: number) => fenceAt.has(`${tx},${ty}`);
-          return buildings.map((b) => {
+          // Painter's order: sum of south-east corner coords approximates
+          // depth in iso space.
+          const ordered = [...buildings].sort(
+            (a, b) => (a.x + a.w + a.y + a.h) - (b.x + b.w + b.y + b.h),
+          );
+          return ordered.map((b) => {
             const sel = selection.kind === "building" && selection.id === b.id;
             const x = b.x * TILE;
             const y = b.y * TILE;
@@ -2622,24 +2646,34 @@ export function MapView() {
             const h = b.h * TILE;
             const built = b.builtProgress >= 1;
 
+            // Under construction: keep the dashed footprint in iso space
+            // (renders as a diamond outline on the ground) plus an upright
+            // progress label.
             if (!built) {
               return (
-                <g key={b.id} opacity={0.75}>
+                <g key={b.id} opacity={0.85}>
                   <rect x={x + 2} y={y + 2} width={w - 4} height={h - 4}
                     fill="rgba(60,42,16,0.55)" stroke="#8b6a1a" strokeWidth={1} strokeDasharray="3 2" />
                   <line x1={x + 2} y1={y + 2} x2={x + w - 2} y2={y + h - 2} stroke="#8b6a1a" strokeWidth={0.5} opacity={0.5} />
                   <line x1={x + w - 2} y1={y + 2} x2={x + 2} y2={y + h - 2} stroke="#8b6a1a" strokeWidth={0.5} opacity={0.5} />
                   <rect x={x + 3} y={y + h - 5} width={(w - 6) * b.builtProgress} height={2} fill={PAL.gold} />
-                  <text x={x + w / 2} y={y - 2} textAnchor="middle" fontFamily="Oswald"
-                    fontSize="8" fill={PAL.parchment} opacity={0.75}>{b.kind.toUpperCase()}</text>
+                  <g transform={isoUpright(x + w / 2, y)}>
+                    <text x={0} y={-6} textAnchor="middle" fontFamily="Oswald"
+                      fontSize="8" fill={PAL.parchment} opacity={0.8}>
+                      {b.kind.toUpperCase()}
+                    </text>
+                  </g>
                 </g>
               );
             }
 
             // Fences render per-tile with auto-connecting variants.
+            // Each tile is its own upright sprite anchored at the south
+            // corner of the tile diamond so posts read as standing rails.
             if (b.kind === "fence") {
               const style: FenceStyleKey = (b.fenceStyle ?? "natural");
               const tiles: React.ReactNode[] = [];
+              const tileSort: { tx: number; ty: number; node: React.ReactNode }[] = [];
               for (let dy = 0; dy < b.h; dy++) {
                 for (let dx = 0; dx < b.w; dx++) {
                   const tx = b.x + dx;
@@ -2650,13 +2684,21 @@ export function MapView() {
                     s: hasFence(tx, ty + 1),
                     w: hasFence(tx - 1, ty),
                   };
-                  tiles.push(
-                    <g key={`${tx},${ty}`} transform={`translate(${tx * TILE}, ${ty * TILE})`}>
-                      <FenceArt w={TILE} h={TILE} connections={conn} style={style} />
-                    </g>
-                  );
+                  tileSort.push({
+                    tx, ty,
+                    node: (
+                      <g key={`${tx},${ty}`}
+                         transform={isoUpright((tx + 1) * TILE, (ty + 1) * TILE)}>
+                        <g transform={`translate(${-TILE / 2}, ${-TILE})`}>
+                          <FenceArt w={TILE} h={TILE} connections={conn} style={style} />
+                        </g>
+                      </g>
+                    ),
+                  });
                 }
               }
+              tileSort.sort((a, c) => (a.tx + a.ty) - (c.tx + c.ty));
+              for (const t of tileSort) tiles.push(t.node);
               return (
                 <g key={b.id}>
                   {tiles}
@@ -2668,20 +2710,25 @@ export function MapView() {
               );
             }
 
-            // Wall art is 4-way symmetric (top-down), so no rotation needed.
+            // Built building: selection halo stays in iso space (diamond
+            // footprint on the ground); the art itself is counter-rotated
+            // to screen-upright and anchored at the south corner of the
+            // iso footprint so the building "sits" on its plot.
             return (
               <g key={b.id}>
-                <g transform={`translate(${x}, ${y})`}>
-                  <BuildingArt kind={b.kind} w={w} h={h} farmStage={b.farm?.stage} farmGrowth={b.farm?.growth} />
-                </g>
                 {sel && (
                   <rect x={x + 1} y={y + 1} width={w - 2} height={h - 2}
                     fill="none" stroke={PAL.gold} strokeWidth={1.5} strokeDasharray="3 2" />
                 )}
-                <text x={x + w / 2} y={y - 2} textAnchor="middle" fontFamily="Oswald"
-                  fontSize="8" fill={PAL.parchment} opacity={sel ? 1 : 0.55}>
-                  {b.kind.replace("-", " ").toUpperCase()}
-                </text>
+                <g transform={isoUpright(x + w, y + h)}>
+                  <g transform={`translate(${-w / 2}, ${-h})`}>
+                    <BuildingArt kind={b.kind} w={w} h={h} farmStage={b.farm?.stage} farmGrowth={b.farm?.growth} />
+                  </g>
+                  <text x={0} y={-h - 4} textAnchor="middle" fontFamily="Oswald"
+                    fontSize="8" fill={PAL.parchment} opacity={sel ? 1 : 0.55}>
+                    {b.kind.replace("-", " ").toUpperCase()}
+                  </text>
+                </g>
               </g>
             );
           });
@@ -2720,7 +2767,7 @@ export function MapView() {
               const cy = py + padY + r2 * (ph - padY * 1.2);
               const adult = a.ageDays >= (ADULT_DAYS[a.species] ?? 60);
               out.push(
-                <g key={a.id} transform={`translate(${cx}, ${cy})`} pointerEvents="none">
+                <g key={a.id} transform={isoUpright(cx, cy)} pointerEvents="none">
                   <AnimalArt species={a.species} dead={a.dead ?? false} adult={adult} />
                 </g>,
               );
