@@ -28,8 +28,6 @@ const PAL = {
   parchment: "#c4ae90",
 };
 
-const WALL_LIKE_KINDS = new Set(["fence", "palisade", "stone-wall", "gate"]);
-const isWallLikeKind = (kind: string) => WALL_LIKE_KINDS.has(kind);
 
 const TILE_PAL: Record<Tile["kind"], { base: string; alt: string; detail: string }> = {
   grass:        { base: "#4a5a2e", alt: "#536432", detail: "#6b7d3f" },
@@ -281,102 +279,109 @@ function BuildingArt({ kind, w, h, farmStage, farmGrowth }: { kind: string; w: n
       );
     }
     case "fence": {
-      // Post-and-rail: 4 tall posts, 2 horizontal rails with wood grain, ground shadow.
-      const baseY = h - 1.2;
-      const topY = h * 0.18;
-      const rail1 = h * 0.42;
-      const rail2 = h * 0.7;
-      const posts = [0.12, 0.38, 0.62, 0.88];
+      // TOP-DOWN: 4-way symmetric "+" of rails with corner posts. Reads the
+      // same in any orientation, so neighboring fences naturally form runs.
+      const cy = h / 2;
+      const railT = Math.max(1.4, Math.min(w, h) * 0.16); // rail thickness
+      const postS = Math.max(1.6, Math.min(w, h) * 0.18); // post side
+      const inset = Math.max(1.2, Math.min(w, h) * 0.12);
       return (
         <g>
-          <ellipse cx={cx} cy={h - 0.6} rx={w * 0.46} ry={1.4} fill={PAL.shadow} opacity={0.7} />
-          {/* Rails */}
-          <rect x={1} y={rail1} width={w - 2} height={1.6} fill="#8a5a30" stroke={PAL.ink} strokeWidth={0.4} />
-          <line x1={1} y1={rail1 + 0.8} x2={w - 1} y2={rail1 + 0.8} stroke={PAL.inkSoft} strokeWidth={0.3} opacity={0.6} />
-          <rect x={1} y={rail2} width={w - 2} height={1.6} fill="#8a5a30" stroke={PAL.ink} strokeWidth={0.4} />
-          <line x1={1} y1={rail2 + 0.8} x2={w - 1} y2={rail2 + 0.8} stroke={PAL.inkSoft} strokeWidth={0.3} opacity={0.6} />
-          {/* Posts */}
-          {posts.map((p, i) => (
+          {/* faint shadow under the whole tile */}
+          <rect x={inset} y={inset} width={w - inset * 2} height={h - inset * 2} fill={PAL.shadow} opacity={0.25} />
+          {/* horizontal rail */}
+          <rect x={0} y={cy - railT / 2} width={w} height={railT} fill="#8a5a30" stroke={PAL.ink} strokeWidth={0.4} />
+          <line x1={0} y1={cy} x2={w} y2={cy} stroke={PAL.inkSoft} strokeWidth={0.3} opacity={0.55} />
+          {/* vertical rail */}
+          <rect x={cx - railT / 2} y={0} width={railT} height={h} fill="#8a5a30" stroke={PAL.ink} strokeWidth={0.4} />
+          <line x1={cx} y1={0} x2={cx} y2={h} stroke={PAL.inkSoft} strokeWidth={0.3} opacity={0.55} />
+          {/* 4 corner posts (look like log ends from above) */}
+          {[[inset, inset], [w - inset - postS, inset], [inset, h - inset - postS], [w - inset - postS, h - inset - postS]].map(([px, py], i) => (
             <g key={i}>
-              <rect x={w * p - 0.9} y={topY} width={1.8} height={baseY - topY} fill="#5a3820" stroke={PAL.ink} strokeWidth={0.4} />
-              <rect x={w * p - 0.9} y={topY} width={1.8} height={0.6} fill="#3d2810" />
+              <rect x={px} y={py} width={postS} height={postS} rx={0.6} fill="#5a3820" stroke={PAL.ink} strokeWidth={0.5} />
+              <circle cx={px + postS / 2} cy={py + postS / 2} r={postS * 0.18} fill="#3d2810" opacity={0.7} />
             </g>
           ))}
         </g>
       );
     }
     case "palisade": {
-      // Row of sharpened upright logs
-      const count = 4;
-      const stepW = (w - 2) / count;
+      // TOP-DOWN: a ring of sharpened log-ends (circles with point dots).
+      // 4-way symmetric — looks the same in any orientation.
+      const inset = Math.max(1.2, Math.min(w, h) * 0.1);
+      const r = Math.max(1.2, Math.min(w, h) * 0.11);
+      // 8 logs around the perimeter
+      const slots: Array<[number, number]> = [
+        [inset + r, inset + r], [cx, inset + r], [w - inset - r, inset + r],
+        [inset + r, h / 2], [w - inset - r, h / 2],
+        [inset + r, h - inset - r], [cx, h - inset - r], [w - inset - r, h - inset - r],
+      ];
       return (
         <g>
-          <ellipse cx={cx} cy={h - 1.5} rx={w * 0.45} ry={1.6} fill={PAL.shadow} />
-          {Array.from({ length: count }).map((_, i) => {
-            const x0 = 1 + stepW * i + stepW * 0.1;
-            const lw = stepW * 0.8;
-            const topY = h * 0.12;
-            const baseY = h - 2;
-            return (
-              <g key={i}>
-                <polygon
-                  points={`${x0},${topY + 3} ${x0 + lw / 2},${topY} ${x0 + lw},${topY + 3} ${x0 + lw},${baseY} ${x0},${baseY}`}
-                  fill="#7a5028"
-                  stroke={PAL.ink}
-                  strokeWidth={0.7}
-                />
-                <line x1={x0 + lw / 2} y1={topY + 3} x2={x0 + lw / 2} y2={baseY} stroke={PAL.inkSoft} strokeWidth={0.4} opacity={0.6} />
-              </g>
-            );
-          })}
-          {/* binding rope */}
-          <line x1={1.5} y1={h * 0.55} x2={w - 1.5} y2={h * 0.55} stroke="#3d2810" strokeWidth={0.6} opacity={0.8} />
+          <rect x={inset} y={inset} width={w - inset * 2} height={h - inset * 2} fill={PAL.shadow} opacity={0.22} />
+          {slots.map(([px, py], i) => (
+            <g key={i}>
+              <circle cx={px} cy={py} r={r} fill="#7a5028" stroke={PAL.ink} strokeWidth={0.6} />
+              <circle cx={px} cy={py} r={r * 0.55} fill="#9a6a3a" />
+              {/* sharpened point */}
+              <circle cx={px} cy={py} r={r * 0.22} fill="#3d2810" />
+            </g>
+          ))}
         </g>
       );
     }
     case "stone-wall": {
-      // Stacked masonry
+      // TOP-DOWN: tight stone slab pattern, 4-way symmetric. A central
+      // mortar cross + corner cobbles read as masonry from above.
+      const cy = h / 2;
+      const inset = Math.max(0.8, Math.min(w, h) * 0.06);
+      const slabW = (w - inset * 2) / 2;
+      const slabH = (h - inset * 2) / 2;
+      const slabs: Array<[number, number]> = [
+        [inset, inset], [inset + slabW, inset],
+        [inset, inset + slabH], [inset + slabW, inset + slabH],
+      ];
       return (
         <g>
-          <ellipse cx={cx} cy={h - 1.5} rx={w * 0.45} ry={1.6} fill={PAL.shadow} />
-          <rect x={1.5} y={h * 0.18} width={w - 3} height={h * 0.74} fill="#8a8078" stroke={PAL.ink} strokeWidth={1} />
-          {/* crenellation notches */}
-          {[0.18, 0.42, 0.66].map((p, i) => (
-            <rect key={`cr${i}`} x={w * p} y={h * 0.12} width={w * 0.16} height={h * 0.1} fill="#8a8078" stroke={PAL.ink} strokeWidth={0.8} />
+          {/* base */}
+          <rect x={inset} y={inset} width={w - inset * 2} height={h - inset * 2} fill="#8a8078" stroke={PAL.ink} strokeWidth={1} />
+          {/* 4 stone slabs */}
+          {slabs.map(([sx, sy], i) => (
+            <rect key={i} x={sx + 0.4} y={sy + 0.4} width={slabW - 0.8} height={slabH - 0.8}
+              fill={i % 2 === 0 ? "#968b81" : "#7e756d"} stroke={PAL.inkSoft} strokeWidth={0.4} rx={0.6} />
           ))}
-          {/* mortar */}
-          <line x1={2} y1={h * 0.42} x2={w - 2} y2={h * 0.42} stroke={PAL.inkSoft} strokeWidth={0.5} opacity={0.7} />
-          <line x1={2} y1={h * 0.66} x2={w - 2} y2={h * 0.66} stroke={PAL.inkSoft} strokeWidth={0.5} opacity={0.7} />
-          <line x1={w * 0.35} y1={h * 0.22} x2={w * 0.35} y2={h * 0.42} stroke={PAL.inkSoft} strokeWidth={0.4} opacity={0.6} />
-          <line x1={w * 0.65} y1={h * 0.42} x2={w * 0.65} y2={h * 0.66} stroke={PAL.inkSoft} strokeWidth={0.4} opacity={0.6} />
-          <line x1={w * 0.45} y1={h * 0.66} x2={w * 0.45} y2={h * 0.9} stroke={PAL.inkSoft} strokeWidth={0.4} opacity={0.6} />
+          {/* mortar cross */}
+          <line x1={inset} y1={cy} x2={w - inset} y2={cy} stroke={PAL.ink} strokeWidth={0.7} opacity={0.85} />
+          <line x1={cx} y1={inset} x2={cx} y2={h - inset} stroke={PAL.ink} strokeWidth={0.7} opacity={0.85} />
+          {/* highlight pebbles */}
+          <circle cx={inset + slabW * 0.5} cy={inset + slabH * 0.5} r={0.7} fill="#b0a89e" opacity={0.7} />
+          <circle cx={w - inset - slabW * 0.5} cy={h - inset - slabH * 0.5} r={0.7} fill="#b0a89e" opacity={0.7} />
         </g>
       );
     }
     case "gate": {
-      // Two stone pillars + heavy timber doors
-      const pillarW = w * 0.16;
+      // TOP-DOWN: stone frame around the four corners + a heavy timber door
+      // panel across the middle with an iron ring. Symmetric across both
+      // axes so it sits in any wall run.
+      const inset = Math.max(0.8, Math.min(w, h) * 0.06);
+      const pillar = Math.max(2.4, Math.min(w, h) * 0.22);
+      const cy = h / 2;
       return (
         <g>
-          <ellipse cx={cx} cy={h - 1.5} rx={w * 0.48} ry={2} fill={PAL.shadow} />
-          {/* pillars */}
-          <rect x={1} y={h * 0.08} width={pillarW} height={h * 0.86} fill="#8a8078" stroke={PAL.ink} strokeWidth={1} />
-          <rect x={w - 1 - pillarW} y={h * 0.08} width={pillarW} height={h * 0.86} fill="#8a8078" stroke={PAL.ink} strokeWidth={1} />
-          <line x1={1} y1={h * 0.45} x2={1 + pillarW} y2={h * 0.45} stroke={PAL.inkSoft} strokeWidth={0.4} opacity={0.7} />
-          <line x1={w - 1 - pillarW} y1={h * 0.45} x2={w - 1} y2={h * 0.45} stroke={PAL.inkSoft} strokeWidth={0.4} opacity={0.7} />
-          {/* doors */}
-          <rect x={1 + pillarW} y={h * 0.22} width={(w - 2 - pillarW * 2) / 2} height={h * 0.72} fill="#5a3820" stroke={PAL.ink} strokeWidth={1} />
-          <rect x={cx} y={h * 0.22} width={(w - 2 - pillarW * 2) / 2} height={h * 0.72} fill="#5a3820" stroke={PAL.ink} strokeWidth={1} />
-          {/* plank lines */}
-          {[0.35, 0.55, 0.75].map((p, i) => (
-            <line key={`pl${i}`} x1={1 + pillarW + 0.5} y1={h * p} x2={w - 1 - pillarW - 0.5} y2={h * p} stroke={PAL.inkSoft} strokeWidth={0.4} opacity={0.65} />
-          ))}
-          {/* iron bands */}
-          <rect x={1 + pillarW} y={h * 0.32} width={w - 2 - pillarW * 2} height={1.2} fill="#3a3530" />
-          <rect x={1 + pillarW} y={h * 0.78} width={w - 2 - pillarW * 2} height={1.2} fill="#3a3530" />
-          {/* knockers */}
-          <circle cx={cx - w * 0.06} cy={h * 0.58} r={1} fill="#3a3530" stroke={PAL.ink} strokeWidth={0.3} />
-          <circle cx={cx + w * 0.06} cy={h * 0.58} r={1} fill="#3a3530" stroke={PAL.ink} strokeWidth={0.3} />
+          {/* 4 stone corner pillars */}
+          <rect x={inset} y={inset} width={pillar} height={pillar} fill="#8a8078" stroke={PAL.ink} strokeWidth={0.8} rx={0.5} />
+          <rect x={w - inset - pillar} y={inset} width={pillar} height={pillar} fill="#8a8078" stroke={PAL.ink} strokeWidth={0.8} rx={0.5} />
+          <rect x={inset} y={h - inset - pillar} width={pillar} height={pillar} fill="#8a8078" stroke={PAL.ink} strokeWidth={0.8} rx={0.5} />
+          <rect x={w - inset - pillar} y={h - inset - pillar} width={pillar} height={pillar} fill="#8a8078" stroke={PAL.ink} strokeWidth={0.8} rx={0.5} />
+          {/* timber door slab in the middle (square so orientation is moot) */}
+          <rect x={cx - pillar * 0.9} y={cy - pillar * 0.9} width={pillar * 1.8} height={pillar * 1.8}
+            fill="#5a3820" stroke={PAL.ink} strokeWidth={0.9} rx={0.6} />
+          {/* plank seam — show both axes so it reads as a door from any side */}
+          <line x1={cx - pillar * 0.9} y1={cy} x2={cx + pillar * 0.9} y2={cy} stroke={PAL.inkSoft} strokeWidth={0.5} opacity={0.7} />
+          <line x1={cx} y1={cy - pillar * 0.9} x2={cx} y2={cy + pillar * 0.9} stroke={PAL.inkSoft} strokeWidth={0.5} opacity={0.7} />
+          {/* iron ring */}
+          <circle cx={cx} cy={cy} r={pillar * 0.32} fill="none" stroke="#2a2520" strokeWidth={0.9} />
+          <circle cx={cx} cy={cy} r={pillar * 0.14} fill="#3a3530" />
         </g>
       );
     }
@@ -1149,27 +1154,6 @@ export function MapView() {
   const VH = H * zoom;
   const initialCenterDone = useRef(false);
 
-  const wallNeighborCounts = useMemo(() => {
-    const occupied = new Map<string, typeof buildings[number]>();
-    for (const b of buildings) {
-      if (!isWallLikeKind(b.kind)) continue;
-      for (let dy = 0; dy < b.h; dy++) {
-        for (let dx = 0; dx < b.w; dx++) {
-          occupied.set(`${b.x + dx},${b.y + dy}`, b);
-        }
-      }
-    }
-    const counts = new Map<string, { horizontal: number; vertical: number }>();
-    for (const b of buildings) {
-      if (!isWallLikeKind(b.kind)) continue;
-      const touches = (x: number, y: number) => occupied.has(`${x},${y}`);
-      counts.set(b.id, {
-        horizontal: Number(touches(b.x - 1, b.y)) + Number(touches(b.x + b.w, b.y)),
-        vertical: Number(touches(b.x, b.y - 1)) + Number(touches(b.x, b.y + b.h)),
-      });
-    }
-    return counts;
-  }, [buildings]);
 
   useEffect(() => {
     expandWorldToCurrentSize();
@@ -1492,15 +1476,11 @@ export function MapView() {
             );
           }
 
-          // 1x1 wall segments need neighbor-aware orientation; otherwise a
-          // vertical fenceline repeats the same horizontal sprite down the row.
-          const isWallLike = isWallLikeKind(b.kind);
-          const neighbors = wallNeighborCounts.get(b.id);
-          const vertical = isWallLike && (h > w || (!!neighbors && neighbors.vertical > neighbors.horizontal));
+          // Wall art is 4-way symmetric (top-down), so no rotation needed.
           return (
             <g key={b.id}>
-              <g transform={vertical ? `translate(${x + w}, ${y}) rotate(90)` : `translate(${x}, ${y})`}>
-                <BuildingArt kind={b.kind} w={vertical ? h : w} h={vertical ? w : h} farmStage={b.farm?.stage} farmGrowth={b.farm?.growth} />
+              <g transform={`translate(${x}, ${y})`}>
+                <BuildingArt kind={b.kind} w={w} h={h} farmStage={b.farm?.stage} farmGrowth={b.farm?.growth} />
               </g>
               {sel && (
                 <rect x={x + 1} y={y + 1} width={w - 2} height={h - 2}
