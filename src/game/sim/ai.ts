@@ -173,8 +173,19 @@ function moveToward(s: Survivor, dt: number, deps?: SimDeps) {
           if (!isBlocked(detourX, detourY, deps, allow)) {
             nx = detourX; ny = detourY;
           } else {
-            // Stuck — hold position
-            return;
+            // Last resort: survivor is boxed in (e.g. fully fenced
+            // homestead with no gate). Allow them to slip through
+            // fence/wall tiles so they don't freeze forever.
+            if (!isBlocked(nx, ny, deps, allow, true)) {
+              // proceed through fence
+            } else if (!isBlocked(s.x + Math.sign(dx) * speed, s.y, deps, allow, true)) {
+              nx = s.x + Math.sign(dx) * speed; ny = s.y;
+            } else if (!isBlocked(s.x, s.y + Math.sign(dy) * speed, deps, allow, true)) {
+              nx = s.x; ny = s.y + Math.sign(dy) * speed;
+            } else {
+              // Truly stuck — hold position
+              return;
+            }
           }
         }
       }
