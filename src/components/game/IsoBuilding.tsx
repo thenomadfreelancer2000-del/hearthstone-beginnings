@@ -2123,6 +2123,40 @@ function HomesteadFlair({ gridW, gridH, T }: { gridW: number; gridH: number; T: 
 // Top-level dispatcher
 // ──────────────────────────────────────────────────────────────
 
+/**
+ * Workshop sprite renderer — drops a flat image onto the iso footprint.
+ * Image bottom-center sits on the south corner so it visually "stands"
+ * on the tile, scaled to the diamond's bounding-box width.
+ */
+function IsoSprite({ gridW, gridH, T, src }: { gridW: number; gridH: number; T: number; src: string }) {
+  const c = isoCorners(gridW, gridH, T, 0);
+  const minX = c.W[0];
+  const maxX = c.E[0];
+  const w = maxX - minX;
+  const h = w * 0.95;
+  const bottom = c.S[1];
+  return (
+    <g>
+      {/* Soft ground shadow inside the footprint */}
+      <polygon
+        points={poly(c.S, c.E, c.N, c.W)}
+        fill="rgba(0,0,0,0.18)"
+        stroke="none"
+      />
+      <image
+        href={src}
+        x={minX}
+        y={bottom - h}
+        width={w}
+        height={h}
+        preserveAspectRatio="xMidYMax meet"
+      />
+    </g>
+  );
+}
+
+
+
 export function IsoBuilding({
   kind, gridW, gridH, tile, farmStage, farmGrowth,
 }: {
