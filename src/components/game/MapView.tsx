@@ -635,9 +635,10 @@ function SurvivorArt({ founder, dead, female, stage, pregnant }: { founder: bool
 // Shows what they're doing right now: ZZZ for sleep, fork for eating,
 // droplet for drinking, hammer/sickle/axe/pick for working, speech
 // bubble for socializing. Pure SVG, no extra deps.
-function ActivityGlyph({ survivor: s, partnerNearby }: {
+function ActivityGlyph({ survivor: s, partnerNearby, speakOffset = "0s" }: {
   survivor: import("@/game/types").Survivor;
   partnerNearby: boolean;
+  speakOffset?: string;
 }) {
   const st = s.state;
   // Position the glyph above head (head is ~y -5 in core sprite).
