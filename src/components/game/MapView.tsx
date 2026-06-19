@@ -29,16 +29,19 @@ const PAL = {
 };
 
 
+// TheoTown-inspired warm, readable palette. Each tile has a base, a
+// dither alt for non-flat coverage, and a detail color for tufts/pebbles.
 const TILE_PAL: Record<Tile["kind"], { base: string; alt: string; detail: string }> = {
-  grass:        { base: "#4a5a2e", alt: "#536432", detail: "#6b7d3f" },
-  "tall-grass": { base: "#566a32", alt: "#62763a", detail: "#7d9048" },
-  dirt:         { base: "#6e4920", alt: "#7a5326", detail: "#8e6730" },
-  forest:       { base: "#2f4327", alt: "#37502d", detail: "#4a6235" },
-  stone:        { base: "#6b6258", alt: "#766c61", detail: "#8a8175" },
-  water:        { base: "#3a5868", alt: "#456676", detail: "#5e8294" },
-  road:         { base: "#4a3418", alt: "#553c1c", detail: "#6a4a26" },
-  ruin:         { base: "#46392a", alt: "#504232", detail: "#665540" },
+  grass:        { base: "#6b8a3c", alt: "#7a9947", detail: "#94b558" },
+  "tall-grass": { base: "#5c7d33", alt: "#6b8d3d", detail: "#88a64a" },
+  dirt:         { base: "#94632a", alt: "#a17132", detail: "#b88947" },
+  forest:       { base: "#3e5c2a", alt: "#476833", detail: "#5e8240" },
+  stone:        { base: "#8a8278", alt: "#9a9388", detail: "#b0a89c" },
+  water:        { base: "#4a7a96", alt: "#5589a6", detail: "#9ec6db" },
+  road:         { base: "#6b4a26", alt: "#78532b", detail: "#8a6432" },
+  ruin:         { base: "#5c4d3a", alt: "#6a5944", detail: "#8a7558" },
 };
+
 
 function rand(x: number, y: number, salt = 0) {
   const n = Math.sin(x * 127.1 + y * 311.7 + salt * 13.37) * 43758.5453;
@@ -1319,6 +1322,11 @@ const StaticTileLayers = React.memo(function StaticTileLayers({ tiles, width, he
 
     (async () => {
       const images: LayerImage[] = [];
+      // Spatial lookup so we can blend tile edges against neighbors.
+      const tileMap = new Map<string, Tile>();
+      for (const t of tiles) tileMap.set(`${t.x},${t.y}`, t);
+      const at = (x: number, y: number) => tileMap.get(`${x},${y}`);
+
       for (const { chunk, tiles: chunkTiles } of tileByChunk) {
         const canvas = document.createElement("canvas");
         canvas.width = chunk.width;
@@ -1327,40 +1335,108 @@ const StaticTileLayers = React.memo(function StaticTileLayers({ tiles, width, he
         if (!ctx) continue;
         ctx.translate(-chunk.x, -chunk.y);
 
+        // ── Pass 1: base + checker dither (no tile is a flat single color)
         for (const t of chunkTiles) {
           const pal = TILE_PAL[t.kind];
           const px = t.x * TILE;
           const py = t.y * TILE;
-          ctx.fillStyle = t.kind === "water" ? pal.base : (t.variant % 3 === 0 ? pal.alt : pal.base);
+          ctx.fillStyle = pal.base;
           ctx.fillRect(px, py, TILE, TILE);
-          if (t.kind === "water") {
-            ctx.strokeStyle = TILE_PAL.water.detail;
-            ctx.globalAlpha = 0.55;
-            ctx.lineWidth = 0.6;
-            for (const oy of [4, 8]) {
-              ctx.beginPath();
-              ctx.moveTo(px, py + oy);
-              ctx.quadraticCurveTo(px + 2.5, py + oy - 2, px + 5, py + oy);
-              ctx.quadraticCurveTo(px + 7.5, py + oy + 2, px + 10, py + oy);
-              ctx.stroke();
+          if (t.kind !== "water") {
+            // 2x2 sub-tile dither: each quadrant flips to alt when noise > 0.5
+            const half = TILE / 2;
+            ctx.fillStyle = pal.alt;
+            for (let qy = 0; qy < 2; qy++) {
+              for (let qx = 0; qx < 2; qx++) {
+                if (rand(t.x * 2 + qx, t.y * 2 + qy, 7) > 0.55) {
+                  ctx.fillRect(px + qx * half, py + qy * half, half, half);
+                }
+              }
             }
+          } else {
+            // Water: horizontal ripple bands using alt tone
+            ctx.fillStyle = pal.alt;
+            ctx.globalAlpha = 0.6;
+            const bandY = ((t.y * 3 + Math.floor(rand(t.x, t.y, 2) * 4)) % 4) * 2;
+            ctx.fillRect(px, py + bandY, TILE, 2);
             ctx.globalAlpha = 1;
           }
         }
 
-        ctx.lineCap = "round";
+        // ── Pass 2: edge blending — soft 2px rim of neighbor's base color
+        // so biomes feather into each other instead of hard-cutting.
+        ctx.globalAlpha = 0.5;
+        for (const t of chunkTiles) {
+          const px = t.x * TILE;
+          const py = t.y * TILE;
+          const neighbors: [number, number, "n" | "s" | "e" | "w"][] = [
+            [t.x, t.y - 1, "n"], [t.x, t.y + 1, "s"],
+            [t.x + 1, t.y, "e"], [t.x - 1, t.y, "w"],
+          ];
+          for (const [nx, ny, dir] of neighbors) {
+            const nb = at(nx, ny);
+            if (!nb || nb.kind === t.kind) continue;
+            // Skip water-vs-ground (handled by shoreline detail below).
+            if (nb.kind === "water" || t.kind === "water") continue;
+            ctx.fillStyle = TILE_PAL[nb.kind].base;
+            const rim = 2.5;
+            if (dir === "n") ctx.fillRect(px, py, TILE, rim);
+            else if (dir === "s") ctx.fillRect(px, py + TILE - rim, TILE, rim);
+            else if (dir === "e") ctx.fillRect(px + TILE - rim, py, rim, TILE);
+            else ctx.fillRect(px, py, rim, TILE);
+          }
+        }
+        ctx.globalAlpha = 1;
+
+        // ── Pass 2b: shoreline — sandy rim where ground meets water
         for (const t of chunkTiles) {
           if (t.kind === "water") continue;
+          const px = t.x * TILE;
+          const py = t.y * TILE;
+          const edges: [number, number, "n" | "s" | "e" | "w"][] = [
+            [t.x, t.y - 1, "n"], [t.x, t.y + 1, "s"],
+            [t.x + 1, t.y, "e"], [t.x - 1, t.y, "w"],
+          ];
+          for (const [nx, ny, dir] of edges) {
+            const nb = at(nx, ny);
+            if (!nb || nb.kind !== "water") continue;
+            ctx.fillStyle = "#d6c184"; // sand
+            ctx.globalAlpha = 0.85;
+            const rim = 2;
+            if (dir === "n") ctx.fillRect(px, py, TILE, rim);
+            else if (dir === "s") ctx.fillRect(px, py + TILE - rim, TILE, rim);
+            else if (dir === "e") ctx.fillRect(px + TILE - rim, py, rim, TILE);
+            else ctx.fillRect(px, py, rim, TILE);
+          }
+        }
+        ctx.globalAlpha = 1;
+
+        // ── Pass 3: per-tile details (tufts, pebbles, ripples)
+        ctx.lineCap = "round";
+        for (const t of chunkTiles) {
           const px = t.x * TILE;
           const py = t.y * TILE;
           const pal = TILE_PAL[t.kind];
           ctx.strokeStyle = pal.detail;
           ctx.fillStyle = pal.detail;
-          if (t.kind === "grass" || t.kind === "tall-grass") {
-            const n = t.kind === "tall-grass" ? 5 : 3;
-            const len = t.kind === "tall-grass" ? 4 : 2.5;
-            ctx.globalAlpha = 1;
+          if (t.kind === "water") {
+            // Subtle wave highlights
+            ctx.strokeStyle = pal.detail;
+            ctx.globalAlpha = 0.55;
             ctx.lineWidth = 0.7;
+            for (const oy of [6, 14, 22]) {
+              const ox = (rand(t.x, t.y, oy) - 0.5) * 4;
+              ctx.beginPath();
+              ctx.moveTo(px + 3 + ox, py + oy);
+              ctx.quadraticCurveTo(px + TILE / 2, py + oy - 1.5, px + TILE - 3 + ox, py + oy);
+              ctx.stroke();
+            }
+            ctx.globalAlpha = 1;
+          } else if (t.kind === "grass" || t.kind === "tall-grass") {
+            const n = t.kind === "tall-grass" ? 6 : 4;
+            const len = t.kind === "tall-grass" ? 4.5 : 3;
+            ctx.globalAlpha = 0.9;
+            ctx.lineWidth = 0.8;
             for (let i = 0; i < n; i++) {
               const rx = px + rand(t.x, t.y, i) * (TILE - 4) + 2;
               const ry = py + rand(t.x, t.y, i + 10) * (TILE - 4) + 2;
@@ -1370,46 +1446,66 @@ const StaticTileLayers = React.memo(function StaticTileLayers({ tiles, width, he
               ctx.moveTo(rx, ry); ctx.lineTo(rx + 1, ry - len);
               ctx.stroke();
             }
-          } else if (t.kind === "dirt" || t.kind === "road") {
-            if (rand(t.x, t.y, 1) > 0.4) {
-              ctx.globalAlpha = 0.7;
+            // Tiny wildflower dot occasionally
+            if (rand(t.x, t.y, 99) > 0.88) {
+              ctx.fillStyle = rand(t.x, t.y, 100) > 0.5 ? "#e8c060" : "#d97474";
+              ctx.globalAlpha = 0.95;
               ctx.beginPath();
-              ctx.arc(px + rand(t.x, t.y, 2) * (TILE - 6) + 3, py + rand(t.x, t.y, 3) * (TILE - 6) + 3, 0.8, 0, Math.PI * 2);
+              ctx.arc(px + rand(t.x, t.y, 101) * (TILE - 6) + 3, py + rand(t.x, t.y, 102) * (TILE - 6) + 3, 0.9, 0, Math.PI * 2);
               ctx.fill();
-              ctx.globalAlpha = 0.5;
+            }
+          } else if (t.kind === "dirt" || t.kind === "road") {
+            // Multiple pebbles + darker speck for soil texture
+            for (let i = 0; i < 3; i++) {
+              if (rand(t.x, t.y, i) < 0.45) continue;
+              ctx.fillStyle = i === 2 ? "#5e3a18" : pal.detail;
+              ctx.globalAlpha = i === 2 ? 0.5 : 0.8;
               ctx.beginPath();
-              ctx.arc(px + rand(t.x, t.y, 4) * (TILE - 6) + 3, py + rand(t.x, t.y, 5) * (TILE - 6) + 3, 0.6, 0, Math.PI * 2);
+              ctx.arc(px + rand(t.x, t.y, i * 2) * (TILE - 6) + 3, py + rand(t.x, t.y, i * 2 + 1) * (TILE - 6) + 3, 0.8, 0, Math.PI * 2);
               ctx.fill();
             }
           } else if (t.kind === "stone") {
-            if (rand(t.x, t.y, 1) > 0.3) {
-              ctx.globalAlpha = 0.7;
-              ctx.beginPath();
-              ctx.arc(px + rand(t.x, t.y, 2) * (TILE - 6) + 3, py + rand(t.x, t.y, 3) * (TILE - 6) + 3, 1.1, 0, Math.PI * 2);
-              ctx.fill();
+            // Two clustered rocks
+            for (let i = 0; i < 2; i++) {
+              if (rand(t.x, t.y, i) < 0.35) continue;
+              const cx = px + rand(t.x, t.y, i * 3 + 2) * (TILE - 8) + 4;
+              const cy = py + rand(t.x, t.y, i * 3 + 3) * (TILE - 8) + 4;
+              ctx.fillStyle = pal.detail;
+              ctx.globalAlpha = 0.9;
+              ctx.beginPath(); ctx.arc(cx, cy, 1.4, 0, Math.PI * 2); ctx.fill();
               ctx.strokeStyle = PAL.ink;
-              ctx.globalAlpha = 1;
-              ctx.lineWidth = 0.3;
+              ctx.globalAlpha = 0.8;
+              ctx.lineWidth = 0.35;
               ctx.stroke();
             }
           } else if (t.kind === "forest") {
-            if (rand(t.x, t.y, 1) > 0.4) {
-              ctx.globalAlpha = 0.55;
-              ctx.beginPath();
-              ctx.arc(px + rand(t.x, t.y, 2) * (TILE - 4) + 2, py + rand(t.x, t.y, 3) * (TILE - 4) + 2, 1.3, 0, Math.PI * 2);
-              ctx.fill();
+            // Dense canopy: several overlapping circles per tile
+            for (let i = 0; i < 4; i++) {
+              const cx = px + rand(t.x, t.y, i * 2) * (TILE - 6) + 3;
+              const cy = py + rand(t.x, t.y, i * 2 + 1) * (TILE - 6) + 3;
+              const r = 1.6 + rand(t.x, t.y, i + 50) * 1.2;
+              ctx.fillStyle = i % 2 === 0 ? pal.detail : "#6f9148";
+              ctx.globalAlpha = 0.7;
+              ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill();
             }
           } else if (t.kind === "ruin") {
-            ctx.globalAlpha = 0.7;
-            ctx.lineWidth = 0.7;
+            // Broken stone bits
+            ctx.globalAlpha = 0.75;
+            ctx.lineWidth = 0.8;
+            ctx.strokeStyle = pal.detail;
             ctx.beginPath();
-            ctx.moveTo(px + 4, py + TILE - 4);
-            ctx.lineTo(px + 8, py + TILE - 7);
-            ctx.lineTo(px + 11, py + TILE - 5);
+            ctx.moveTo(px + 4, py + TILE - 5);
+            ctx.lineTo(px + 9, py + TILE - 9);
+            ctx.lineTo(px + 13, py + TILE - 6);
             ctx.stroke();
+            ctx.fillStyle = "#3a2a18";
+            ctx.beginPath();
+            ctx.arc(px + TILE - 7, py + 7, 1.1, 0, Math.PI * 2);
+            ctx.fill();
           }
         }
         ctx.globalAlpha = 1;
+
 
         const url = await canvasToObjectUrl(canvas);
         if (!url) continue;
