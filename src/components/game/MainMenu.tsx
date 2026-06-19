@@ -9,6 +9,7 @@ export function MainMenu() {
   const setScreen = useGame((s) => s.setScreen);
   const resume = useGame((s) => s.resumeFromSave);
   const [canResume, setCanResume] = useState(false);
+  const [workshopOpen, setWorkshopOpen] = useState(false);
   useEffect(() => {
     setCanResume(hasSave());
   }, []);
