@@ -97,15 +97,15 @@ export function GameShell() {
         <MinisterRequestsPanel />
         {!mobileFocus && !settingsOpen && (
           <div
-            className="absolute top-2 z-40 flex flex-col gap-1 items-stretch transition-all"
+            className="absolute top-2 z-40 flex flex-col gap-1.5 items-end transition-all"
             style={{ right: !isMobile && !inspectorCollapsed ? 348 : (!isMobile && inspectorCollapsed ? 40 : 8) }}
           >
-            <SideButton onClick={() => setLivestockOpen(true)} label="Livestock" />
-            <SideButton onClick={() => setAdminOpen(true)} label="Ministers" />
-            <SideButton onClick={() => setPoliticsOpen(true)} label="Council" />
-            <SideButton onClick={() => setFactionsOpen(true)} label="Factions" />
-            <SideButton onClick={() => setExpeditionsOpen(true)} label="Expeditions" />
-            <SideButton onClick={() => setOverlay("tree")} label="Dynasty" />
+            <SideIconButton onClick={() => setLivestockOpen(true)} label="Livestock" glyph="livestock" />
+            <SideIconButton onClick={() => setAdminOpen(true)} label="Ministers" glyph="ministers" />
+            <SideIconButton onClick={() => setPoliticsOpen(true)} label="Council" glyph="council" />
+            <SideIconButton onClick={() => setFactionsOpen(true)} label="Factions" glyph="factions" />
+            <SideIconButton onClick={() => setExpeditionsOpen(true)} label="Expeditions" glyph="expeditions" />
+            <SideIconButton onClick={() => setOverlay("tree")} label="Dynasty" glyph="dynasty" />
           </div>
         )}
         {livestockOpen && <LivestockPanel onClose={() => setLivestockOpen(false)} />}
