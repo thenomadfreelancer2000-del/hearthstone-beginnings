@@ -904,57 +904,68 @@ export const useGame = create<GameState>((set, get) => ({
       }
     }
 
-    // ── Apply atomically: rebuild survivors + rebuild ALL occupantIds from homeIds ──
-    const survivors = st.survivors.map(s => {
-      if (s.id !== survivorId) return s;
-      if (!buildingId || !target) {
-        return { ...s, homeId: null };
+    // ── Apply atomically via Immer: only the moved survivor + any building
+    // whose occupantIds actually changes get new identities. Everything else
+    // keeps its ref, so useShallow subscribers don't re-render.
+    set(produce(st, (draft) => {
+      const s = draft.survivors.find(x => x.id === survivorId);
+      if (s) {
+        if (!buildingId || !target) {
+          s.homeId = null;
+        } else {
+          const prevKind = s.lastHomeKind ?? null;
+          const prevQ = prevKind ? (BUILDINGS[prevKind]?.housingQuality ?? 0) : 0;
+          const newQ = BUILDINGS[target.kind]?.housingQuality ?? 0;
+          const upgraded = newQ > prevQ;
+          const downgraded = newQ < prevQ && !!prevKind;
+          const newMemory = upgraded
+            ? { id: nanoid(6), tick: st.time.tick, year: st.time.year, season: st.time.season, day: st.time.day,
+                text: `The Founder gave us a ${BUILDINGS[target.kind]?.name ?? target.kind}.`,
+                emotion: "trust" as const, weight: 55, aboutSurvivorId: st.currentLeaderId,
+                kind: "housing-upgrade", floor: 12, decayRate: 0.4 }
+            : downgraded
+            ? { id: nanoid(6), tick: st.time.tick, year: st.time.year, season: st.time.season, day: st.time.day,
+                text: `Moved from our ${BUILDINGS[prevKind!]?.name ?? prevKind} to a ${BUILDINGS[target.kind]?.name ?? target.kind}.`,
+                emotion: "anger" as const, weight: 60, aboutSurvivorId: st.currentLeaderId,
+                kind: "housing-downgrade", floor: 20, decayRate: 0.3 }
+            : null;
+          s.homeId = buildingId;
+          s.lastHomeKind = target.kind;
+          if (upgraded) s.housingGratitude = (s.housingGratitude ?? 0) + 10;
+          if (newMemory) s.memories = [newMemory, ...s.memories].slice(0, 64);
+        }
       }
-      const prevKind = s.lastHomeKind ?? null;
-      const prevQ = prevKind ? (BUILDINGS[prevKind]?.housingQuality ?? 0) : 0;
-      const newQ = BUILDINGS[target.kind]?.housingQuality ?? 0;
-      const upgraded = newQ > prevQ;
-      const downgraded = newQ < prevQ && !!prevKind;
-      const newMemory = upgraded
-        ? { id: nanoid(6), tick: st.time.tick, year: st.time.year, season: st.time.season, day: st.time.day,
-            text: `The Founder gave us a ${BUILDINGS[target.kind]?.name ?? target.kind}.`,
-            emotion: "trust" as const, weight: 55, aboutSurvivorId: st.currentLeaderId,
-            kind: "housing-upgrade", floor: 12, decayRate: 0.4 }
-        : downgraded
-        ? { id: nanoid(6), tick: st.time.tick, year: st.time.year, season: st.time.season, day: st.time.day,
-            text: `Moved from our ${BUILDINGS[prevKind!]?.name ?? prevKind} to a ${BUILDINGS[target.kind]?.name ?? target.kind}.`,
-            emotion: "anger" as const, weight: 60, aboutSurvivorId: st.currentLeaderId,
-            kind: "housing-downgrade", floor: 20, decayRate: 0.3 }
-        : null;
-      return {
-        ...s,
-        homeId: buildingId,
-        lastHomeKind: target.kind,
-        housingGratitude: upgraded ? (s.housingGratitude ?? 0) + 10 : (s.housingGratitude ?? 0),
-        memories: newMemory ? [newMemory, ...s.memories].slice(0, 64) : s.memories,
-      };
-    });
 
-    // Rebuild every building's occupantIds from the canonical survivor.homeId.
-    // This guarantees occupantIds is always perfectly in sync after an assignment.
-    const occByHome = new Map<string, string[]>();
-    for (const s of survivors) {
-      if (s.health <= 0 || !s.homeId) continue;
-      const arr = occByHome.get(s.homeId) ?? [];
-      arr.push(s.id);
-      occByHome.set(s.homeId, arr);
-    }
-    const buildings = st.buildings.map(b =>
-      isResidential(b.kind)
-        ? { ...b, occupantIds: occByHome.get(b.id) ?? [] }
-        : b,
-    );
+      // Rebuild every residential building's occupantIds from the canonical
+      // survivor.homeId — but only assign when it actually differs so
+      // untouched buildings keep their identity.
+      const occByHome = new Map<string, string[]>();
+      for (const sv of draft.survivors) {
+        if (sv.health <= 0 || !sv.homeId) continue;
+        const arr = occByHome.get(sv.homeId) ?? [];
+        arr.push(sv.id);
+        occByHome.set(sv.homeId, arr);
+      }
+      for (const b of draft.buildings) {
+        if (!isResidential(b.kind)) continue;
+        const next = occByHome.get(b.id) ?? [];
+        const cur = b.occupantIds;
+        let same = cur.length === next.length;
+        if (same) {
+          for (let i = 0; i < cur.length; i++) {
+            if (cur[i] !== next[i]) { same = false; break; }
+          }
+        }
+        if (!same) b.occupantIds = next;
+      }
+    }));
 
-    set({ buildings, survivors });
-    const movedSurv = survivors.find(s => s.id === survivorId)!;
+    const after = get();
+    const movedSurv = after.survivors.find(s => s.id === survivorId)!;
     if (buildingId && target) {
-      console.log("[housing] assigned", movedSurv.name, "→", target.kind, target.id,
-        `occ ${(occByHome.get(buildingId) ?? []).length}/${BUILDINGS[target.kind]?.housingCapacity ?? 0}`);
+      const cap = BUILDINGS[target.kind]?.housingCapacity ?? 0;
+      const occCount = after.survivors.filter(o => o.homeId === buildingId && o.health > 0).length;
+      console.log("[housing] assigned", movedSurv.name, "→", target.kind, target.id, `occ ${occCount}/${cap}`);
       toast.success(`${movedSurv.name} moved into ${BUILDINGS[target.kind]?.name ?? target.kind}.`);
     } else {
       console.log("[housing] cleared home for", movedSurv.name);
