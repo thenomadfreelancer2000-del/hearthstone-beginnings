@@ -1810,9 +1810,9 @@ function RanchYard({
   const benchA = lerp(inner.S, inner.W, 0.30);
   const benchB = lerp(inner.S, inner.W, 0.70);
 
-  // Wood porch stairs — 3 stepped planks at the foot of the porch,
-  // running parallel to the SW face of the house.
-  const porchFoot = mid(inner.S, inner.W);
+  // Wood porch stairs — now anchored inside the paved estate foundation,
+  // not outside the footprint where they can hang over water.
+  const porchFoot = lerp(mid(inner.S, inner.W), mid(outer.S, outer.W), 0.34);
   const swEdgeDir: P = [(inner.W[0] - inner.S[0]), (inner.W[1] - inner.S[1])];
   const swLen = Math.hypot(swEdgeDir[0], swEdgeDir[1]) || 1;
   const along: P = [swEdgeDir[0] / swLen, swEdgeDir[1] / swLen];
@@ -1820,8 +1820,8 @@ function RanchYard({
   const outDir: P = [porchFoot[0] - inner.C[0], porchFoot[1] - inner.C[1]];
   const outLen2 = Math.hypot(outDir[0], outDir[1]) || 1;
   const perp: P = [outDir[0] / outLen2, outDir[1] / outLen2];
-  const stairW = T * 0.95;
-  const stepDepth = T * 0.16;
+  const stairW = T * 0.74;
+  const stepDepth = T * 0.12;
   const stairs = (
     <g>
       {[0, 1, 2].map((i) => {
