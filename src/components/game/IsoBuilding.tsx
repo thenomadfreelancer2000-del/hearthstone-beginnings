@@ -1531,7 +1531,7 @@ function RanchYard({
   // Fence sits flush with the tile footprint; the building inside
   // is rendered at inset 0.17 so the ring between them is the yard.
   const outer = isoCorners(gridW, gridH, T, -0.02);
-  const inner = isoCorners(gridW, gridH, T, 0.17);
+  const inner = isoCorners(gridW, gridH, T, 0.10);
   const PICKET = "#efe2bf";
   const PICKET_SHADE = "#a89366";
   const RAIL = "#c9b282";
