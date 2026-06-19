@@ -634,10 +634,11 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
         } else {
           setTarget(s, tx, ty);
           s.state = "moving";
-          s.action =
-            existingScore_ifAny(deps.relationships, s.id, target.id) >= 40
-              ? `Going to see ${target.name}.`
-              : `Walking over to ${target.name}.`;
+          const rTo = findRelationship(deps.relationships, s.id, target.id);
+          const opTo = rTo ? opinionScore(rTo) : 0;
+          s.action = opTo >= 40
+            ? `Going to see ${target.name}.`
+            : `Walking over to ${target.name}.`;
           return;
         }
       }
