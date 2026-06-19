@@ -1,6 +1,7 @@
 import React from "react";
 import { getWorkshopVisual, workshopBaseKind, isWorkshopKind } from "@/game/workshop/registry";
 import homesteadAsset from "@/assets/homestead.png.asset.json";
+import tentAsset from "@/assets/tent.png.asset.json";
 
 
 
