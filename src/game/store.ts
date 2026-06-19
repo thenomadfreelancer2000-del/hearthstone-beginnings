@@ -15,7 +15,7 @@ import {
 
 import { advance, type Engine } from "./sim/engine";
 import { createArrangedProposal } from "./sim/marriage";
-import { BUILDINGS } from "./data/content";
+import { BUILDINGS, ROAD_KINDS } from "./data/content";
 import { makeAnimal, SPECIES_BUILDING, SPECIES_LABEL } from "./sim/livestock";
 import {
   ROLE_OCCUPATION, makeMinister, applyApproval, applyRejection,
