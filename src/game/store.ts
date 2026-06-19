@@ -1592,7 +1592,9 @@ export const useGame = create<GameState>((set, get) => ({
       ministerReports: st.ministerReports.map(r => ({ ...r })),
       foundingPhase: st.foundingPhase,
       leaderHelp: { ...st.leaderHelp },
+      wornPaths: { ...st.wornPaths },
     };
+
 
     const prevTick = st.time.tick;
     const prevFounderAlive = (st.survivors.find(s => s.id === st.founderId)?.health ?? 0) > 0;
