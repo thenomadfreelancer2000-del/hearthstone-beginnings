@@ -190,6 +190,7 @@ interface GameState {
   decideLivestockRequest: (id: ID, decision: "approve" | "reject" | "postpone") => void;
   assignRancher: (buildingId: ID, survivorId: ID | null) => void;
   setPenOwner: (buildingId: ID, familyId: ID | null) => void;
+  setFenceStyle: (buildingId: ID, style: NonNullable<import("./types").Building["fenceStyle"]>) => void;
   // Ministers
   appointMinister: (role: MinisterRole, survivorId: ID) => void;
   dismissMinister: (ministerId: ID) => void;
@@ -2249,6 +2250,15 @@ export const useGame = create<GameState>((set, get) => ({
     set({
       buildings: st.buildings.map(b =>
         b.id === buildingId ? { ...b, livestockOwnerFamilyId: familyId } : b,
+      ),
+    });
+  },
+
+  setFenceStyle: (buildingId, style) => {
+    const st = get();
+    set({
+      buildings: st.buildings.map(b =>
+        b.id === buildingId && b.kind === "fence" ? { ...b, fenceStyle: style } : b,
       ),
     });
   },

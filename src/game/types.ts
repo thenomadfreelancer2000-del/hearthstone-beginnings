@@ -463,6 +463,8 @@ export interface Building {
   farm?: FarmState | null;
   /** Livestock buildings: which House owns this pen/coop/pasture. */
   livestockOwnerFamilyId?: ID | null;
+  /** Visual variant for fence tiles. */
+  fenceStyle?: "natural" | "dark" | "white" | "weathered";
 }
 
 // ── Arrival events (transient, not persisted) ───────────────────
