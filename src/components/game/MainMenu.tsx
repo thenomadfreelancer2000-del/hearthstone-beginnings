@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { useGame } from "@/game/store";
 import { hasSave } from "@/game/persistence";
 import heroImage from "@/assets/menu-hero.jpg";
+import { WorkshopPanel } from "./WorkshopPanel";
 
 export function MainMenu() {
   const setScreen = useGame((s) => s.setScreen);
