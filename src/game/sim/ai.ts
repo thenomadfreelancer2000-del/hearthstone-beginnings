@@ -34,6 +34,20 @@ function doorPointOf(b: Building): { x: number; y: number } {
   return { x: b.x + b.w * 0.5 - 0.55, y: b.y + b.h - 0.05 };
 }
 
+/** Closest point on a building's footprint to (x, y). Used by builders so
+ *  they walk up to the nearest edge instead of trying to reach the center. */
+function nearestPointOn(b: Building, x: number, y: number): { x: number; y: number } {
+  const px = Math.max(b.x, Math.min(b.x + b.w, x));
+  const py = Math.max(b.y, Math.min(b.y + b.h, y));
+  return { x: px, y: py };
+}
+
+function distToBuilding(b: Building, x: number, y: number): number {
+  const p = nearestPointOn(b, x, y);
+  return dist(x, y, p.x, p.y);
+}
+
+
 function buildingContains(b: Building, x: number, y: number, pad = 0): boolean {
   return x >= b.x - pad && x <= b.x + b.w + pad &&
          y >= b.y - pad && y <= b.y + b.h + pad;
@@ -610,7 +624,7 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
         s.state = "idle";
         return;
       }
-      if (dist(s.x, s.y, cx, cy) < 1.6) {
+      if (distToBuilding(b, s.x, s.y) < 1.2) {
         const isBuilder = s.occupation === "builder";
         const nearDone = b.builtProgress >= 0.75;
         const skillMult = 1 + (s.skills.build ?? 1) * 0.18;
@@ -631,9 +645,14 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
         // The founder personally lending a hand earns goodwill from onlookers.
         if (s.isFounder) grantLeaderHelpOpinion(s, deps, dt, "build");
       } else {
-        setTarget(s, cx, cy);
+        const p = nearestPointOn(b, s.x, s.y);
+        // Step a little outside the footprint so we don't aim into a wall corner.
+        const ox = p.x === b.x ? -0.4 : p.x === b.x + b.w ? 0.4 : 0;
+        const oy = p.y === b.y ? -0.4 : p.y === b.y + b.h ? 0.4 : 0;
+        setTarget(s, p.x + ox, p.y + oy);
         s.action = `Walking to the ${b.kind} build site.`;
       }
+
       return;
     }
   }
@@ -674,7 +693,7 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
         s.state = "idle";
         return;
       }
-      if (dist(s.x, s.y, cx, cy) < 1.6) {
+      if (distToBuilding(b, s.x, s.y) < 1.2) {
         const skillMult = 1 + (s.skills.build ?? 1) * 0.18;
         const traitMult = traitWorkSpeed(s.traits);
         const rivalMult = rivalryWorkMult(s, b, deps);
@@ -687,9 +706,13 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
         s.action = `Breaking ground on the ${b.kind}.`;
         if (s.isFounder) grantLeaderHelpOpinion(s, deps, dt, "farm");
       } else {
-        setTarget(s, cx, cy);
+        const p = nearestPointOn(b, s.x, s.y);
+        const ox = p.x === b.x ? -0.4 : p.x === b.x + b.w ? 0.4 : 0;
+        const oy = p.y === b.y ? -0.4 : p.y === b.y + b.h ? 0.4 : 0;
+        setTarget(s, p.x + ox, p.y + oy);
         s.action = `Walking to the ${b.kind} site.`;
       }
+
       return;
     }
     if (plot && plot.farm) {
@@ -1052,16 +1075,22 @@ function handleConstructionCommitment(s: Survivor, dt: number, deps: SimDeps): b
 }
 
 function handleBuildPhase(s: Survivor, dt: number, deps: SimDeps, b: Building, cx: number, cy: number): boolean {
+  void cx; void cy;
   if (!hasConstructionResources(b)) {
     s.action = `Waiting on materials for the ${b.kind}.`;
     s.state = "idle";
     return true;
   }
   s.workTarget = { kind: "building", id: b.id };
-  if (dist(s.x, s.y, cx, cy) >= 1.6) {
-    setTarget(s, cx, cy); s.action = `Walking to the ${b.kind} build site.`;
+  if (distToBuilding(b, s.x, s.y) >= 1.2) {
+    const p = nearestPointOn(b, s.x, s.y);
+    const ox = p.x === b.x ? -0.4 : p.x === b.x + b.w ? 0.4 : 0;
+    const oy = p.y === b.y ? -0.4 : p.y === b.y + b.h ? 0.4 : 0;
+    setTarget(s, p.x + ox, p.y + oy);
+    s.action = `Walking to the ${b.kind} build site.`;
     return true;
   }
+
   const skillMult = 1 + (s.skills.build ?? 1) * 0.18;
   const finishMult = b.builtProgress >= 0.75 ? 1.4 : 1.0;
   const rivalMult = rivalryWorkMult(s, b, deps);
