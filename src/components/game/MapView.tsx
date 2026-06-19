@@ -1499,15 +1499,11 @@ export function MapView() {
             );
           }
 
-          // 1x1 wall segments need neighbor-aware orientation; otherwise a
-          // vertical fenceline repeats the same horizontal sprite down the row.
-          const isWallLike = isWallLikeKind(b.kind);
-          const neighbors = wallNeighborCounts.get(b.id);
-          const vertical = isWallLike && (h > w || (!!neighbors && neighbors.vertical > neighbors.horizontal));
+          // Wall art is 4-way symmetric (top-down), so no rotation needed.
           return (
             <g key={b.id}>
-              <g transform={vertical ? `translate(${x + w}, ${y}) rotate(90)` : `translate(${x}, ${y})`}>
-                <BuildingArt kind={b.kind} w={vertical ? h : w} h={vertical ? w : h} farmStage={b.farm?.stage} farmGrowth={b.farm?.growth} />
+              <g transform={`translate(${x}, ${y})`}>
+                <BuildingArt kind={b.kind} w={w} h={h} farmStage={b.farm?.stage} farmGrowth={b.farm?.growth} />
               </g>
               {sel && (
                 <rect x={x + 1} y={y + 1} width={w - 2} height={h - 2}
