@@ -1340,16 +1340,25 @@ function NodeArt({ kind, size, seed }: { kind: string; size: number; seed: numbe
   if (kind === "rocks") {
     return (
       <g>
-        <ellipse cx={s / 2} cy={s * 0.88} rx={s * 0.32} ry={s * 0.06} fill={PAL.shadow} />
-        <polygon points={`${s*0.2},${s*0.8} ${s*0.3},${s*0.4} ${s*0.55},${s*0.3} ${s*0.78},${s*0.45} ${s*0.82},${s*0.8}`}
-          fill="#8a8175" stroke={PAL.ink} strokeWidth={1} />
-        <polygon points={`${s*0.3},${s*0.4} ${s*0.55},${s*0.3} ${s*0.5},${s*0.55} ${s*0.35},${s*0.6}`}
-          fill="#aaa094" />
-        <polygon points={`${s*0.55},${s*0.3} ${s*0.78},${s*0.45} ${s*0.65},${s*0.6} ${s*0.5},${s*0.55}`}
-          fill="#766c61" />
+        <ellipse cx={s / 2} cy={s * 0.9} rx={s * 0.36} ry={s * 0.07} fill={PAL.shadow} />
+        {/* base mass — dark silhouette */}
+        <polygon points={`${s*0.18},${s*0.82} ${s*0.28},${s*0.38} ${s*0.55},${s*0.28} ${s*0.8},${s*0.44} ${s*0.84},${s*0.82}`}
+          fill="#5e564c" stroke={PAL.ink} strokeWidth={1} />
+        {/* lit NW facet */}
+        <polygon points={`${s*0.28},${s*0.38} ${s*0.55},${s*0.28} ${s*0.5},${s*0.55} ${s*0.32},${s*0.6}`}
+          fill="#b8aea0" />
+        <polygon points={`${s*0.28},${s*0.38} ${s*0.4},${s*0.34} ${s*0.36},${s*0.5}`} fill="#d4ccc0" opacity={0.8} />
+        {/* shadow SE facet */}
+        <polygon points={`${s*0.55},${s*0.28} ${s*0.8},${s*0.44} ${s*0.68},${s*0.65} ${s*0.5},${s*0.55}`}
+          fill="#3a342c" />
+        {/* cracks */}
+        <line x1={s*0.4} y1={s*0.45} x2={s*0.46} y2={s*0.62} stroke={PAL.ink} strokeWidth={0.4} opacity={0.6} />
+        {/* small pebble at base */}
+        <ellipse cx={s*0.72} cy={s*0.82} rx={s*0.08} ry={s*0.05} fill="#7a7164" stroke={PAL.ink} strokeWidth={0.4} />
       </g>
     );
   }
+
   if (kind === "fiber-grass") {
     // Tall reedy stalks with seed-tufts — flax/hemp hint
     return (
