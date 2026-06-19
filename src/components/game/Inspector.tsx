@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useGame } from "@/game/store";
+import { useShallow } from "zustand/react/shallow";
 import { ArrangeMarriageModal } from "./ArrangeMarriageModal";
 import { BUILDINGS } from "@/game/data/content";
 import { getPortraitUrl } from "@/game/data/portraits";
@@ -39,21 +40,37 @@ function cap(s: string) { return s[0].toUpperCase() + s.slice(1); }
 
 
 export function Inspector({ onHide }: { onHide?: () => void } = {}) {
-  const sel = useGame((s) => s.selection);
-  const survivors = useGame((s) => s.survivors);
+  const {
+    sel,
+    survivors,
+    buildings,
+    relationships,
+    families,
+    currentLeaderId,
+    founderId,
+    setOccupation,
+    clearSelection,
+    selectSurvivor,
+    setOverlay,
+    selectFamily,
+  } = useGame(
+    useShallow((s) => ({
+      sel: s.selection,
+      survivors: s.survivors,
+      buildings: s.buildings,
+      relationships: s.relationships,
+      families: s.families,
+      currentLeaderId: s.currentLeaderId,
+      founderId: s.founderId,
+      setOccupation: s.setOccupation,
+      clearSelection: s.clearSelection,
+      selectSurvivor: s.selectSurvivor,
+      setOverlay: s.setOverlay,
+      selectFamily: s.selectFamily,
+    })),
+  );
   const [arrangeFor, setArrangeFor] = useState<string | null>(null);
   const [tab, setTab] = useState<SurvivorTab>("overview");
-
-  const buildings = useGame((s) => s.buildings);
-  const relationships = useGame((s) => s.relationships);
-  const families = useGame((s) => s.families);
-  const currentLeaderId = useGame((s) => s.currentLeaderId);
-  const founderId = useGame((s) => s.founderId);
-  const setOccupation = useGame((s) => s.setOccupation);
-  const clearSelection = useGame((s) => s.clearSelection);
-  const selectSurvivor = useGame((s) => s.selectSurvivor);
-  const setOverlay = useGame((s) => s.setOverlay);
-  const selectFamily = useGame((s) => s.selectFamily);
 
   if (sel.kind === "none") {
     return (
@@ -531,11 +548,15 @@ function FenceStylePanel({ b }: { b: Building }) {
 }
 
 function WorkerPanel({ b }: { b: Building }) {
-  const survivors = useGame((g) => g.survivors);
-  const families = useGame((g) => g.families);
-  const founderId = useGame((g) => g.founderId);
-  const assignWorker = useGame((g) => g.assignWorker);
-  const selectSurvivor = useGame((g) => g.selectSurvivor);
+  const { survivors, families, founderId, assignWorker, selectSurvivor } = useGame(
+    useShallow((g) => ({
+      survivors: g.survivors,
+      families: g.families,
+      founderId: g.founderId,
+      assignWorker: g.assignWorker,
+      selectSurvivor: g.selectSurvivor,
+    })),
+  );
   const worker = b.assignedWorkerId ? survivors.find(s => s.id === b.assignedWorkerId) : null;
   const founder = survivors.find((s) => s.id === founderId);
   const founderFamilyId = founder?.familyId;
@@ -584,13 +605,17 @@ function WorkerPanel({ b }: { b: Building }) {
 }
 
 function TilePanel({ x, y }: { x: number; y: number }) {
-  const tiles = useGame((g) => g.tiles);
-  const mapW = useGame((g) => g.mapW);
-  const nodes = useGame((g) => g.nodes);
-  const survivors = useGame((g) => g.survivors);
-  const clearSelection = useGame((g) => g.clearSelection);
-  const assignToNode = useGame((g) => g.assignToNode);
-  const selectSurvivor = useGame((g) => g.selectSurvivor);
+  const { tiles, mapW, nodes, survivors, clearSelection, assignToNode, selectSurvivor } = useGame(
+    useShallow((g) => ({
+      tiles: g.tiles,
+      mapW: g.mapW,
+      nodes: g.nodes,
+      survivors: g.survivors,
+      clearSelection: g.clearSelection,
+      assignToNode: g.assignToNode,
+      selectSurvivor: g.selectSurvivor,
+    })),
+  );
   const tile = tiles[y * mapW + x];
   const node = nodes.find(n => Math.floor(n.x) === x && Math.floor(n.y) === y);
   const eligible = survivors.filter(s =>
@@ -711,13 +736,25 @@ function DebugRow({ label, value, warn }: { label: string; value: string; warn?:
 }
 
 function HeirPanel({ leader }: { leader: Survivor }) {
-  const survivors = useGame((s) => s.survivors);
-  const relationships = useGame((s) => s.relationships);
-  const families = useGame((s) => s.families);
-  const founderId = useGame((s) => s.founderId);
-  const preferredHeirId = useGame((s) => s.preferredHeirId);
-  const setPreferredHeir = useGame((s) => s.setPreferredHeir);
-  const selectSurvivor = useGame((s) => s.selectSurvivor);
+  const {
+    survivors,
+    relationships,
+    families,
+    founderId,
+    preferredHeirId,
+    setPreferredHeir,
+    selectSurvivor,
+  } = useGame(
+    useShallow((s) => ({
+      survivors: s.survivors,
+      relationships: s.relationships,
+      families: s.families,
+      founderId: s.founderId,
+      preferredHeirId: s.preferredHeirId,
+      setPreferredHeir: s.setPreferredHeir,
+      selectSurvivor: s.selectSurvivor,
+    })),
+  );
 
 
 
@@ -811,11 +848,15 @@ function NeedBar({ label, v, warn }: { label: string; v: number; warn?: boolean 
 
 
 function FarmPanel({ b }: { b: Building }) {
-  const survivors = useGame((s) => s.survivors);
-  const unlockedCrops = useGame((s) => s.unlockedCrops);
-  const setFarmCrop = useGame((s) => s.setFarmCrop);
-  const assignFarmer = useGame((s) => s.assignFarmer);
-  const selectSurvivor = useGame((s) => s.selectSurvivor);
+  const { survivors, unlockedCrops, setFarmCrop, assignFarmer, selectSurvivor } = useGame(
+    useShallow((s) => ({
+      survivors: s.survivors,
+      unlockedCrops: s.unlockedCrops,
+      setFarmCrop: s.setFarmCrop,
+      assignFarmer: s.assignFarmer,
+      selectSurvivor: s.selectSurvivor,
+    })),
+  );
   const farm = b.farm;
   if (!farm) return null;
   const crop = CROPS[farm.cropId as CropId] ?? CROPS.corn;
@@ -895,10 +936,14 @@ function FarmPanel({ b }: { b: Building }) {
 }
 
 function SurvivorHousingPanel({ s }: { s: Survivor }) {
-  const buildings = useGame((g) => g.buildings);
-  const survivors = useGame((g) => g.survivors);
-  const selectBuilding = useGame((g) => g.selectBuilding);
-  const assignSurvivorToHome = useGame((g) => g.assignSurvivorToHome);
+  const { buildings, survivors, selectBuilding, assignSurvivorToHome } = useGame(
+    useShallow((g) => ({
+      buildings: g.buildings,
+      survivors: g.survivors,
+      selectBuilding: g.selectBuilding,
+      assignSurvivorToHome: g.assignSurvivorToHome,
+    })),
+  );
   const home = s.homeId ? buildings.find(b => b.id === s.homeId) ?? null : null;
   const occupants = home
     ? survivors.filter(o => o.homeId === home.id && o.health > 0)
@@ -1000,10 +1045,14 @@ function SurvivorHousingPanel({ s }: { s: Survivor }) {
 
 
 function ResidentialPanel({ b }: { b: Building }) {
-  const survivors = useGame((g) => g.survivors);
-  const assignSurvivorToHome = useGame((g) => g.assignSurvivorToHome);
-  const setHomeReserved = useGame((g) => g.setHomeReserved);
-  const selectSurvivor = useGame((g) => g.selectSurvivor);
+  const { survivors, assignSurvivorToHome, setHomeReserved, selectSurvivor } = useGame(
+    useShallow((g) => ({
+      survivors: g.survivors,
+      assignSurvivorToHome: g.assignSurvivorToHome,
+      setHomeReserved: g.setHomeReserved,
+      selectSurvivor: g.selectSurvivor,
+    })),
+  );
   const occupants = survivors.filter(s => s.homeId === b.id && s.health > 0);
   const cap = homeCapacity(b);
   const q = homeQuality(b);
@@ -1134,8 +1183,9 @@ function EducationPanel({ s }: { s: Survivor }) {
 
 
 function LeaderHelpToggles() {
-  const leaderHelp = useGame((s) => s.leaderHelp);
-  const setLeaderHelp = useGame((s) => s.setLeaderHelp);
+  const { leaderHelp, setLeaderHelp } = useGame(
+    useShallow((s) => ({ leaderHelp: s.leaderHelp, setLeaderHelp: s.setLeaderHelp })),
+  );
   const Row = ({ id, label, hint }: { id: "build" | "farm"; label: string; hint: string }) => {
     const on = leaderHelp[id];
     return (
@@ -1170,9 +1220,13 @@ function LeaderHelpToggles() {
 // ── Talk-To: leader-issued chat directive ───────────────────────
 function TalkToBar({ targetId, targetName }: { targetId: string; targetName: string }) {
   const [open, setOpen] = useState(false);
-  const leaderId = useGame((s) => s.currentLeaderId);
-  const leader = useGame((s) => s.survivors.find(x => x.id === s.currentLeaderId));
-  const talk = useGame((s) => s.talkToSurvivor);
+  const { leaderId, leader, talk } = useGame(
+    useShallow((s) => ({
+      leaderId: s.currentLeaderId,
+      leader: s.survivors.find((x) => x.id === s.currentLeaderId),
+      talk: s.talkToSurvivor,
+    })),
+  );
   if (!leaderId || !leader || leader.health <= 0) return null;
   const busy = leader.directive?.kind === "talk" && leader.directive.targetId === targetId;
   const otherBusy = leader.directive?.kind === "talk" && leader.directive.targetId !== targetId;

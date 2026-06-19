@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useGame, territoryDims } from "@/game/store";
+import { useShallow } from "zustand/react/shallow";
 import { PASSABLE_BUILDINGS } from "@/game/sim/ai";
 
 import { useView } from "@/game/viewStore";
@@ -2521,28 +2522,53 @@ const StaticResourceLayer = React.memo(function StaticResourceLayer({ nodes }: {
 
 
 export function MapView() {
-  const tiles = useGame((s) => s.tiles);
-  const mapW = useGame((s) => s.mapW);
-  const mapH = useGame((s) => s.mapH);
-  const nodes = useGame((s) => s.nodes);
-  const buildings = useGame((s) => s.buildings);
-  const survivors = useGame((s) => s.survivors);
-  const animals = useGame((s) => s.animals);
-  const wornPaths = useGame((s) => s.wornPaths);
-
-  const selection = useGame((s) => s.selection);
-  const selectSurvivor = useGame((s) => s.selectSurvivor);
-  const selectBuilding = useGame((s) => s.selectBuilding);
-  const selectTile = useGame((s) => s.selectTile);
-  const buildPlacement = useGame((s) => s.buildPlacement);
-  const placeBuilding = useGame((s) => s.placeBuilding);
-  const cancelBuild = useGame((s) => s.cancelBuild);
-  const territory = useGame((s) => s.territory);
-  const resources = useGame((s) => s.resources);
-  const borderMode = useGame((s) => s.borderMode);
-  const exitBorderMode = useGame((s) => s.exitBorderMode);
-  const setBorderFromClick = useGame((s) => s.setBorderFromClick);
-  const expandWorldToCurrentSize = useGame((s) => s.expandWorldToCurrentSize);
+  const {
+    tiles,
+    mapW,
+    mapH,
+    nodes,
+    buildings,
+    survivors,
+    animals,
+    wornPaths,
+    selection,
+    selectSurvivor,
+    selectBuilding,
+    selectTile,
+    buildPlacement,
+    placeBuilding,
+    cancelBuild,
+    territory,
+    resources,
+    borderMode,
+    exitBorderMode,
+    setBorderFromClick,
+    expandWorldToCurrentSize,
+  } = useGame(
+    useShallow((s) => ({
+      tiles: s.tiles,
+      mapW: s.mapW,
+      mapH: s.mapH,
+      nodes: s.nodes,
+      buildings: s.buildings,
+      survivors: s.survivors,
+      animals: s.animals,
+      wornPaths: s.wornPaths,
+      selection: s.selection,
+      selectSurvivor: s.selectSurvivor,
+      selectBuilding: s.selectBuilding,
+      selectTile: s.selectTile,
+      buildPlacement: s.buildPlacement,
+      placeBuilding: s.placeBuilding,
+      cancelBuild: s.cancelBuild,
+      territory: s.territory,
+      resources: s.resources,
+      borderMode: s.borderMode,
+      exitBorderMode: s.exitBorderMode,
+      setBorderFromClick: s.setBorderFromClick,
+      expandWorldToCurrentSize: s.expandWorldToCurrentSize,
+    })),
+  );
   const isMobile = useIsMobile();
 
   // Precompute building tile occupancy so per-frame survivor and
