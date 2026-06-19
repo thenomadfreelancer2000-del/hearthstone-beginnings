@@ -10,6 +10,7 @@ import type { BuildingKind } from "@/game/types";
 
 export function BottomDock() {
   const [tab, setTab] = useState<"build" | "people" | "chronicle" | null>(null);
+  const [workshopOpen, setWorkshopOpen] = useState(false);
   const open = tab !== null;
   return (
     <div className="parchment-panel border-t border-amber/30">
@@ -23,6 +24,13 @@ export function BottomDock() {
             {t}
           </button>
         ))}
+        <button
+          onClick={() => setWorkshopOpen(true)}
+          className="px-3 sm:px-4 py-2 ranch-label text-[11px] text-dust hover:text-amber"
+          title="Community building packs"
+        >
+          ✦ workshop
+        </button>
         {open && (
           <button
             onClick={() => setTab(null)}
@@ -35,14 +43,16 @@ export function BottomDock() {
       </div>
       {open && (
         <div className="p-2 sm:p-3 max-h-[45vh] sm:max-h-[200px] overflow-auto scroll-amber">
-          {tab === "build" && <BuildMenu />}
+          {tab === "build" && <BuildMenu onOpenWorkshop={() => setWorkshopOpen(true)} />}
           {tab === "people" && <PeopleList />}
           {tab === "chronicle" && <ChronicleList />}
         </div>
       )}
+      <WorkshopPanel open={workshopOpen} onOpenChange={setWorkshopOpen} />
     </div>
   );
 }
+
 
 const BUILD_CATEGORIES: { id: string; label: string; kinds: import("@/game/types").BuildingKind[] }[] = [
   { id: "shelter",   label: "Shelter",   kinds: ["tent", "family-tent", "cabin", "family-cabin", "house", "family-house", "large-house", "manor", "founder-manor", "bunkhouse", "guest-house", "orphan-house", "elder-house"] },
