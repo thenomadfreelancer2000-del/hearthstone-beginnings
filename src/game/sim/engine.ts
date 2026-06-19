@@ -176,6 +176,8 @@ export function advance(eng: Engine, n: number, opts?: { onArrival?: (s: Survivo
       if (s.health <= 0) continue;
       if (!eng.foundingPhase) decayNeeds(s, dt);
       tickSurvivor(s, dt, deps);
+      // Coworkers chat *while* they work — no state change, no stall.
+      if (s.state === "working") workplaceSmallTalk(s, dt, deps);
     }
 
     recoverStalledConstruction(eng.buildings, eng.survivors, eng.time.tick, previousConstructionEffort);
