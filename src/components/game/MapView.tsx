@@ -2278,8 +2278,9 @@ export function MapView() {
   const centerRequestId = useView((s) => s.centerRequestId);
   const W = mapW * TILE;
   const H = mapH * TILE;
-  const VW = W * zoom;
-  const VH = H * zoom;
+  const ISO = isoBounds(mapW, mapH);
+  const VW = ISO.w * zoom;
+  const VH = ISO.h * zoom;
   const initialCenterDone = useRef(false);
 
 
