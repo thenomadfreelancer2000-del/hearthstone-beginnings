@@ -2622,23 +2622,36 @@ export function MapView() {
             wrapped in a counter-transform so it stands upright on top of
             its diamond footprint instead of being sheared. */}
         {(() => {
-          // Build a fence-tile occupancy map once per render so each fence
-          // tile can pick the right auto-connect variant.
+          // Tile-occupancy maps for auto-connecting visuals.
+          //   • fenceAt: any wall/gate kind (so mixed runs connect cleanly)
+          //   • roadAt:  any road kind, plus the material at each tile so
+          //              joints render with the higher-tier surface visible.
+          const FENCE_KINDS = new Set(["fence", "palisade", "stone-wall", "gate"]);
+          const ROAD_TIER: Record<string, number> = {
+            "dirt-path": 1, "dirt-road": 2, "gravel-road": 3, "paved-road": 4, "stone-road": 5,
+          };
           const fenceAt = new Set<string>();
+          const roadAt = new Map<string, string>();
           for (const b of buildings) {
-            if (b.kind !== "fence" || b.builtProgress < 1) continue;
-            for (let dy = 0; dy < b.h; dy++) {
-              for (let dx = 0; dx < b.w; dx++) {
-                fenceAt.add(`${b.x + dx},${b.y + dy}`);
-              }
+            if (b.builtProgress < 1) continue;
+            if (FENCE_KINDS.has(b.kind)) {
+              for (let dy = 0; dy < b.h; dy++)
+                for (let dx = 0; dx < b.w; dx++)
+                  fenceAt.add(`${b.x + dx},${b.y + dy}`);
+            } else if (ROAD_TIER[b.kind]) {
+              for (let dy = 0; dy < b.h; dy++)
+                for (let dx = 0; dx < b.w; dx++)
+                  roadAt.set(`${b.x + dx},${b.y + dy}`, b.kind);
             }
           }
           const hasFence = (tx: number, ty: number) => fenceAt.has(`${tx},${ty}`);
+          const hasRoad = (tx: number, ty: number) => roadAt.has(`${tx},${ty}`);
           // Painter's order: sum of south-east corner coords approximates
           // depth in iso space.
           const ordered = [...buildings].sort(
             (a, b) => (a.x + a.w + a.y + a.h) - (b.x + b.w + b.y + b.h),
           );
+
           return ordered.map((b) => {
             const sel = selection.kind === "building" && selection.id === b.id;
             const x = b.x * TILE;
