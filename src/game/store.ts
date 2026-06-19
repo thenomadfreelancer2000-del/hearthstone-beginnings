@@ -325,9 +325,11 @@ export const useGame = create<GameState>((set, get) => ({
   ministers: [],
   ministerRequests: [],
   ministerReports: [],
+  wornPaths: {},
   selection: { kind: "none" },
   buildPlacement: null,
   pendingArrival: null,
+
   pendingCouncilVote: null,
   councilReactionLog: [],
   laws: [],
