@@ -284,14 +284,26 @@ function FenceArt({ w, h, connections, style }: { w: number; h: number; connecti
 // Draws a single 1×1 road segment in world space (the parent iso
 // transform shears it into a diamond). The look is chosen by `kind`,
 // neighbor connections decide where the strip extends, and a darker
-// "shoulder" rim is drawn on edges without a neighbor so isolated tiles
-// read as a finished slab instead of bleeding into the grass.
+// "shoulder" rim is drawn ONLY on edges without a neighbor so joints
+// between tiles stay seamless. When neighbors are mixed tiers the
+// higher tier wins at the joint: the half-strip facing that neighbor
+// adopts the wider width and the neighbor's palette, so a dirt path
+// meeting a stone road blends into the stone road instead of leaving
+// a visible step. Stripes and surface detail are clipped to the
+// drawn strips so they don't bleed into the grass at open edges.
 type RoadConn = { n: boolean; e: boolean; s: boolean; w: boolean };
+type RoadNeighbors = {
+  n?: { kind: string; tier: number };
+  e?: { kind: string; tier: number };
+  s?: { kind: string; tier: number };
+  w?: { kind: string; tier: number };
+};
 function RoadTile({
-  x, y, t, kind, tier, connections,
+  x, y, t, kind, tier, connections, neighbors,
 }: {
   x: number; y: number; t: number;
   kind: string; tier: number; connections: RoadConn;
+  neighbors?: RoadNeighbors;
 }) {
   // Palette per tier (1=dirt-path .. 5=stone-road)
   const PAL_ROAD: Record<string, { base: string; alt: string; rim: string; stripe?: string }> = {
