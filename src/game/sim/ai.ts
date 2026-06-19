@@ -577,7 +577,6 @@ export function tickSurvivor(s: Survivor, dt: number, deps: SimDeps) {
     // feel like a community: people drifting between friends, laughing,
     // gossiping, falling in love.
     if (
-      s.stage !== "child" &&
       s.needs.food > 35 && s.needs.water > 35 && s.needs.rest > 25 &&
       s.needs.belonging < 80
     ) {
