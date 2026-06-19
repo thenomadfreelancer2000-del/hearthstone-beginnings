@@ -2159,7 +2159,9 @@ function IsoSprite({ gridW, gridH, T, src }: { gridW: number; gridH: number; T: 
 
 
 
-export function IsoBuilding({
+import { memo } from "react";
+
+function IsoBuildingImpl({
   kind, gridW, gridH, tile, farmStage, farmGrowth,
 }: {
   kind: string;
@@ -2251,3 +2253,6 @@ export function IsoBuilding({
     />
   );
 }
+
+/** Memoized — only re-renders when one of its primitive props changes. */
+export const IsoBuilding = memo(IsoBuildingImpl);
