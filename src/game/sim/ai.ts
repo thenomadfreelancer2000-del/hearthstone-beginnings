@@ -34,6 +34,20 @@ function doorPointOf(b: Building): { x: number; y: number } {
   return { x: b.x + b.w * 0.5 - 0.55, y: b.y + b.h - 0.05 };
 }
 
+/** Closest point on a building's footprint to (x, y). Used by builders so
+ *  they walk up to the nearest edge instead of trying to reach the center. */
+function nearestPointOn(b: Building, x: number, y: number): { x: number; y: number } {
+  const px = Math.max(b.x, Math.min(b.x + b.w, x));
+  const py = Math.max(b.y, Math.min(b.y + b.h, y));
+  return { x: px, y: py };
+}
+
+function distToBuilding(b: Building, x: number, y: number): number {
+  const p = nearestPointOn(b, x, y);
+  return dist(x, y, p.x, p.y);
+}
+
+
 function buildingContains(b: Building, x: number, y: number, pad = 0): boolean {
   return x >= b.x - pad && x <= b.x + b.w + pad &&
          y >= b.y - pad && y <= b.y + b.h + pad;
