@@ -3233,12 +3233,18 @@ export function MapView() {
           const dead = s.health <= 0;
           // Hide survivors when they are inside an enclosed building — they
           // should appear to enter through the door and only reappear on exit.
-          const insideBuilding = !dead && buildings.some((b) =>
-            b.builtProgress >= 1 &&
-            !PASSABLE_BUILDINGS.has(b.kind) &&
-            s.x >= b.x + 0.15 && s.x <= b.x + b.w - 0.15 &&
-            s.y >= b.y + 0.15 && s.y <= b.y + b.h - 0.15,
-          );
+          let insideBuilding = false;
+          if (!dead) {
+            for (let i = 0; i < enclosedRects.length; i++) {
+              const b = enclosedRects[i];
+              if (s.x >= b.x + 0.15 && s.x <= b.x + b.w - 0.15 &&
+                  s.y >= b.y + 0.15 && s.y <= b.y + b.h - 0.15) {
+                insideBuilding = true;
+                break;
+              }
+            }
+          }
+
 
           if (insideBuilding) return null;
           const sleeping = !dead && s.state === "resting";
