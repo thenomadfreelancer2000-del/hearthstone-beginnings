@@ -2149,7 +2149,12 @@ function SurvivorArtCore({ founder, dead, female, elderTint, pregnant }: { found
       <rect x={-2} y={-9} width={4} height={2} rx={0.5} fill={hat} stroke={PAL.ink} strokeWidth={0.5} />
     </g>
   );
-}
+            }
+            // Overlay the hand-drawn tile artwork on top of the base color.
+            const tImg = TILE_IMAGE_CACHE[t.kind];
+            if (tImg) {
+              ctx.drawImage(tImg, px, py, TILE, TILE);
+            }
 
 const StaticTileLayers = React.memo(function StaticTileLayers({ tiles, width, height }: { tiles: Tile[]; width: number; height: number }) {
   const [terrainImages, setTerrainImages] = useState<LayerImage[]>([]);
