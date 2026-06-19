@@ -1933,8 +1933,8 @@ function RanchYard({
 // vane. Drawn on top of the IsoBlock body.
 // ──────────────────────────────────────────────────────────────
 function HomesteadFlair({ gridW, gridH, T }: { gridW: number; gridH: number; T: number }) {
-  const c = isoCorners(gridW, gridH, T, 0.10);
-  const wallH = 1.6 * T; // must match VISUALS.homestead.story
+  const c = isoCorners(gridW, gridH, T, 0.22);
+  const wallH = 1.32 * T; // must match VISUALS.homestead.story
 
   // ── Stone side-chimney at the NE side of the house.
   // Anchored on the ground at the midpoint of the NE wall (N→E),
@@ -1944,10 +1944,10 @@ function HomesteadFlair({ gridW, gridH, T }: { gridW: number; gridH: number; T: 
   // outward direction = away from building center
   const outX = ne[0] - c.C[0], outY = ne[1] - c.C[1];
   const outLen = Math.hypot(outX, outY) || 1;
-  const push = T * 0.18;
+  const push = T * 0.04;
   const chBase: P = [ne[0] + (outX / outLen) * push, ne[1] + (outY / outLen) * push];
-  const d = T * 0.55;   // chimney footprint half-diagonal
-  const H = wallH + T * 0.95; // taller than the roof peak
+  const d = T * 0.24;   // chimney footprint half-diagonal
+  const H = wallH + T * 0.42; // taller than the roof peak, not a tower
 
   const fS: P = chBase;
   const fW: P = [chBase[0] - d, chBase[1] - d / 2];
