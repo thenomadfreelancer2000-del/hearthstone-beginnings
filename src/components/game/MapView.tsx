@@ -339,14 +339,87 @@ function BuildingArt({ kind, w, h, farmStage, farmGrowth }: { kind: string; w: n
           <ellipse cx={houseX + houseW + pad * 0.4} cy={porchY + porchH * 0.3} rx={2.2} ry={2.6} fill="#7a5028" stroke={PAL.ink} strokeWidth={0.6} />
           <line x1={houseX + houseW + pad * 0.4 - 2.1} y1={porchY + porchH * 0.3} x2={houseX + houseW + pad * 0.4 + 2.1} y2={porchY + porchH * 0.3} stroke="#3d2810" strokeWidth={0.5} />
 
-          {/* decorative bushes / small trees in corners */}
-          {[[yardX + 3, yardY + 3], [yardX + yardW - 3, yardY + 3]].map(([bx, by], i) => (
+          {/* decorative bushes in multiple corners and along fence */}
+          {[
+            [yardX + 3, yardY + 3],
+            [yardX + yardW - 3, yardY + 3],
+            [yardX + 3, yardY + yardH - 3],
+            [wellCx + wellR * 2.2, wellCy - wellR * 0.4],
+            [shedX - 3.5, shedY + shedH * 0.4],
+            [yardX + yardW * 0.32, yardY + yardH - 4],
+          ].map(([bx, by], i) => (
             <g key={`bush${i}`}>
               <circle cx={bx} cy={by + 1} r={2.4} fill={PAL.shadow} />
               <circle cx={bx} cy={by} r={2.6} fill="#3d5226" stroke={PAL.ink} strokeWidth={0.6} />
               <circle cx={bx - 0.6} cy={by - 0.6} r={1.1} fill="#4a6235" />
             </g>
           ))}
+
+          {/* wooden crates stacked near the shed */}
+          {[
+            { x: shedX - 5, y: shedY + shedH * 0.55, s: 3.4 },
+            { x: shedX - 5 + 3.6, y: shedY + shedH * 0.55 + 0.4, s: 3.0 },
+            { x: shedX - 5 + 1.2, y: shedY + shedH * 0.55 - 3.2, s: 2.8 },
+          ].map((c, i) => (
+            <g key={`crate${i}`}>
+              <rect x={c.x} y={c.y + c.s * 0.9} width={c.s} height={c.s * 0.3} fill={PAL.shadow} opacity={0.5} />
+              <rect x={c.x} y={c.y} width={c.s} height={c.s} fill="#8a5a30" stroke={PAL.ink} strokeWidth={0.6} />
+              <line x1={c.x} y1={c.y + c.s * 0.5} x2={c.x + c.s} y2={c.y + c.s * 0.5} stroke="#3d2810" strokeWidth={0.4} />
+              <line x1={c.x + c.s * 0.5} y1={c.y} x2={c.x + c.s * 0.5} y2={c.y + c.s} stroke="#3d2810" strokeWidth={0.4} />
+            </g>
+          ))}
+
+          {/* extra barrels by the well */}
+          {[
+            { cx: wellCx - wellR * 2.4, cy: wellCy + wellR * 1.1 },
+            { cx: wellCx - wellR * 2.4 + 5, cy: wellCy + wellR * 1.4 },
+          ].map((b, i) => (
+            <g key={`bar${i}`}>
+              <ellipse cx={b.cx} cy={b.cy + 2.6} rx={2.4} ry={0.8} fill={PAL.shadow} opacity={0.6} />
+              <ellipse cx={b.cx} cy={b.cy} rx={2.2} ry={2.6} fill="#7a5028" stroke={PAL.ink} strokeWidth={0.6} />
+              <line x1={b.cx - 2.1} y1={b.cy - 0.6} x2={b.cx + 2.1} y2={b.cy - 0.6} stroke="#3d2810" strokeWidth={0.5} />
+              <line x1={b.cx - 2.1} y1={b.cy + 0.6} x2={b.cx + 2.1} y2={b.cy + 0.6} stroke="#3d2810" strokeWidth={0.5} />
+            </g>
+          ))}
+
+          {/* second firewood stack along the east side */}
+          {Array.from({ length: 4 }).map((_, i) => {
+            const fx = shedX - 9;
+            const fy = shedY - 2 + i * 2.2;
+            return (
+              <g key={`fw2-${i}`}>
+                <rect x={fx} y={fy} width={7} height={2} fill="#6b4322" stroke={PAL.ink} strokeWidth={0.4} />
+                <circle cx={fx + 0.8} cy={fy + 1} r={0.7} fill="#c9a06a" />
+                <circle cx={fx + 6.2} cy={fy + 1} r={0.7} fill="#a87a3e" />
+              </g>
+            );
+          })}
+
+          {/* small hay/feed sack pile near porch */}
+          {[
+            { x: porchX - 4, y: porchY + porchH * 0.4 },
+            { x: porchX - 4 + 2.2, y: porchY + porchH * 0.4 - 0.4 },
+          ].map((s, i) => (
+            <g key={`sack${i}`}>
+              <ellipse cx={s.x + 1.2} cy={s.y + 2.6} rx={1.6} ry={0.6} fill={PAL.shadow} opacity={0.6} />
+              <ellipse cx={s.x + 1.2} cy={s.y + 1.2} rx={1.5} ry={2.0} fill="#c9a06a" stroke={PAL.ink} strokeWidth={0.5} />
+              <line x1={s.x + 0.2} y1={s.y + 0.2} x2={s.x + 2.2} y2={s.y + 0.2} stroke="#8a5a30" strokeWidth={0.4} />
+            </g>
+          ))}
+
+          {/* a small wagon wheel leaning against the shed */}
+          <g>
+            <circle cx={shedX - 1.6} cy={shedY + shedH - 2} r={2.4} fill="none" stroke="#3d2810" strokeWidth={0.9} />
+            <circle cx={shedX - 1.6} cy={shedY + shedH - 2} r={0.6} fill="#3d2810" />
+            {[0, 60, 120].map((deg, i) => {
+              const r = 2.4;
+              const a = (deg * Math.PI) / 180;
+              return <line key={`sp${i}`} x1={shedX - 1.6 - Math.cos(a) * r} y1={shedY + shedH - 2 - Math.sin(a) * r}
+                x2={shedX - 1.6 + Math.cos(a) * r} y2={shedY + shedH - 2 + Math.sin(a) * r}
+                stroke="#3d2810" strokeWidth={0.6} />;
+            })}
+          </g>
+
 
           {/* MAIN HOUSE — wide, prominent */}
           {/* porch */}
