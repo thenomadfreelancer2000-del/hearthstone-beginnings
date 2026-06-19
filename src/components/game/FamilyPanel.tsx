@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useGame } from "@/game/store";
 import { computeFamilyStanding } from "@/game/sim/families";
 import type { Survivor } from "@/game/types";
+import { MoodFace, MoodFaceAvg } from "./MoodFace";
 
 export function FamilyPanel({ familyId }: { familyId: string }) {
   const families = useGame((s) => s.families);
