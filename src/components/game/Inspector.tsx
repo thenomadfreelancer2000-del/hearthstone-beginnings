@@ -97,6 +97,8 @@ export function Inspector({ onHide }: { onHide?: () => void } = {}) {
             <img
               src={portraitUrl}
               alt={`${s.name} ${s.surname}`}
+              loading="lazy"
+              decoding="async"
               className="w-14 h-14 sm:w-16 sm:h-16 object-cover border border-amber/40 shrink-0 grayscale-[20%] sepia-[15%]"
             />
           )}
