@@ -280,9 +280,12 @@ function Walls({
   return (
     <g>
       {/* ground shadow */}
-      <ellipse cx={(W[0] + E[0]) / 2} cy={S[1] + 1.5}
-        rx={Math.abs(E[0] - W[0]) / 2 * 0.92} ry={Math.max(2.4, wallH * 0.08)}
-        fill={SHADOW} />
+      {!noShadow && (
+        <ellipse cx={(W[0] + E[0]) / 2} cy={S[1] + 1.5}
+          rx={Math.abs(E[0] - W[0]) / 2 * 0.92} ry={Math.max(2.4, wallH * 0.08)}
+          fill={SHADOW} />
+      )}
+
 
       {/* SE face (shaded / right wall) */}
       <polygon points={poly(S, E, Eu, Su)}
