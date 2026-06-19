@@ -631,6 +631,149 @@ function SurvivorArt({ founder, dead, female, stage, pregnant }: { founder: bool
   );
 }
 
+// ── Activity glyph above the survivor's head ─────────────────────
+// Shows what they're doing right now: ZZZ for sleep, fork for eating,
+// droplet for drinking, hammer/sickle/axe/pick for working, speech
+// bubble for socializing. Pure SVG, no extra deps.
+function ActivityGlyph({ survivor: s, partnerNearby }: {
+  survivor: import("@/game/types").Survivor;
+  partnerNearby: boolean;
+}) {
+  const st = s.state;
+  // Position the glyph above head (head is ~y -5 in core sprite).
+  const gy = -10;
+  const stroke = PAL.ink;
+  const wrap = (children: React.ReactNode, fill: string) => (
+    <g transform={`translate(0 ${gy})`} pointerEvents="none">
+      {/* parchment chip backing for legibility */}
+      <circle cx={0} cy={0} r={2.6} fill="#f1e2bf" stroke={stroke} strokeWidth={0.35} opacity={0.92} />
+      <g fill={fill} stroke={stroke} strokeWidth={0.35}>{children}</g>
+    </g>
+  );
+
+  if (st === "resting") {
+    // Floating ZZZ
+    return (
+      <g transform={`translate(2 ${gy - 1})`} pointerEvents="none"
+         fontFamily="ui-serif, Georgia, serif" fontWeight={700} fill="#f1e2bf"
+         stroke={PAL.ink} strokeWidth={0.25}>
+        <text x={0} y={0} fontSize={3.6} opacity={0.95}>z
+          <animate attributeName="y" values="0;-3;0" dur="2.2s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0.95;0.2;0.95" dur="2.2s" repeatCount="indefinite" />
+        </text>
+        <text x={2.4} y={-2} fontSize={2.8} opacity={0.85}>z
+          <animate attributeName="y" values="-2;-5;-2" dur="2.2s" begin="0.3s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0.85;0.15;0.85" dur="2.2s" begin="0.3s" repeatCount="indefinite" />
+        </text>
+        <text x={4.4} y={-4} fontSize={2.2} opacity={0.75}>z
+          <animate attributeName="y" values="-4;-7;-4" dur="2.2s" begin="0.6s" repeatCount="indefinite" />
+          <animate attributeName="opacity" values="0.75;0.1;0.75" dur="2.2s" begin="0.6s" repeatCount="indefinite" />
+        </text>
+      </g>
+    );
+  }
+  if (st === "eating") {
+    // Fork + knife crossed
+    return wrap(
+      <>
+        <line x1={-1.4} y1={-1.7} x2={-1.4} y2={1.6} strokeWidth={0.5} />
+        <line x1={-1.9} y1={-1.7} x2={-1.9} y2={-0.4} strokeWidth={0.4} />
+        <line x1={-0.9} y1={-1.7} x2={-0.9} y2={-0.4} strokeWidth={0.4} />
+        <line x1={1.4} y1={-1.7} x2={1.4} y2={1.6} strokeWidth={0.5} />
+        <path d="M0.9 -1.7 Q1.4 -0.6 1.9 -1.7 L1.9 -0.2 L0.9 -0.2 Z" fill="#7a3a2a" strokeWidth={0.3} />
+      </>, "#7a3a2a"
+    );
+  }
+  if (st === "drinking") {
+    // Water droplet
+    return wrap(
+      <path d="M0 -1.9 Q1.6 -0.2 1.4 1 Q1 2 0 2 Q-1 2 -1.4 1 Q-1.6 -0.2 0 -1.9 Z" fill="#3a7aa8" />,
+      "#3a7aa8"
+    );
+  }
+  if (st === "socializing" || partnerNearby) {
+    // Speech bubble with two dots
+    return (
+      <g transform={`translate(0 ${gy})`} pointerEvents="none">
+        <path d="M-2.4 -1.6 Q-2.4 -2.6 -1.4 -2.6 L1.6 -2.6 Q2.6 -2.6 2.6 -1.6 L2.6 0.4 Q2.6 1.4 1.6 1.4 L0 1.4 L-0.8 2.4 L-1 1.4 L-1.4 1.4 Q-2.4 1.4 -2.4 0.4 Z"
+              fill="#f1e2bf" stroke={PAL.ink} strokeWidth={0.35} opacity={0.95} />
+        <circle cx={-1} cy={-0.6} r={0.28} fill={PAL.ink} />
+        <circle cx={0.1} cy={-0.6} r={0.28} fill={PAL.ink} />
+        <circle cx={1.2} cy={-0.6} r={0.28} fill={PAL.ink} />
+        <animate attributeName="opacity" values="0.9;1;0.9" dur="1.6s" repeatCount="indefinite" />
+      </g>
+    );
+  }
+  if (st === "working") {
+    const occ = s.occupation;
+    if (occ === "builder") {
+      // Hammer
+      return wrap(
+        <g>
+          <rect x={-1.6} y={-1.7} width={3.2} height={1.2} fill="#6a4a2a" />
+          <line x1={0} y1={-0.5} x2={0} y2={1.9} strokeWidth={0.6} stroke="#3a2410" />
+        </g>, "#6a4a2a"
+      );
+    }
+    if (occ === "farmer") {
+      // Sickle
+      return wrap(
+        <g fill="none" stroke="#6a8a3a" strokeWidth={0.5}>
+          <path d="M-1.6 1.5 Q-1.6 -1.6 1.5 -1.5" />
+          <line x1={-1.6} y1={1.5} x2={-1.9} y2={1.9} stroke="#3a2410" strokeWidth={0.5} />
+        </g>, "#6a8a3a"
+      );
+    }
+    if (occ === "woodcutter") {
+      // Axe
+      return wrap(
+        <g>
+          <line x1={-1.6} y1={1.8} x2={1.4} y2={-1.6} stroke="#3a2410" strokeWidth={0.6} />
+          <path d="M0.6 -1.8 L1.9 -1 L1.4 0.2 L0.2 -0.6 Z" fill="#9aa0a8" stroke={PAL.ink} strokeWidth={0.3} />
+        </g>, "#9aa0a8"
+      );
+    }
+    if (occ === "miner") {
+      // Pickaxe
+      return wrap(
+        <g>
+          <path d="M-1.8 -1.6 Q0 -0.6 1.8 -1.6" fill="none" stroke="#9aa0a8" strokeWidth={0.6} />
+          <line x1={0} y1={-0.8} x2={0} y2={1.9} stroke="#3a2410" strokeWidth={0.55} />
+        </g>, "#9aa0a8"
+      );
+    }
+    if (occ === "forager" || occ === "hauler") {
+      // Basket / berries
+      return wrap(
+        <g>
+          <path d="M-1.8 -0.4 L1.8 -0.4 L1.4 1.7 L-1.4 1.7 Z" fill="#7a5a2a" />
+          <circle cx={-0.6} cy={-0.8} r={0.45} fill="#b14a3a" />
+          <circle cx={0.5} cy={-0.9} r={0.45} fill="#b14a3a" />
+        </g>, "#7a5a2a"
+      );
+    }
+    if (occ === "rancher") {
+      // Horseshoe
+      return wrap(
+        <path d="M-1.4 1.6 L-1.6 -0.6 Q-1.6 -1.8 0 -1.8 Q1.6 -1.8 1.6 -0.6 L1.4 1.6"
+              fill="none" stroke="#6a4a2a" strokeWidth={0.55} />,
+        "#6a4a2a"
+      );
+    }
+    // Generic working "spark"
+    return wrap(
+      <g stroke="#c9a14a" strokeWidth={0.45}>
+        <line x1={-1.4} y1={0} x2={1.4} y2={0} />
+        <line x1={0} y1={-1.4} x2={0} y2={1.4} />
+      </g>, "#c9a14a"
+    );
+  }
+  // idle / moving — no glyph
+  return null;
+}
+
+
+
 function SurvivorArtCore({ founder, dead, female, elderTint, pregnant }: { founder: boolean; dead: boolean; female: boolean; elderTint?: boolean; pregnant?: boolean }) {
   const skin = "#d9b48a";
   const shirt = female
@@ -1425,15 +1568,24 @@ export function MapView() {
           const cx = s.x * TILE + TILE / 2;
           const cy = s.y * TILE + TILE / 2;
           const dead = s.health <= 0;
+          const sleeping = !dead && s.state === "resting";
+          // Detect "talking" — another survivor very close & both socializing/idle.
+          const partner = !dead && (s.state === "socializing")
+            ? survivors.find(o => o.id !== s.id && !(o.health <= 0)
+                && Math.abs(o.x - s.x) < 1.2 && Math.abs(o.y - s.y) < 1.2)
+            : undefined;
           return (
             <g key={s.id} style={{ pointerEvents: "all", cursor: "pointer" }} transform={`translate(${cx}, ${cy})`}>
               {sel && (
                 <circle cx={0} cy={1} r={10} fill="none" stroke={PAL.gold} strokeWidth={1.3} strokeDasharray="2 2" />
               )}
-              <SurvivorArt founder={!!s.isFounder} dead={dead} female={s.gender === "f"} stage={s.stage} pregnant={!!s.pregnant} />
+              <g transform={sleeping ? "rotate(-78) translate(0,-1)" : undefined}>
+                <SurvivorArt founder={!!s.isFounder} dead={dead} female={s.gender === "f"} stage={s.stage} pregnant={!!s.pregnant} />
+              </g>
               {dead && (
                 <line x1={-4} y1={-3} x2={4} y2={3} stroke={PAL.ink} strokeWidth={0.8} />
               )}
+              {!dead && <ActivityGlyph survivor={s} partnerNearby={!!partner} />}
             </g>
           );
         })}
