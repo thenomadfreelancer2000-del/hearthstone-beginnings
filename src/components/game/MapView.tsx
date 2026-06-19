@@ -1582,10 +1582,13 @@ export function MapView() {
             );
           }
 
+          // Wall-like pieces are authored horizontally; rotate when placed tall.
+          const isWallLike = b.kind === "fence" || b.kind === "palisade" || b.kind === "stone-wall" || b.kind === "gate";
+          const vertical = isWallLike && h > w;
           return (
             <g key={b.id}>
-              <g transform={`translate(${x}, ${y})`}>
-                <BuildingArt kind={b.kind} w={w} h={h} farmStage={b.farm?.stage} farmGrowth={b.farm?.growth} />
+              <g transform={vertical ? `translate(${x + w}, ${y}) rotate(90)` : `translate(${x}, ${y})`}>
+                <BuildingArt kind={b.kind} w={vertical ? h : w} h={vertical ? w : h} farmStage={b.farm?.stage} farmGrowth={b.farm?.growth} />
               </g>
               {sel && (
                 <rect x={x + 1} y={y + 1} width={w - 2} height={h - 2}
