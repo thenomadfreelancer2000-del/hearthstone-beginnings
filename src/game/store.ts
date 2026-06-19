@@ -624,15 +624,23 @@ export const useGame = create<GameState>((set, get) => ({
 
 
   setOccupation: (id, occ) => {
-    const st = get();
-    // Reassigning a job stops any prior building/farm/node task.
-    const buildings = releaseSurvivorFromAssignments(st.buildings, id);
-    set({
-      buildings,
-      survivors: st.survivors.map(s =>
-        s.id === id ? { ...clearSurvivorWorkState(s), occupation: occ } : s
-      ),
-    });
+    // Immer: only the targeted survivor + any building referencing them
+    // get new identities; everything else keeps its ref so useShallow
+    // selectors won't re-render unrelated subscribers.
+    set(produce(get(), (draft) => {
+      for (const b of draft.buildings) {
+        if (b.assignedBuilderId === id) { b.assignedBuilderId = null; b.stalledTicks = 0; }
+        if (b.assignedWorkerId === id) b.assignedWorkerId = null;
+        if (b.farm && b.farm.assignedFarmerId === id) b.farm.assignedFarmerId = null;
+      }
+      const s = draft.survivors.find(x => x.id === id);
+      if (s) {
+        s.workTarget = null;
+        s.commitment = null;
+        s.carrying = null;
+        s.occupation = occ;
+      }
+    }));
   },
 
   talkToSurvivor: (targetId, topic) => {
