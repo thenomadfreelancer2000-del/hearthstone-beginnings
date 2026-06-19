@@ -1149,6 +1149,28 @@ export function MapView() {
   const VH = H * zoom;
   const initialCenterDone = useRef(false);
 
+  const wallNeighborCounts = useMemo(() => {
+    const occupied = new Map<string, typeof buildings[number]>();
+    for (const b of buildings) {
+      if (!isWallLikeKind(b.kind)) continue;
+      for (let dy = 0; dy < b.h; dy++) {
+        for (let dx = 0; dx < b.w; dx++) {
+          occupied.set(`${b.x + dx},${b.y + dy}`, b);
+        }
+      }
+    }
+    const counts = new Map<string, { horizontal: number; vertical: number }>();
+    for (const b of buildings) {
+      if (!isWallLikeKind(b.kind)) continue;
+      const touches = (x: number, y: number) => occupied.has(`${x},${y}`);
+      counts.set(b.id, {
+        horizontal: Number(touches(b.x - 1, b.y)) + Number(touches(b.x + b.w, b.y)),
+        vertical: Number(touches(b.x, b.y - 1)) + Number(touches(b.x, b.y + b.h)),
+      });
+    }
+    return counts;
+  }, [buildings]);
+
   useEffect(() => {
     expandWorldToCurrentSize();
   }, [expandWorldToCurrentSize]);
