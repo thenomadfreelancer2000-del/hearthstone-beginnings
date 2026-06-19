@@ -198,10 +198,31 @@ export interface Survivor {
   /** Set when a founder (or notable leader) dies. e.g. "The Builder". */
   epithet?: string | null;
 
+  // ── Leader-issued chat directive (Sims-style "Talk to") ─────
+  /** When set, this survivor (typically the leader) walks to the target and
+   *  performs the chat. Cleared when finished, interrupted by critical needs,
+   *  or invalidated (target dead / out of range). */
+  directive?: {
+    kind: "talk";
+    targetId: ID;
+    topic: ChatTopic;
+    issuedTick: number;
+    phase: "going" | "talking" | "done";
+    talkStartTick?: number | null;
+  } | null;
+
   // ── Phase 3+ placeholders (nullable for forward-compat) ──
   factionId?: ID | null;
   politicalLean?: number | null;
 }
+
+/** Conversation flavors the player can pick from the survivor card. */
+export type ChatTopic =
+  | "joke"        // light humor — loved by Friendly, disliked by Paranoid/Bitter
+  | "smalltalk"   // safe filler — mildly positive for everyone
+  | "compliment"  // flatters — broad affection bump
+  | "serious"     // weighty topic — respected by Principled/Traditional
+  | "vent";       // listen to them — trust + belonging
 
 // ── Relationships ────────────────────────────────────────────────
 export type RelationshipTag =
