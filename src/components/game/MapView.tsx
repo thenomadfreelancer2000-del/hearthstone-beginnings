@@ -2302,8 +2302,13 @@ export function MapView() {
     requestAnimationFrame(() => {
       const target = scrollRef.current;
       if (!target) return;
-      const sx = cx * TILE * zoom - target.clientWidth / 2;
-      const sy = cy * TILE * zoom - target.clientHeight / 2;
+      // Project ranch center through the iso matrix.
+      const wx = cx * TILE;
+      const wy = cy * TILE;
+      const ix = ISO_MATRIX_A * wx + ISO_MATRIX_C * wy + isoTx(mapH);
+      const iy = ISO_MATRIX_B * wx + ISO_MATRIX_D * wy;
+      const sx = ix * zoom - target.clientWidth / 2;
+      const sy = iy * zoom - target.clientHeight / 2;
       target.scrollTo({
         left: Math.max(0, sx),
         top: Math.max(0, sy),
