@@ -8,6 +8,39 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { ZombieLayer } from "./ZombieLayer";
 import { IsoBuilding } from "./IsoBuilding";
 import type { ResourceNode, Tile } from "@/game/types";
+import tileGrassAsset from "@/assets/tile-grass.png.asset.json";
+import tileTallGrassAsset from "@/assets/tile-tallgrass.png.asset.json";
+import tileDirtAsset from "@/assets/tile-dirt.png.asset.json";
+import tileStoneAsset from "@/assets/tile-stone.png.asset.json";
+import nodeTreeAsset from "@/assets/node-tree.png.asset.json";
+
+const TILE_IMAGE_SRC: Partial<Record<Tile["kind"], string>> = {
+  grass: tileGrassAsset.url,
+  "tall-grass": tileTallGrassAsset.url,
+  dirt: tileDirtAsset.url,
+  stone: tileStoneAsset.url,
+};
+
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+const TILE_IMAGE_CACHE: Partial<Record<Tile["kind"], HTMLImageElement>> = {};
+async function loadTileImages() {
+  await Promise.all(
+    (Object.entries(TILE_IMAGE_SRC) as [Tile["kind"], string][]).map(async ([k, src]) => {
+      if (!TILE_IMAGE_CACHE[k]) {
+        try { TILE_IMAGE_CACHE[k] = await loadImage(src); } catch { /* keep fallback */ }
+      }
+    })
+  );
+}
 
 const TILE = 28;
 const LAYER_CHUNK = 1024;
@@ -1545,62 +1578,10 @@ function BuildingArt({ kind, w, h, farmStage, farmGrowth }: { kind: string; w: n
 function NodeArt({ kind, size, seed }: { kind: string; size: number; seed: number }) {
   const s = size;
   if (kind === "trees") {
-    // Painterly tree — soft ground shadow, warm trunk with bark
-    // grooves, layered canopy with NW rim-light and SE core shadow.
-    const variant = seed % 3;
-    const trunkDark = "#3a2412";
-    const trunkMid = "#5a3a1c";
-    const trunkLite = "#7a5230";
     return (
       <g>
-        {/* drop shadow */}
-        <ellipse cx={s / 2} cy={s * 0.93} rx={s * 0.34} ry={s * 0.08} fill="#000" opacity={0.28} />
-        {/* trunk with bark stripes */}
-        <path d={`M ${s*0.44} ${s*0.92} Q ${s*0.46} ${s*0.78} ${s*0.45} ${s*0.6}
-                  L ${s*0.55} ${s*0.6} Q ${s*0.54} ${s*0.78} ${s*0.56} ${s*0.92} Z`}
-          fill={trunkMid} stroke={PAL.ink} strokeWidth={0.6} />
-        <path d={`M ${s*0.45} ${s*0.6} L ${s*0.45} ${s*0.92}`} stroke={trunkDark} strokeWidth={0.6} />
-        <path d={`M ${s*0.49} ${s*0.65} L ${s*0.49} ${s*0.9}`} stroke={trunkLite} strokeWidth={0.5} opacity={0.7} />
-        {variant === 0 ? (
-          // tall conifer — three tiers with snowless pine look
-          <g>
-            <polygon points={`${s/2},${s*0.06} ${s*0.16},${s*0.5} ${s*0.84},${s*0.5}`}
-              fill="#2b3d1c" stroke={PAL.ink} strokeWidth={0.8} />
-            <polygon points={`${s/2},${s*0.22} ${s*0.2},${s*0.62} ${s*0.8},${s*0.62}`}
-              fill="#3a5226" stroke={PAL.ink} strokeWidth={0.7} />
-            <polygon points={`${s/2},${s*0.38} ${s*0.24},${s*0.72} ${s*0.76},${s*0.72}`}
-              fill="#4a6532" stroke={PAL.ink} strokeWidth={0.7} />
-            {/* NW rim-light */}
-            <polygon points={`${s/2},${s*0.06} ${s*0.16},${s*0.5} ${s*0.34},${s*0.5} ${s*0.46},${s*0.14}`}
-              fill="#9bc26a" opacity={0.5} />
-            <polygon points={`${s/2},${s*0.38} ${s*0.24},${s*0.72} ${s*0.4},${s*0.72} ${s*0.47},${s*0.44}`}
-              fill="#a8cf72" opacity={0.4} />
-            {/* tiny SE accents */}
-            <circle cx={s*0.66} cy={s*0.6} r={s*0.04} fill="#1f2e14" opacity={0.5} />
-          </g>
-        ) : variant === 1 ? (
-          // round oak — chunky lobed canopy
-          <g>
-            <ellipse cx={s*0.52} cy={s*0.48} rx={s*0.38} ry={s*0.32} fill="#2b3d1c" />
-            <ellipse cx={s*0.5} cy={s*0.42} rx={s*0.36} ry={s*0.3} fill="#3d5424" stroke={PAL.ink} strokeWidth={0.8} />
-            <circle cx={s*0.34} cy={s*0.42} r={s*0.13} fill="#4a6532" stroke={PAL.ink} strokeWidth={0.5} />
-            <circle cx={s*0.7}  cy={s*0.4}  r={s*0.14} fill="#4a6532" stroke={PAL.ink} strokeWidth={0.5} />
-            <circle cx={s*0.5}  cy={s*0.24} r={s*0.14} fill="#577a3a" stroke={PAL.ink} strokeWidth={0.5} />
-            {/* NW highlight */}
-            <ellipse cx={s*0.38} cy={s*0.3} rx={s*0.12} ry={s*0.08} fill="#a8cf72" opacity={0.6} />
-            <circle cx={s*0.34} cy={s*0.25} r={s*0.04} fill="#cfe69a" opacity={0.7} />
-          </g>
-        ) : (
-          // birch / aspen — slim trunk, airy crown
-          <g>
-            <ellipse cx={s*0.5} cy={s*0.4} rx={s*0.3} ry={s*0.34} fill="#2b3d1c" />
-            <ellipse cx={s*0.48} cy={s*0.34} rx={s*0.28} ry={s*0.3} fill="#456026" stroke={PAL.ink} strokeWidth={0.7} />
-            <circle cx={s*0.36} cy={s*0.32} r={s*0.1} fill="#5a7a36" />
-            <circle cx={s*0.62} cy={s*0.28} r={s*0.09} fill="#688a40" />
-            <circle cx={s*0.5}  cy={s*0.18} r={s*0.08} fill="#7ca04a" />
-            <ellipse cx={s*0.38} cy={s*0.24} rx={s*0.08} ry={s*0.05} fill="#b8d878" opacity={0.7} />
-          </g>
-        )}
+        <ellipse cx={s / 2} cy={s * 0.94} rx={s * 0.4} ry={s * 0.08} fill="#000" opacity={0.28} />
+        <image href={nodeTreeAsset.url} x={0} y={0} width={s} height={s} preserveAspectRatio="xMidYMax meet" />
       </g>
     );
   }
@@ -2118,6 +2099,10 @@ function SurvivorArtCore({ founder, dead, female, elderTint, pregnant }: { found
   );
 }
 
+
+
+
+
 const StaticTileLayers = React.memo(function StaticTileLayers({ tiles, width, height }: { tiles: Tile[]; width: number; height: number }) {
   const [terrainImages, setTerrainImages] = useState<LayerImage[]>([]);
 
@@ -2135,6 +2120,7 @@ const StaticTileLayers = React.memo(function StaticTileLayers({ tiles, width, he
     }));
 
     (async () => {
+      await loadTileImages();
       const images: LayerImage[] = [];
       // Spatial lookup so we can blend tile edges against neighbors.
       const tileMap = new Map<string, Tile>();
@@ -2203,6 +2189,9 @@ const StaticTileLayers = React.memo(function StaticTileLayers({ tiles, width, he
             }
             ctx.globalAlpha = 1;
           }
+          // Overlay hand-drawn tile artwork on top of the base color.
+          const tImg = TILE_IMAGE_CACHE[t.kind];
+          if (tImg) ctx.drawImage(tImg, px, py, TILE, TILE);
         }
 
         // ── Pass 2: edge blending — soft 2px rim of neighbor's base color
@@ -2298,6 +2287,8 @@ const StaticTileLayers = React.memo(function StaticTileLayers({ tiles, width, he
         // ── Pass 3: per-tile details (tufts, pebbles, ripples)
         ctx.lineCap = "round";
         for (const t of chunkTiles) {
+          // Tiles backed by a hand-drawn image already include detail.
+          if (TILE_IMAGE_CACHE[t.kind]) continue;
           const px = t.x * TILE;
           const py = t.y * TILE;
           const pal = TILE_PAL[t.kind];

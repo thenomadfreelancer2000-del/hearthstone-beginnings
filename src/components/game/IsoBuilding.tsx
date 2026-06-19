@@ -1,6 +1,7 @@
 import React from "react";
 import { getWorkshopVisual, workshopBaseKind, isWorkshopKind } from "@/game/workshop/registry";
 import homesteadAsset from "@/assets/homestead.png.asset.json";
+import tentAsset from "@/assets/tent.png.asset.json";
 
 
 
@@ -2197,6 +2198,14 @@ export function IsoBuilding({
         <IsoSprite gridW={gridW} gridH={gridH} T={tile} src={homesteadAsset.url} />
       );
     }
+
+    case "tent":
+    case "family-tent": {
+      return (
+        <IsoSprite gridW={gridW} gridH={gridH} T={tile} src={tentAsset.url} />
+      );
+    }
+
 
     case "campfire": return <IsoCampfire gridW={gridW} gridH={gridH} T={tile} />;
     case "well": return <IsoWell gridW={gridW} gridH={gridH} T={tile} />;
