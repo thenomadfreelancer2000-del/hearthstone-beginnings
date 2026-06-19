@@ -2159,7 +2159,7 @@ function IsoSprite({ gridW, gridH, T, src }: { gridW: number; gridH: number; T: 
 
 
 
-export function IsoBuilding({
+function IsoBuildingImpl({
   kind, gridW, gridH, tile, farmStage, farmGrowth,
 }: {
   kind: string;
