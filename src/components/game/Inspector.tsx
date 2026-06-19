@@ -132,6 +132,13 @@ export function Inspector({ onHide }: { onHide?: () => void } = {}) {
         </div>
 
         {!isDead && (
+          <div className="mt-2 flex items-center gap-2">
+            <span className="ranch-label text-[10px] text-dust">Mood:</span>
+            <MoodFace survivor={s} size="md" />
+          </div>
+        )}
+
+        {!isDead && (
           <p className="ranch-body italic text-dust-light text-xs mt-2 leading-snug">{s.action}</p>
         )}
 
