@@ -1516,6 +1516,136 @@ const VISUALS: Record<string, VisualKind> = {
 };
 
 // ──────────────────────────────────────────────────────────────
+// Ranch yard — picket fence + flower boxes + firewood pile,
+// drawn around the homestead in two layers so the building hides
+// the back fence segments naturally.
+// ──────────────────────────────────────────────────────────────
+function RanchYard({
+  gridW, gridH, T, layer,
+}: { gridW: number; gridH: number; T: number; layer: "back" | "front" }) {
+  const c = isoCorners(gridW, gridH, T, -0.02);
+  const PICKET = "#efe2bf";
+  const PICKET_SHADE = "#a89366";
+  const RAIL = "#c9b282";
+  const ph = T * 0.42;
+
+  const renderEdge = (A: P, B: P, gate = false) => {
+    const segLen = Math.hypot(B[0] - A[0], B[1] - A[1]);
+    const N = Math.max(5, Math.round(segLen / (T * 0.26)));
+    const nodes: React.ReactNode[] = [];
+    // rails (top + middle)
+    const railAt = (h: number) => {
+      const a = lift(A, h), b = lift(B, h);
+      if (!gate) {
+        return <line x1={a[0]} y1={a[1]} x2={b[0]} y2={b[1]}
+          stroke={RAIL} strokeWidth={0.9} strokeLinecap="round" />;
+      }
+      const g1 = lerp(a, b, 0.40), g2 = lerp(a, b, 0.60);
+      return (
+        <>
+          <line x1={a[0]} y1={a[1]} x2={g1[0]} y2={g1[1]}
+            stroke={RAIL} strokeWidth={0.9} strokeLinecap="round" />
+          <line x1={g2[0]} y1={g2[1]} x2={b[0]} y2={b[1]}
+            stroke={RAIL} strokeWidth={0.9} strokeLinecap="round" />
+        </>
+      );
+    };
+    for (let i = 0; i <= N; i++) {
+      const tt = i / N;
+      if (gate && tt > 0.40 && tt < 0.60) continue;
+      const p = lerp(A, B, tt);
+      const top = lift(p, ph);
+      const isGatePost = gate && (Math.abs(tt - 0.40) < 0.02 || Math.abs(tt - 0.60) < 0.02);
+      const h = isGatePost ? ph * 1.15 : ph;
+      const topY = p[1] - h;
+      nodes.push(
+        <line key={`p${i}`} x1={p[0]} y1={p[1]} x2={p[0]} y2={topY}
+          stroke={PICKET} strokeWidth={isGatePost ? 1.3 : 0.95} strokeLinecap="round" />,
+      );
+      // pointed cap dot
+      nodes.push(
+        <circle key={`c${i}`} cx={p[0]} cy={topY - 0.2} r={0.6}
+          fill={PICKET_SHADE} />,
+      );
+      void top;
+    }
+    return <g>{railAt(ph * 0.7)}{railAt(ph * 0.35)}{nodes}</g>;
+  };
+
+  const flowerBox = (p: P, w: number, palette: string[]) => (
+    <g transform={`translate(${p[0]}, ${p[1]})`}>
+      <rect x={-w / 2} y={-1.6} width={w} height={2.4}
+        fill="#4a3320" stroke={INK} strokeWidth={0.35} rx={0.3} />
+      {Array.from({ length: 4 }).map((_, i) => {
+        const cxp = -w / 2 + (i + 0.5) * (w / 4);
+        return (
+          <g key={i}>
+            <line x1={cxp} y1={-1.6} x2={cxp} y2={-3.0}
+              stroke="#3a5a2a" strokeWidth={0.45} />
+            <circle cx={cxp} cy={-3.2} r={1.0} fill={palette[i % palette.length]} />
+            <circle cx={cxp} cy={-3.2} r={0.35} fill="#fff5cc" />
+          </g>
+        );
+      })}
+    </g>
+  );
+
+  if (layer === "back") {
+    return (
+      <g>
+        {renderEdge(c.W, c.N)}
+        {renderEdge(c.N, c.E)}
+      </g>
+    );
+  }
+
+  // FRONT layer: gate on SW edge, plus flower boxes + firewood
+  const sw_q1 = lerp(c.S, c.W, 0.20);
+  const sw_q2 = lerp(c.S, c.W, 0.80);
+  const se_q1 = lerp(c.E, c.S, 0.20);
+
+  // firewood pile tucked just outside the SE corner
+  const woodAt = lerp(c.E, c.S, 0.45);
+  const logColor = "#7a4f24";
+  const logRing = "#d8a45a";
+  const woodPile = (
+    <g transform={`translate(${woodAt[0] + T * 0.18}, ${woodAt[1] + T * 0.10})`}>
+      {[0, 1, 2].map((row) =>
+        [0, 1, 2, 3].map((i) => {
+          const off = row % 2 ? 0.9 : 0;
+          const lx = -4 + i * 1.9 + off;
+          const ly = -1.4 - row * 1.5;
+          return (
+            <g key={`${row}-${i}`}>
+              <rect x={lx} y={ly} width={1.7} height={1.3} rx={0.5}
+                fill={logColor} stroke={INK} strokeWidth={0.3} />
+              <circle cx={lx + 0.85} cy={ly + 0.65} r={0.35} fill={logRing} />
+            </g>
+          );
+        }),
+      )}
+      {/* small axe leaning on the pile */}
+      <line x1={-5.5} y1={0} x2={-4.2} y2={-4.8}
+        stroke="#3a2410" strokeWidth={0.5} strokeLinecap="round" />
+      <polygon points={`${-4.2},${-4.8} ${-3.2},${-5.4} ${-3.6},${-4.0}`}
+        fill="#9aa0a8" stroke={INK} strokeWidth={0.3} />
+    </g>
+  );
+
+  return (
+    <g>
+      {renderEdge(c.S, c.W, true)}
+      {renderEdge(c.E, c.S)}
+      {flowerBox(sw_q1, T * 0.36, ["#d94a4a", "#f1c64a", "#e57ab3", "#f08a3a"])}
+      {flowerBox(sw_q2, T * 0.36, ["#e57ab3", "#d94a4a", "#f1c64a", "#a86ad6"])}
+      {flowerBox(se_q1, T * 0.32, ["#f08a3a", "#d94a4a", "#f1c64a", "#e57ab3"])}
+      {woodPile}
+    </g>
+  );
+}
+
+
+// ──────────────────────────────────────────────────────────────
 // Top-level dispatcher
 // ──────────────────────────────────────────────────────────────
 
