@@ -482,6 +482,44 @@ export function Inspector({ onHide }: { onHide?: () => void } = {}) {
   return null;
 }
 
+const FENCE_STYLE_OPTIONS: Array<{ id: NonNullable<Building["fenceStyle"]>; label: string; swatch: string }> = [
+  { id: "natural",   label: "Natural Wood",   swatch: "#a87642" },
+  { id: "dark",      label: "Dark Wood",      swatch: "#5b3a22" },
+  { id: "white",     label: "White Painted",  swatch: "#efe6d4" },
+  { id: "weathered", label: "Weathered",      swatch: "#8d8472" },
+];
+
+function FenceStylePanel({ b }: { b: Building }) {
+  const setFenceStyle = useGame((g) => g.setFenceStyle);
+  const current = b.fenceStyle ?? "natural";
+  return (
+    <div className="mt-3">
+      <div className="ranch-label text-amber text-[10px] mb-1.5">Fence Style</div>
+      <div className="grid grid-cols-2 gap-1.5">
+        {FENCE_STYLE_OPTIONS.map((opt) => {
+          const active = current === opt.id;
+          return (
+            <button
+              key={opt.id}
+              onClick={() => setFenceStyle(b.id, opt.id)}
+              className={`btn-ranch btn-ranch-ghost flex items-center gap-1.5 px-2 py-1.5 text-[10px] ${active ? "ring-1 ring-amber border-amber" : ""}`}
+            >
+              <span
+                className="inline-block rounded-sm border border-ink/40"
+                style={{ width: 12, height: 12, background: opt.swatch }}
+              />
+              <span className="truncate">{opt.label}</span>
+            </button>
+          );
+        })}
+      </div>
+      <p className="ranch-handwritten text-[10px] text-dust-light mt-1.5">
+        Style applies to this segment. Place segments next to each other and they'll auto-connect.
+      </p>
+    </div>
+  );
+}
+
 function WorkerPanel({ b }: { b: Building }) {
   const survivors = useGame((g) => g.survivors);
   const families = useGame((g) => g.families);
