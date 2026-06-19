@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { produce } from "immer";
 import { nanoid } from "nanoid";
 import { toast } from "sonner";
 import type {
@@ -1553,323 +1554,244 @@ export const useGame = create<GameState>((set, get) => ({
     else { _tickAccumMs -= visualBatches * msPerUpdate; }
     const n = visualBatches * speedMultiplier;
 
-
-    const eng: Engine = {
-      time: { ...st.time },
-      tiles: st.tiles, mapW: st.mapW, mapH: st.mapH,
-      nodes: st.nodes.map(n => ({ ...n })),
-      buildings: st.buildings.map(b => ({
-        ...b,
-        stored: { ...b.stored },
-        occupantIds: [...b.occupantIds],
-        resourcesDelivered: { ...(b.resourcesDelivered ?? {}) },
-        farm: b.farm ? { ...b.farm } : null,
-      })),
-      resources: { ...st.resources },
-      survivors: st.survivors.map(s => ({
-        ...s,
-        needs: { ...s.needs },
-        skills: { ...s.skills },
-        memories: [...s.memories],
-        parentIds: [...s.parentIds],
-        childrenIds: [...s.childrenIds],
-        achievements: s.achievements ? [...s.achievements] : [],
-        carrying: s.carrying ? { ...s.carrying } : null,
-      })),
-      relationships: st.relationships.map(r => ({ ...r })),
-      families: st.families.map(f => ({
-        ...f,
-        memberIds: [...f.memberIds],
-        relations: { ...f.relations },
-      })),
-      founderId: st.founderId,
-      currentLeaderId: st.currentLeaderId,
-      preferredHeirId: st.preferredHeirId,
-      chronicle: [...st.chronicle],
-      stats: { ...st.stats },
-      seed: st.seed,
-      proposals: st.proposals.map(p => ({ ...p })),
-      animals: st.animals.map(a => ({ ...a })),
-      livestockRequests: st.livestockRequests.map(r => ({ ...r })),
-      ministers: st.ministers.map(m => ({ ...m })),
-      ministerRequests: st.ministerRequests.map(r => ({ ...r })),
-      ministerReports: st.ministerReports.map(r => ({ ...r })),
-      foundingPhase: st.foundingPhase,
-      leaderHelp: { ...st.leaderHelp },
-      wornPaths: { ...st.wornPaths },
-    };
-
-
     const prevTick = st.time.tick;
     const prevFounderAlive = (st.survivors.find(s => s.id === st.founderId)?.health ?? 0) > 0;
-    advance(eng, n);
-    const newTick = eng.time.tick;
 
-    // Founder legacy — bestow an epithet at the moment of death and add a
-    // dedicated chronicle entry remembered by future generations.
-    const founder = eng.survivors.find(s => s.id === eng.founderId);
-    if (prevFounderAlive && founder && founder.health <= 0 && !founder.epithet) {
-      const epithet = computeFounderEpithet(founder, st.reputationProfile, eng.stats, eng.families);
-      founder.epithet = epithet;
-      eng.chronicle.unshift({
-        id: nanoid(8),
-        tick: eng.time.tick,
-        year: eng.time.year, season: eng.time.season, day: eng.time.day,
-        category: "death",
-        title: founderDeathTitle(founder, epithet),
-        body: founderDeathBody(founder, epithet, eng.time.year),
-        involvedIds: [founder.id],
-        involvedFamilyIds: [founder.familyId],
-      });
-      toast(`${founder.name} ${founder.surname} — ${epithet} — has died`, {
-        description: "The Ranch enters a transition.",
-      });
-    }
+    // Immer-based tick: advance the simulation against a draft of the
+    // current state. Immer applies structural sharing, so sub-objects
+    // (survivors, buildings, nodes, relationships, families, etc.) that
+    // were not mutated keep their original identity — selectors that
+    // didn't change their data will not trigger re-renders.
+    const next = produce(st, (draft) => {
+      const eng = draft as unknown as Engine;
+      advance(eng, n);
+      const newTick = eng.time.tick;
 
-    // Notifications for new chronicle entries — fire any entry whose tick is
-    // newer than the last we've notified for. Avoids missing batches when the
-    // engine writes multiple entries between visual frames.
-    let lastId = st.lastChronicleId;
-    if (eng.chronicle.length > 0) {
-      const lastTick = lastId
-        ? (eng.chronicle.find(c => c.id === lastId)?.tick ?? -1)
-        : -1;
-      const fresh = eng.chronicle.filter(c => c.tick > lastTick);
-      for (let i = fresh.length - 1; i >= 0; i--) {
-        notifyChronicle(fresh[i]);
-      }
-      lastId = eng.chronicle[0]?.id ?? lastId;
-    }
-
-    // Arrival roll — checked on cadence ticks crossed during this advance.
-    // No arrivals occur during the Founding Phase.
-    let pendingArrival: ArrivalEvent | null = st.pendingArrival;
-    if (!pendingArrival && !st.foundingPhase) {
-      const crossed = Math.floor(newTick / ARRIVAL_CHECK_TICKS) - Math.floor(prevTick / ARRIVAL_CHECK_TICKS);
-      if (crossed > 0) {
-        const rng = makeRng(eng.seed ^ Math.floor(newTick / ARRIVAL_CHECK_TICKS));
-        const h = eng.buildings.find(b => b.kind === "homestead");
-        const alive = eng.survivors.filter(s => s.health > 0).length;
-        // base probability per cadence: lower than before, capped by pop
-        const reputationMod = st.reputation * 0.002;
-        const popMod = -Math.min(0.20, alive * 0.015);
-        const moodMod = eng.stats.morale > 0 ? 0.05 : -0.05;
-        const p = Math.max(0.18, 0.35 + reputationMod + popMod + moodMod);
-        if (h && Math.random() < p) {
-          const around = { x: h.x + h.w / 2, y: h.y + h.h / 2 };
-          pendingArrival = generateArrival(rng, newTick, eng.time.year, around);
-          toast(pendingArrival.title, {
-            description: "Strangers at the gate — decide their fate.",
-          });
-        }
-      }
-    }
-
-    // ── Council triggers ────────────────────────────────────
-    // (a) First council: once the ranch has 10+ houses, the founder holds the
-    //     Founding Charter — picks the laws of the ranch. Cannot be deposed.
-    // (b) After the charter, an annual council convenes each spring; rivals
-    //     may also demand a hated law be repealed.
-    let pendingCouncilVote: CouncilVoteEvent | null = st.pendingCouncilVote;
-    let pendingFoundingCharter: boolean = st.pendingFoundingCharter;
-    let hasHeldFirstCouncil: boolean = st.hasHeldFirstCouncil;
-    const livingFamilies = eng.families.filter(
-      (f) => f.memberIds.some((id) => eng.survivors.find((s) => s.id === id && s.health > 0))
-    );
-    const crossedYear = eng.time.year > st.time.year;
-
-    if (
-      !hasHeldFirstCouncil &&
-      !pendingFoundingCharter &&
-      !pendingArrival &&
-      !st.foundingPhase &&
-      livingFamilies.length >= 10
-    ) {
-      pendingFoundingCharter = true;
-      toast("The Ten Houses gather", {
-        description: "Call the Founding Charter — set the laws of the ranch.",
-      });
-    }
-
-    if (
-      hasHeldFirstCouncil &&
-      !pendingCouncilVote && !pendingArrival && !pendingFoundingCharter && !st.foundingPhase &&
-      crossedYear && eng.time.year > st.stats.foundedYear
-    ) {
-      const ev = generateCouncilVote({
-        survivors: eng.survivors,
-        families: eng.families,
-        buildings: eng.buildings,
-        animals: eng.animals,
-        ministers: eng.ministers,
-        resources: eng.resources,
-        currentLeaderId: eng.currentLeaderId,
-        founderId: eng.founderId,
-        currentYear: eng.time.year,
-      });
-      if (ev) {
-        // Gather every pressing demand (both repeals and new-law petitions).
-        const view = computeFactions(eng.survivors, eng.families, st.laws);
-        const raw = pressingLawDemands(view, st.laws, { threshold: 18 });
-        // Cap to top 4 so the council scene stays readable.
-        const top = raw.slice(0, 4);
-        if (top.length > 0) {
-          ev.lawDemands = top.map((d) => {
-            // Other factions that will resent this concession.
-            const opposedBy = view.factions
-              .filter((f) => {
-                if (f.id === d.faction.id) return false;
-                if (f.strength < 15) return false;
-                if (d.kind === "repeal") return d.lawDef.factionLikes.includes(f.id);
-                return d.lawDef.factionHates.includes(f.id);
-              })
-              .map((f) => f.def.name);
-            return {
-              kind: d.kind,
-              lawId: d.lawDef.id,
-              lawTitle: d.lawDef.title,
-              lawBlurb: d.lawDef.blurb,
-              factionId: d.faction.id,
-              factionName: d.faction.def.name,
-              opposedBy,
-              intensity: d.intensity,
-              pitch: d.pitch,
-            };
-          });
-          // Default active demand = strongest one.
-          ev.activeDemandIndex = 0;
-          // Mirror top demand of each kind for back-compat displays.
-          const topRepeal = ev.lawDemands.find((d) => d.kind === "repeal");
-          if (topRepeal) {
-            ev.lawRepealRequest = {
-              lawId: topRepeal.lawId,
-              lawTitle: topRepeal.lawTitle,
-              factionId: topRepeal.factionId,
-              factionName: topRepeal.factionName,
-              intensity: topRepeal.intensity,
-            };
-          }
-          const topEnact = ev.lawDemands.find((d) => d.kind === "enact");
-          if (topEnact) {
-            ev.lawEnactRequest = {
-              lawId: topEnact.lawId,
-              lawTitle: topEnact.lawTitle,
-              factionId: topEnact.factionId,
-              factionName: topEnact.factionName,
-              intensity: topEnact.intensity,
-            };
-          }
-          ev.challengerAgenda = ev.lawDemands[0].pitch;
-        }
-        pendingCouncilVote = ev;
-        const hasDemands = (ev.lawDemands?.length ?? 0) > 0;
-        const desc = hasDemands
-          ? `${ev.lawDemands!.length} faction demand${ev.lawDemands!.length > 1 ? "s" : ""} press the porch.`
-          : ev.contested
-            ? `House ${ev.challengerHouseName ?? "—"} challenges the porch.`
-            : `Year ${ev.year}. The houses gather.`;
-        toast(ev.contested || hasDemands ? "Council in uproar" : "The Council convenes", {
-          description: desc,
-        });
-      }
-    }
-
-    // ── Stability monitor ──────────────────────────────────────
-    // Once per year, recompute stability; warn the player when it
-    // drops sharply or slips into a worse band, naming the causes.
-    let nextStabScore = st.lastStabilityScore;
-    let nextStabLabel = st.lastStabilityLabel;
-    if (crossedYear && !st.foundingPhase) {
-      const snap = computePolitics({
-        survivors: eng.survivors,
-        families: eng.families,
-        buildings: eng.buildings,
-        animals: eng.animals,
-        ministers: eng.ministers,
-        resources: eng.resources,
-        currentLeaderId: eng.currentLeaderId,
-        founderId: eng.founderId,
-        currentYear: eng.time.year,
-      });
-      const cur = snap.stability.score;
-      const curLabel = snap.stability.label;
-      const prev = st.lastStabilityScore;
-      const prevLabel = st.lastStabilityLabel;
-      const BAND_ORDER = ["Unstable", "Restive", "Tense", "Mostly Stable", "Stable"];
-      const bandWorsened =
-        prevLabel !== null &&
-        BAND_ORDER.indexOf(curLabel) < BAND_ORDER.indexOf(prevLabel);
-      const dropped = prev !== null && prev - cur >= 10;
-      const lowAbsolute = cur < 40;
-      if (prev !== null && (bandWorsened || dropped || (lowAbsolute && cur < (prev ?? 100)))) {
-        const causes = snap.stability.factors
-          .filter((f) => f.weight < 0)
-          .sort((a, b) => a.weight - b.weight)
-          .slice(0, 3)
-          .map((f) => f.label);
-        const desc = causes.length
-          ? `Stability ${prev}→${cur} (${curLabel}). Causes: ${causes.join("; ")}.`
-          : `Stability ${prev}→${cur} (${curLabel}).`;
-        const title =
-          cur < 25 ? "The Ranch teeters on revolt"
-          : cur < 45 ? "Unrest spreads across the Ranch"
-          : "Stability is slipping";
-        if (cur < 25) toast.error(title, { description: desc });
-        else if (cur < 45) toast.warning(title, { description: desc });
-        else toast(title, { description: desc });
+      // Founder legacy — bestow an epithet at the moment of death and add a
+      // dedicated chronicle entry remembered by future generations.
+      const founder = eng.survivors.find(s => s.id === eng.founderId);
+      if (prevFounderAlive && founder && founder.health <= 0 && !founder.epithet) {
+        const epithet = computeFounderEpithet(founder, st.reputationProfile, eng.stats, eng.families);
+        founder.epithet = epithet;
         eng.chronicle.unshift({
           id: nanoid(8),
           tick: eng.time.tick,
           year: eng.time.year, season: eng.time.season, day: eng.time.day,
-          category: "event",
-          title,
-          body: desc,
+          category: "death",
+          title: founderDeathTitle(founder, epithet),
+          body: founderDeathBody(founder, epithet, eng.time.year),
+          involvedIds: [founder.id],
+          involvedFamilyIds: [founder.familyId],
         });
-      } else if (prev !== null && cur - prev >= 12 && cur >= 60) {
-        const wins = snap.stability.factors
-          .filter((f) => f.weight > 0)
-          .sort((a, b) => b.weight - a.weight)
-          .slice(0, 2)
-          .map((f) => f.label);
-        toast.success("The Ranch finds its footing", {
-          description: wins.length
-            ? `Stability ${prev}→${cur} (${curLabel}). ${wins.join("; ")}.`
-            : `Stability ${prev}→${cur} (${curLabel}).`,
+        toast(`${founder.name} ${founder.surname} — ${epithet} — has died`, {
+          description: "The Ranch enters a transition.",
         });
       }
-      nextStabScore = cur;
-      nextStabLabel = curLabel;
-    }
 
+      // Notifications for new chronicle entries — fire any entry whose tick is
+      // newer than the last we've notified for.
+      let lastId = st.lastChronicleId;
+      if (eng.chronicle.length > 0) {
+        const lastTick = lastId
+          ? (eng.chronicle.find(c => c.id === lastId)?.tick ?? -1)
+          : -1;
+        const fresh = eng.chronicle.filter(c => c.tick > lastTick);
+        for (let i = fresh.length - 1; i >= 0; i--) {
+          notifyChronicle(fresh[i]);
+        }
+        lastId = eng.chronicle[0]?.id ?? lastId;
+      }
+      draft.lastChronicleId = lastId;
 
-    set({
-      time: eng.time,
-      nodes: eng.nodes,
-      buildings: eng.buildings,
-      resources: eng.resources,
-      survivors: eng.survivors,
-      relationships: eng.relationships,
-      families: eng.families,
-      currentLeaderId: eng.currentLeaderId,
-      preferredHeirId: eng.preferredHeirId ?? null,
-      chronicle: eng.chronicle,
-      stats: eng.stats,
-      proposals: eng.proposals,
-      animals: eng.animals,
-      livestockRequests: eng.livestockRequests,
-      ministers: eng.ministers,
-      ministerRequests: eng.ministerRequests,
-      ministerReports: eng.ministerReports,
-      wornPaths: eng.wornPaths ?? st.wornPaths,
+      // Arrival roll — checked on cadence ticks crossed during this advance.
+      // No arrivals occur during the Founding Phase.
+      if (!draft.pendingArrival && !st.foundingPhase) {
+        const crossed = Math.floor(newTick / ARRIVAL_CHECK_TICKS) - Math.floor(prevTick / ARRIVAL_CHECK_TICKS);
+        if (crossed > 0) {
+          const rng = makeRng(eng.seed ^ Math.floor(newTick / ARRIVAL_CHECK_TICKS));
+          const h = eng.buildings.find(b => b.kind === "homestead");
+          const alive = eng.survivors.filter(s => s.health > 0).length;
+          const reputationMod = st.reputation * 0.002;
+          const popMod = -Math.min(0.20, alive * 0.015);
+          const moodMod = eng.stats.morale > 0 ? 0.05 : -0.05;
+          const p = Math.max(0.18, 0.35 + reputationMod + popMod + moodMod);
+          if (h && Math.random() < p) {
+            const around = { x: h.x + h.w / 2, y: h.y + h.h / 2 };
+            const arrival = generateArrival(rng, newTick, eng.time.year, around);
+            draft.pendingArrival = arrival;
+            toast(arrival.title, {
+              description: "Strangers at the gate — decide their fate.",
+            });
+          }
+        }
+      }
 
-      pendingArrival,
-      pendingCouncilVote,
-      pendingFoundingCharter,
-      hasHeldFirstCouncil,
-      lastChronicleId: lastId,
-      lastStabilityScore: nextStabScore,
-      lastStabilityLabel: nextStabLabel,
+      // ── Council triggers ────────────────────────────────────
+      const livingFamilies = eng.families.filter(
+        (f) => f.memberIds.some((id) => eng.survivors.find((s) => s.id === id && s.health > 0))
+      );
+      const crossedYear = eng.time.year > st.time.year;
+
+      if (
+        !draft.hasHeldFirstCouncil &&
+        !draft.pendingFoundingCharter &&
+        !draft.pendingArrival &&
+        !st.foundingPhase &&
+        livingFamilies.length >= 10
+      ) {
+        draft.pendingFoundingCharter = true;
+        toast("The Ten Houses gather", {
+          description: "Call the Founding Charter — set the laws of the ranch.",
+        });
+      }
+
+      if (
+        draft.hasHeldFirstCouncil &&
+        !draft.pendingCouncilVote && !draft.pendingArrival && !draft.pendingFoundingCharter && !st.foundingPhase &&
+        crossedYear && eng.time.year > st.stats.foundedYear
+      ) {
+        const ev = generateCouncilVote({
+          survivors: eng.survivors,
+          families: eng.families,
+          buildings: eng.buildings,
+          animals: eng.animals,
+          ministers: eng.ministers,
+          resources: eng.resources,
+          currentLeaderId: eng.currentLeaderId,
+          founderId: eng.founderId,
+          currentYear: eng.time.year,
+        });
+        if (ev) {
+          const view = computeFactions(eng.survivors, eng.families, st.laws);
+          const raw = pressingLawDemands(view, st.laws, { threshold: 18 });
+          const top = raw.slice(0, 4);
+          if (top.length > 0) {
+            ev.lawDemands = top.map((d) => {
+              const opposedBy = view.factions
+                .filter((f) => {
+                  if (f.id === d.faction.id) return false;
+                  if (f.strength < 15) return false;
+                  if (d.kind === "repeal") return d.lawDef.factionLikes.includes(f.id);
+                  return d.lawDef.factionHates.includes(f.id);
+                })
+                .map((f) => f.def.name);
+              return {
+                kind: d.kind,
+                lawId: d.lawDef.id,
+                lawTitle: d.lawDef.title,
+                lawBlurb: d.lawDef.blurb,
+                factionId: d.faction.id,
+                factionName: d.faction.def.name,
+                opposedBy,
+                intensity: d.intensity,
+                pitch: d.pitch,
+              };
+            });
+            ev.activeDemandIndex = 0;
+            const topRepeal = ev.lawDemands.find((d) => d.kind === "repeal");
+            if (topRepeal) {
+              ev.lawRepealRequest = {
+                lawId: topRepeal.lawId,
+                lawTitle: topRepeal.lawTitle,
+                factionId: topRepeal.factionId,
+                factionName: topRepeal.factionName,
+                intensity: topRepeal.intensity,
+              };
+            }
+            const topEnact = ev.lawDemands.find((d) => d.kind === "enact");
+            if (topEnact) {
+              ev.lawEnactRequest = {
+                lawId: topEnact.lawId,
+                lawTitle: topEnact.lawTitle,
+                factionId: topEnact.factionId,
+                factionName: topEnact.factionName,
+                intensity: topEnact.intensity,
+              };
+            }
+            ev.challengerAgenda = ev.lawDemands[0].pitch;
+          }
+          draft.pendingCouncilVote = ev;
+          const hasDemands = (ev.lawDemands?.length ?? 0) > 0;
+          const desc = hasDemands
+            ? `${ev.lawDemands!.length} faction demand${ev.lawDemands!.length > 1 ? "s" : ""} press the porch.`
+            : ev.contested
+              ? `House ${ev.challengerHouseName ?? "—"} challenges the porch.`
+              : `Year ${ev.year}. The houses gather.`;
+          toast(ev.contested || hasDemands ? "Council in uproar" : "The Council convenes", {
+            description: desc,
+          });
+        }
+      }
+
+      // ── Stability monitor ──────────────────────────────────────
+      if (crossedYear && !st.foundingPhase) {
+        const snap = computePolitics({
+          survivors: eng.survivors,
+          families: eng.families,
+          buildings: eng.buildings,
+          animals: eng.animals,
+          ministers: eng.ministers,
+          resources: eng.resources,
+          currentLeaderId: eng.currentLeaderId,
+          founderId: eng.founderId,
+          currentYear: eng.time.year,
+        });
+        const cur = snap.stability.score;
+        const curLabel = snap.stability.label;
+        const prev = st.lastStabilityScore;
+        const prevLabel = st.lastStabilityLabel;
+        const BAND_ORDER = ["Unstable", "Restive", "Tense", "Mostly Stable", "Stable"];
+        const bandWorsened =
+          prevLabel !== null &&
+          BAND_ORDER.indexOf(curLabel) < BAND_ORDER.indexOf(prevLabel);
+        const dropped = prev !== null && prev - cur >= 10;
+        const lowAbsolute = cur < 40;
+        if (prev !== null && (bandWorsened || dropped || (lowAbsolute && cur < (prev ?? 100)))) {
+          const causes = snap.stability.factors
+            .filter((f) => f.weight < 0)
+            .sort((a, b) => a.weight - b.weight)
+            .slice(0, 3)
+            .map((f) => f.label);
+          const desc = causes.length
+            ? `Stability ${prev}→${cur} (${curLabel}). Causes: ${causes.join("; ")}.`
+            : `Stability ${prev}→${cur} (${curLabel}).`;
+          const title =
+            cur < 25 ? "The Ranch teeters on revolt"
+            : cur < 45 ? "Unrest spreads across the Ranch"
+            : "Stability is slipping";
+          if (cur < 25) toast.error(title, { description: desc });
+          else if (cur < 45) toast.warning(title, { description: desc });
+          else toast(title, { description: desc });
+          eng.chronicle.unshift({
+            id: nanoid(8),
+            tick: eng.time.tick,
+            year: eng.time.year, season: eng.time.season, day: eng.time.day,
+            category: "event",
+            title,
+            body: desc,
+          });
+        } else if (prev !== null && cur - prev >= 12 && cur >= 60) {
+          const wins = snap.stability.factors
+            .filter((f) => f.weight > 0)
+            .sort((a, b) => b.weight - a.weight)
+            .slice(0, 2)
+            .map((f) => f.label);
+          toast.success("The Ranch finds its footing", {
+            description: wins.length
+              ? `Stability ${prev}→${cur} (${curLabel}). ${wins.join("; ")}.`
+              : `Stability ${prev}→${cur} (${curLabel}).`,
+          });
+        }
+        draft.lastStabilityScore = cur;
+        draft.lastStabilityLabel = curLabel;
+      }
+
+      // Normalize optional fields the engine may leave unset.
+      if (draft.preferredHeirId === undefined) draft.preferredHeirId = null;
     });
+
+    set(next);
+
 
     // Resolve any expeditions that returned during this advance.
     const expeditionPatch = resolveDueExpeditions(
