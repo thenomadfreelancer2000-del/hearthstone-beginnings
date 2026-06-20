@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useGame } from "@/game/store";
+import { debugLog } from "@/game/debug";
 import { BACKGROUNDS, FIRST_NAMES_F, FIRST_NAMES_M, SURNAMES, TRAITS, TRAIT_BLURBS } from "@/game/data/content";
 import { PORTRAITS, defaultPortraitFor } from "@/game/data/portraits";
 import type { Background, Trait } from "@/game/types";
@@ -94,8 +95,10 @@ export function FounderCreation() {
   }
   function begin() {
     if (!stepValid[5] || isBeginning) return;
+    debugLog("founder:begin:click", { ranchName, companions, background, traits: traits.length, values: values.length });
     setIsBeginning(true);
     window.setTimeout(() => {
+      debugLog("founder:begin:newGameCall");
       newGame(ranchName, { firstName, surname, gender, background, traits, values, companions, portraitId });
     }, 700);
   }
