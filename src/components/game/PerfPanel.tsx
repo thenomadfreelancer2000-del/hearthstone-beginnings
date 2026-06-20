@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useGame } from "@/game/store";
 import {
   getEntries, getFps, getRenderCounts, resetEntries,
-  isPanelOpen, setPanelOpen, subscribePanel,
+  isPanelOpen, setPanelOpen, subscribePanel, getRenderMeta,
 } from "@/game/profiler";
 
 /**
@@ -50,6 +50,8 @@ export function PerfPanel() {
   const top = entries.filter((e) => !e.name.startsWith("@")).slice(0, 10);
   const tickEntry = entries.find((e) => e.name === "@tick");
   const renders = getRenderCounts().sort((a, b) => b.count - a.count).slice(0, 12);
+  const renderEntries = entries.filter((e) => e.name.startsWith("render:")).slice(0, 8);
+  const renderMeta = getRenderMeta();
 
   const houses = buildings.filter((b) => b.kind === "homestead" || /home|house|hut|shelter|cabin|cottage|tent/i.test(b.kind)).length;
 
@@ -131,6 +133,39 @@ export function PerfPanel() {
         </table>
       </Section>
 
+      <Section title="React commit time (actualDuration)">
+        {renderEntries.length === 0
+          ? <div style={{ opacity: 0.6 }}>no Profiler samples yet</div>
+          : (
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead><tr style={{ color: "#a89970", textAlign: "left" }}>
+                <th>component</th>
+                <th style={{ textAlign: "right" }}>commits</th>
+                <th style={{ textAlign: "right" }}>total</th>
+                <th style={{ textAlign: "right" }}>avg</th>
+                <th style={{ textAlign: "right" }}>max</th>
+              </tr></thead>
+              <tbody>
+                {renderEntries.map((e) => (
+                  <tr key={e.name}>
+                    <td>{e.name.replace("render:", "")}</td>
+                    <td style={{ textAlign: "right" }}>{e.calls}</td>
+                    <td style={{ textAlign: "right" }}>{e.totalMs.toFixed(1)}</td>
+                    <td style={{ textAlign: "right" }}>{(e.totalMs / Math.max(1, e.calls)).toFixed(2)}</td>
+                    <td style={{ textAlign: "right" }}>{e.maxMs.toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        {Array.from(renderMeta.entries()).map(([k, m]) => (
+          <div key={k} style={{ marginTop: 4, opacity: 0.85 }}>
+            <span style={{ color: "#a89970" }}>{k}:</span>{" "}
+            {Object.entries(m).map(([mk, mv]) => `${mk}=${mv}`).join("  ")}
+          </div>
+        ))}
+      </Section>
+
       <Section title="React re-renders (tracked components)">
         {renders.length === 0
           ? <div style={{ opacity: 0.6 }}>no components use useTrackRender yet</div>
@@ -184,6 +219,8 @@ interface ReportLike {
   tick: { lastMs: number; avgMs: number; maxMs: number; calls: number } | null;
   top10: Array<{ name: string; calls: number; totalMs: number; avgMs: number; maxMs: number }>;
   renderCounts: Array<{ name: string; count: number }>;
+  componentRenderTime: Array<{ name: string; calls: number; totalMs: number; avgMs: number; maxMs: number }>;
+  renderMeta: Record<string, Record<string, number>>;
 }
 
 function buildReport(
@@ -236,6 +273,14 @@ function buildReport(
     } : null,
     top10,
     renderCounts,
+    componentRenderTime: entries.filter((e) => e.name.startsWith("render:")).map((e) => ({
+      name: e.name.replace("render:", ""),
+      calls: e.calls,
+      totalMs: +e.totalMs.toFixed(2),
+      avgMs: +(e.totalMs / Math.max(1, e.calls)).toFixed(3),
+      maxMs: +e.maxMs.toFixed(2),
+    })),
+    renderMeta: Object.fromEntries(getRenderMeta().entries()),
   };
 }
 

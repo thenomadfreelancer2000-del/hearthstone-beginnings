@@ -25,6 +25,7 @@ import { CouncilVoteModal } from "./CouncilVoteModal";
 import { FoundingCharterModal } from "./FoundingCharterModal";
 import { ExpeditionPanel } from "./ExpeditionPanel";
 import { PerfPanel } from "./PerfPanel";
+import { ProfiledSection } from "./ProfiledSection";
 import { useGame } from "@/game/store";
 import { debugLog } from "@/game/debug";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -80,11 +81,13 @@ export function GameShell() {
       <GameLoop />
       <ZombieLoop />
       <PerfPanel />
-      <TopBar
-        onToggleDock={() => setDockOpen((v) => !v)}
-        dockOpen={dockOpen}
-        onSettingsOpenChange={setSettingsOpen}
-      />
+      <ProfiledSection id="TopBar">
+        <TopBar
+          onToggleDock={() => setDockOpen((v) => !v)}
+          dockOpen={dockOpen}
+          onSettingsOpenChange={setSettingsOpen}
+        />
+      </ProfiledSection>
 
       <div className="flex-1 flex min-h-0 relative">
         <MapView />
@@ -137,7 +140,7 @@ export function GameShell() {
               ◀
             </button>
           ) : (
-            <Inspector onHide={() => setInspectorCollapsed(true)} />
+            <ProfiledSection id="Inspector"><Inspector onHide={() => setInspectorCollapsed(true)} /></ProfiledSection>
           )
         )}
 
@@ -149,7 +152,7 @@ export function GameShell() {
               onClick={() => { setInspectorOpen(false); clearSelection(); }}
             />
             <div className="absolute right-0 top-0 bottom-0 z-40 w-[78vw] max-w-[300px] flex">
-              <Inspector />
+              <ProfiledSection id="Inspector"><Inspector /></ProfiledSection>
             </div>
           </>
         )}
@@ -157,10 +160,10 @@ export function GameShell() {
 
 
       {/* Desktop: dock always; Mobile: inline bottom tray so it never covers the leader portrait */}
-      {!isMobile && <BottomDock />}
+      {!isMobile && <ProfiledSection id="BottomDock"><BottomDock /></ProfiledSection>}
       {isMobile && dockOpen && (
           <div className="relative z-30 max-h-[50vh] overflow-hidden shrink-0">
-            <BottomDock />
+            <ProfiledSection id="BottomDock"><BottomDock /></ProfiledSection>
           </div>
       )}
 

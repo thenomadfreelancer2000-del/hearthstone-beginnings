@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTrackRender } from "@/hooks/use-track-render";
+import { recordRender, setRenderMeta } from "@/game/profiler";
 import { useGame, territoryDims } from "@/game/store";
 import { debugError, debugLog } from "@/game/debug";
 import { useShallow } from "zustand/react/shallow";
@@ -2815,7 +2816,19 @@ export function MapView() {
     return { x: Math.floor(p.x / TILE), y: Math.floor(p.y / TILE) };
   }
 
+  // Report visible entity counts each render so the perf panel can show what MapView is actually drawing.
+  setRenderMeta("MapView", {
+    tiles: tiles.length,
+    buildings: buildings.length,
+    nodes: nodes.length,
+    survivors: survivors.length,
+    animals: animals.length,
+    wornPaths: wornPaths ? Object.keys(wornPaths).length : 0,
+    zoomPct: Math.round(zoom * 100),
+  });
+
   return (
+    <React.Profiler id="MapView" onRender={(_id, _phase, actual) => recordRender("MapView", actual)}>
     <div
       ref={scrollRef}
       className="flex-1 relative overflow-auto scroll-amber grain"
@@ -3418,5 +3431,6 @@ export function MapView() {
       </svg>
       </div>
     </div>
+    </React.Profiler>
   );
 }
