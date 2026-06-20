@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTrackRender } from "@/hooks/use-track-render";
 import { useGame } from "@/game/store";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SettingsMenu } from "./SettingsMenu";
