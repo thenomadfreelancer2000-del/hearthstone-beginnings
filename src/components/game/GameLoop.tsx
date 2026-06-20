@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { useGame } from "@/game/store";
 import { debugLog } from "@/game/debug";
+import { pushFrameTime } from "@/game/profiler";
 
 /** Main RAF game loop wired to the store. Renders nothing. */
 export function GameLoop() {
@@ -17,6 +18,7 @@ export function GameLoop() {
       if (last.current == null) last.current = now;
       const dt = Math.min(120, now - last.current);
       last.current = now;
+      pushFrameTime(dt);
       if (speed > 0) tickReal(dt);
       rafRef.current = requestAnimationFrame(loop);
     };

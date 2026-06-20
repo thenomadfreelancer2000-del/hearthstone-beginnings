@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTrackRender } from "@/hooks/use-track-render";
 import { toast } from "sonner";
 import { useGame } from "@/game/store";
 import { BUILDABLE_KINDS, BUILDINGS } from "@/game/data/content";
@@ -10,6 +11,7 @@ import { MoodFace } from "./MoodFace";
 
 
 export function BottomDock() {
+  useTrackRender("BottomDock");
   const [tab, setTab] = useState<"build" | "people" | "chronicle" | null>(null);
   const [workshopOpen, setWorkshopOpen] = useState(false);
   const open = tab !== null;

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTrackRender } from "@/hooks/use-track-render";
 import { useGame } from "@/game/store";
 import { useShallow } from "zustand/react/shallow";
 import { ArrangeMarriageModal } from "./ArrangeMarriageModal";
@@ -40,6 +41,7 @@ function cap(s: string) { return s[0].toUpperCase() + s.slice(1); }
 
 
 export function Inspector({ onHide }: { onHide?: () => void } = {}) {
+  useTrackRender("Inspector");
   const {
     sel,
     survivors,

@@ -21,6 +21,7 @@ import { BUILDINGS } from "../data/content";
 import { enqueueProposalsForSeason, resolveProposalsDaily } from "./marriage";
 import { dailyLivestockTick } from "./livestock";
 import { dailyMinistersTick, autoAssignWorkers, managerBonus } from "./ministers";
+import { measure } from "../profiler";
 
 export interface Engine {
   time: GameTime;
@@ -180,15 +181,19 @@ export function advance(eng: Engine, n: number, opts?: { onArrival?: (s: Survivo
     };
 
 
-    for (const s of eng.survivors) {
-      if (s.health <= 0) continue;
-      if (!eng.foundingPhase) decayNeeds(s, dt);
-      tickSurvivor(s, dt, deps);
-      // Coworkers chat *while* they work — no state change, no stall.
-      if (s.state === "working") workplaceSmallTalk(s, dt, deps);
-    }
+    measure("sim:ai:survivors", () => {
+      for (const s of eng.survivors) {
+        if (s.health <= 0) continue;
+        if (!eng.foundingPhase) decayNeeds(s, dt);
+        tickSurvivor(s, dt, deps);
+        // Coworkers chat *while* they work — no state change, no stall.
+        if (s.state === "working") workplaceSmallTalk(s, dt, deps);
+      }
+    });
 
-    recoverStalledConstruction(eng.buildings, eng.survivors, eng.time.tick, previousConstructionEffort);
+    measure("sim:construction:recover", () =>
+      recoverStalledConstruction(eng.buildings, eng.survivors, eng.time.tick, previousConstructionEffort),
+    );
 
     // Construction completion notifications
     for (const b of eng.buildings) {
@@ -206,10 +211,10 @@ export function advance(eng: Engine, n: number, opts?: { onArrival?: (s: Survivo
     }
 
     if (eng.time.tick % TICKS_PER_DAY === 0) {
-      dailyTick(eng, opts);
+      measure("sim:dailyTick", () => dailyTick(eng, opts));
     }
   }
-  recomputeStats(eng);
+  measure("sim:recomputeStats", () => recomputeStats(eng));
 }
 
 function familyOf(eng: Engine, survivorId: ID): Family | undefined {
@@ -291,20 +296,20 @@ function dailyTick(eng: Engine, opts?: { onArrival?: (s: Survivor) => Survivor |
   }
 
 
-  processFarms(eng);
-  dailyHousingTick({ buildings: eng.buildings, survivors: eng.survivors, tick: eng.time.tick });
-  dailyFamilyTick({
+  measure("sim:farms", () => processFarms(eng));
+  measure("sim:housing", () => dailyHousingTick({ buildings: eng.buildings, survivors: eng.survivors, tick: eng.time.tick }));
+  measure("sim:families", () => dailyFamilyTick({
     families: eng.families,
     survivors: eng.survivors,
     buildings: eng.buildings,
     currentLeaderId: eng.currentLeaderId,
     founderId: eng.founderId,
     time: { year: eng.time.year },
-  });
-  dailyEducationTick(eng.survivors);
+  }));
+  measure("sim:education", () => dailyEducationTick(eng.survivors));
 
   // Livestock (Livestock & Family Livestock update)
-  dailyLivestockTick({
+  measure("sim:livestock", () => dailyLivestockTick({
     time: { tick: eng.time.tick, year: eng.time.year },
     buildings: eng.buildings,
     survivors: eng.survivors,
@@ -313,10 +318,10 @@ function dailyTick(eng: Engine, opts?: { onArrival?: (s: Survivor) => Survivor |
     founderId: eng.founderId,
     animals: eng.animals,
     livestockRequests: eng.livestockRequests,
-  }, rng);
+  }, rng));
 
   // Ministers (Administration update)
-  dailyMinistersTick({
+  measure("sim:ministers", () => dailyMinistersTick({
     time: { tick: eng.time.tick, year: eng.time.year, season: eng.time.season, day: eng.time.day },
     ministers: eng.ministers,
     ministerRequests: eng.ministerRequests,
@@ -326,17 +331,17 @@ function dailyTick(eng: Engine, opts?: { onArrival?: (s: Survivor) => Survivor |
     animals: eng.animals,
     families: eng.families,
     founderId: eng.founderId,
-  }, rng);
+  }, rng));
 
   // Managers fill their own ranks from the idle/general workforce, no Founder
   // approval required.
-  autoAssignWorkers({
+  measure("sim:autoAssignWorkers", () => autoAssignWorkers({
     ministers: eng.ministers,
     survivors: eng.survivors,
     buildings: eng.buildings,
     animals: eng.animals,
     founderId: eng.founderId,
-  });
+  }));
 
 
   // Memories decay daily — major events have a floor that keeps them alive.

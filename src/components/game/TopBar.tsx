@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTrackRender } from "@/hooks/use-track-render";
 import { useGame } from "@/game/store";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { SettingsMenu } from "./SettingsMenu";
@@ -47,6 +48,7 @@ function ResourcesPanel() {
 }
 
 export function TopBar({ onToggleDock, dockOpen, onSettingsOpenChange }: Props) {
+  useTrackRender("TopBar");
   const ranchName = useGame((s) => s.ranchName);
   const time = useGame((s) => s.time);
   const speed = useGame((s) => s.speed);

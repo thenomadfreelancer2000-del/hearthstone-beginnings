@@ -32,6 +32,7 @@ import {
 } from "./sim/ministers";
 import { saveToLocal, loadFromLocal } from "./persistence";
 import { debugLog } from "./debug";
+import { measure, recordFrame } from "./profiler";
 import { makeRng } from "./sim/rng";
 import { normalizeConstructionBuilding } from "./sim/construction";
 import { CROPS, STARTER_CROP_IDS, isCropId, type CropId } from "./data/crops";
@@ -1643,9 +1644,10 @@ export const useGame = create<GameState>((set, get) => ({
     // (survivors, buildings, nodes, relationships, families, etc.) that
     // were not mutated keep their original identity — selectors that
     // didn't change their data will not trigger re-renders.
+    const _tickT0 = performance.now();
     const next = produce(st, (draft) => {
       const eng = draft as unknown as Engine;
-      advance(eng, n);
+      measure("sim:advance", () => advance(eng, n));
       const newTick = eng.time.tick;
 
       // Founder legacy — bestow an epithet at the moment of death and add a
@@ -1871,12 +1873,12 @@ export const useGame = create<GameState>((set, get) => ({
       if (draft.preferredHeirId === undefined) draft.preferredHeirId = null;
     });
 
-    set(next);
+    measure("store:set", () => set(next));
 
 
     // Resolve any expeditions that returned during this advance.
-    const expeditionPatch = resolveDueExpeditions(
-      get(), next.time.tick, next.time.year, next.time.season, next.time.day,
+    const expeditionPatch = measure("sim:expeditions:resolve", () =>
+      resolveDueExpeditions(get(), next.time.tick, next.time.year, next.time.season, next.time.day),
     );
     if (expeditionPatch) set(expeditionPatch);
 
@@ -1895,6 +1897,7 @@ export const useGame = create<GameState>((set, get) => ({
       const after = get();
       debugLog("simulation:firstTick:done", { tick: after.time.tick, survivors: after.survivors.length, buildings: after.buildings.length });
     }
+    recordFrame(performance.now() - _tickT0, "tick");
   },
 
   acceptArrival: () => {
