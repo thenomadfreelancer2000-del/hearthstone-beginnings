@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AmbientSound, useAmbientToggle } from "./AmbientSound";
 import { useGame } from "@/game/store";
+import { setPanelOpen as setPerfPanelOpen } from "@/game/profiler";
 
 export function SettingsMenu({ compact = false, onOpenChange }: { compact?: boolean; onOpenChange?: (open: boolean) => void }) {
   const { enabled, toggle } = useAmbientToggle();
@@ -58,6 +59,15 @@ export function SettingsMenu({ compact = false, onOpenChange }: { compact?: bool
               {enabled ? "ON" : "OFF"}
             </button>
           </label>
+          <div className="divider-amber my-2" />
+          <button
+            type="button"
+            onClick={() => { setPerfPanelOpen(true); setOpen(false); }}
+            className="btn-ranch btn-ranch-ghost w-full text-[10px] !py-1"
+            title="Open the developer performance panel"
+          >
+            Developer / Performance
+          </button>
           <div className="divider-amber my-2" />
           <button
             type="button"
