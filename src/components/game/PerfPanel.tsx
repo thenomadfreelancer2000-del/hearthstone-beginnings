@@ -219,6 +219,8 @@ interface ReportLike {
   tick: { lastMs: number; avgMs: number; maxMs: number; calls: number } | null;
   top10: Array<{ name: string; calls: number; totalMs: number; avgMs: number; maxMs: number }>;
   renderCounts: Array<{ name: string; count: number }>;
+  componentRenderTime: Array<{ name: string; calls: number; totalMs: number; avgMs: number; maxMs: number }>;
+  renderMeta: Record<string, Record<string, number>>;
 }
 
 function buildReport(
