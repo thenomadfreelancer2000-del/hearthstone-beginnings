@@ -160,10 +160,10 @@ export function GameShell() {
 
 
       {/* Desktop: dock always; Mobile: inline bottom tray so it never covers the leader portrait */}
-      {!isMobile && <BottomDock />}
+      {!isMobile && <ProfiledSection id="BottomDock"><BottomDock /></ProfiledSection>}
       {isMobile && dockOpen && (
           <div className="relative z-30 max-h-[50vh] overflow-hidden shrink-0">
-            <BottomDock />
+            <ProfiledSection id="BottomDock"><BottomDock /></ProfiledSection>
           </div>
       )}
 
