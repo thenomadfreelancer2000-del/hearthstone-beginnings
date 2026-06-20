@@ -1873,12 +1873,12 @@ export const useGame = create<GameState>((set, get) => ({
       if (draft.preferredHeirId === undefined) draft.preferredHeirId = null;
     });
 
-    set(next);
+    measure("store:set", () => set(next));
 
 
     // Resolve any expeditions that returned during this advance.
-    const expeditionPatch = resolveDueExpeditions(
-      get(), next.time.tick, next.time.year, next.time.season, next.time.day,
+    const expeditionPatch = measure("sim:expeditions:resolve", () =>
+      resolveDueExpeditions(get(), next.time.tick, next.time.year, next.time.season, next.time.day),
     );
     if (expeditionPatch) set(expeditionPatch);
 
