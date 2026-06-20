@@ -181,15 +181,19 @@ export function advance(eng: Engine, n: number, opts?: { onArrival?: (s: Survivo
     };
 
 
-    for (const s of eng.survivors) {
-      if (s.health <= 0) continue;
-      if (!eng.foundingPhase) decayNeeds(s, dt);
-      tickSurvivor(s, dt, deps);
-      // Coworkers chat *while* they work — no state change, no stall.
-      if (s.state === "working") workplaceSmallTalk(s, dt, deps);
-    }
+    measure("sim:ai:survivors", () => {
+      for (const s of eng.survivors) {
+        if (s.health <= 0) continue;
+        if (!eng.foundingPhase) decayNeeds(s, dt);
+        tickSurvivor(s, dt, deps);
+        // Coworkers chat *while* they work — no state change, no stall.
+        if (s.state === "working") workplaceSmallTalk(s, dt, deps);
+      }
+    });
 
-    recoverStalledConstruction(eng.buildings, eng.survivors, eng.time.tick, previousConstructionEffort);
+    measure("sim:construction:recover", () =>
+      recoverStalledConstruction(eng.buildings, eng.survivors, eng.time.tick, previousConstructionEffort),
+    );
 
     // Construction completion notifications
     for (const b of eng.buildings) {
@@ -207,10 +211,10 @@ export function advance(eng: Engine, n: number, opts?: { onArrival?: (s: Survivo
     }
 
     if (eng.time.tick % TICKS_PER_DAY === 0) {
-      dailyTick(eng, opts);
+      measure("sim:dailyTick", () => dailyTick(eng, opts));
     }
   }
-  recomputeStats(eng);
+  measure("sim:recomputeStats", () => recomputeStats(eng));
 }
 
 function familyOf(eng: Engine, survivorId: ID): Family | undefined {
