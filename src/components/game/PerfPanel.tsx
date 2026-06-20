@@ -50,6 +50,8 @@ export function PerfPanel() {
   const top = entries.filter((e) => !e.name.startsWith("@")).slice(0, 10);
   const tickEntry = entries.find((e) => e.name === "@tick");
   const renders = getRenderCounts().sort((a, b) => b.count - a.count).slice(0, 12);
+  const renderEntries = entries.filter((e) => e.name.startsWith("render:")).slice(0, 8);
+  const renderMeta = getRenderMeta();
 
   const houses = buildings.filter((b) => b.kind === "homestead" || /home|house|hut|shelter|cabin|cottage|tent/i.test(b.kind)).length;
 
