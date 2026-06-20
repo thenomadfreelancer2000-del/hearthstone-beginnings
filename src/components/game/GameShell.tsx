@@ -31,6 +31,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useTrackRender } from "@/hooks/use-track-render";
 
 export function GameShell() {
+  useTrackRender("GameShell");
   const overlay = useGame((s) => s.overlay);
   const selection = useGame((s) => s.selection);
   const clearSelection = useGame((s) => s.clearSelection);
