@@ -1,6 +1,7 @@
 import type {
   Building, ChatTopic, Relationship, ResourceKind, ResourceNode, Survivor, Tile,
 } from "../types";
+import { debugLog } from "../debug";
 import { applyConstructionWork, hasConstructionResources, normalizeConstructionBuilding } from "./construction";
 import { traitPairBias, traitMarriageScore, traitWorkSpeed } from "../data/traits";
 import { learningRate } from "./skills";
@@ -237,12 +238,17 @@ const campfireCache = new WeakMap<Building[], Building[]>();
 const shelterCache = new WeakMap<Building[], Building[]>();
 const unfinishedCache = new WeakMap<Building[], Building[]>();
 const nodesByKindCache = new WeakMap<ResourceNode[], Map<ResourceKind, ResourceNode[]>>();
+const loggedPathingCaches = new Set<string>();
 
 function getWaterTiles(tiles: Tile[]): Tile[] {
   let cached = waterTilesCache.get(tiles);
   if (!cached) {
     cached = tiles.filter(t => t.kind === "water");
     waterTilesCache.set(tiles, cached);
+    if (!loggedPathingCaches.has("water")) {
+      loggedPathingCaches.add("water");
+      debugLog("pathing:waterCache:built", { tiles: tiles.length, waterTiles: cached.length });
+    }
   }
   return cached;
 }
@@ -254,6 +260,10 @@ function getStockpiles(buildings: Building[]): Building[] {
       (b.kind === "stockpile" || b.kind === "homestead") && b.builtProgress >= 1,
     );
     stockpileCache.set(buildings, cached);
+    if (!loggedPathingCaches.has("stockpile")) {
+      loggedPathingCaches.add("stockpile");
+      debugLog("pathing:stockpileCache:built", { buildings: buildings.length, stockpiles: cached.length });
+    }
   }
   return cached;
 }
@@ -263,6 +273,10 @@ function getCampfires(buildings: Building[]): Building[] {
   if (!cached) {
     cached = buildings.filter(b => b.kind === "campfire" && b.builtProgress >= 1);
     campfireCache.set(buildings, cached);
+    if (!loggedPathingCaches.has("campfire")) {
+      loggedPathingCaches.add("campfire");
+      debugLog("pathing:campfireCache:built", { buildings: buildings.length, campfires: cached.length });
+    }
   }
   return cached;
 }
@@ -274,6 +288,10 @@ function getShelters(buildings: Building[]): Building[] {
       b.builtProgress >= 1 && (b.kind === "tent" || b.kind === "cabin" || b.kind === "homestead"),
     );
     shelterCache.set(buildings, cached);
+    if (!loggedPathingCaches.has("shelter")) {
+      loggedPathingCaches.add("shelter");
+      debugLog("pathing:shelterCache:built", { buildings: buildings.length, shelters: cached.length });
+    }
   }
   return cached;
 }
@@ -283,6 +301,10 @@ function getUnfinished(buildings: Building[]): Building[] {
   if (!cached) {
     cached = buildings.filter(b => b.builtProgress < 1);
     unfinishedCache.set(buildings, cached);
+    if (!loggedPathingCaches.has("unfinished")) {
+      loggedPathingCaches.add("unfinished");
+      debugLog("pathing:unfinishedCache:built", { buildings: buildings.length, unfinished: cached.length });
+    }
   }
   return cached;
 }
@@ -297,6 +319,10 @@ function getNodesByKind(nodes: ResourceNode[], wants: ResourceKind): ResourceNod
       bucket.push(n);
     }
     nodesByKindCache.set(nodes, map);
+    if (!loggedPathingCaches.has("nodes")) {
+      loggedPathingCaches.add("nodes");
+      debugLog("pathing:nodesByKindCache:built", { nodes: nodes.length, kinds: Array.from(map.keys()) });
+    }
   }
   return map.get(wants) ?? [];
 }
