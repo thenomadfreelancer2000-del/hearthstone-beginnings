@@ -2528,6 +2528,7 @@ const StaticResourceLayer = React.memo(function StaticResourceLayer({ nodes }: {
 
 
 export function MapView() {
+  useTrackRender("MapView");
   const {
     tiles,
     mapW,
