@@ -48,6 +48,7 @@ function ResourcesPanel() {
 }
 
 export function TopBar({ onToggleDock, dockOpen, onSettingsOpenChange }: Props) {
+  useTrackRender("TopBar");
   const ranchName = useGame((s) => s.ranchName);
   const time = useGame((s) => s.time);
   const speed = useGame((s) => s.speed);
