@@ -25,6 +25,7 @@ import { CouncilVoteModal } from "./CouncilVoteModal";
 import { FoundingCharterModal } from "./FoundingCharterModal";
 import { ExpeditionPanel } from "./ExpeditionPanel";
 import { useGame } from "@/game/store";
+import { debugLog } from "@/game/debug";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 export function GameShell() {
@@ -48,6 +49,11 @@ export function GameShell() {
       ? `tile:${selection.x},${selection.y}`
       : "none";
   const lastSelectionKey = useRef(selectionKey);
+
+  useEffect(() => {
+    debugLog("gameShell:mounted", { isMobile });
+    return () => debugLog("gameShell:unmounted");
+  }, [isMobile]);
 
   // Auto-open inspector on mobile only after the player changes selection.
   useEffect(() => {
