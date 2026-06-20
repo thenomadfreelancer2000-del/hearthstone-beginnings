@@ -40,6 +40,24 @@ export function recordFrame(frameMs: number, kind: "frame" | "tick" | "render" =
   if (frameMs > e.maxMs) e.maxMs = frameMs;
 }
 
+/** Record a React commit duration captured by <React.Profiler onRender>. */
+export function recordRender(componentName: string, actualMs: number) {
+  const key = `render:${componentName}`;
+  let e = _entries.get(key);
+  if (!e) { e = { name: key, calls: 0, totalMs: 0, lastMs: 0, maxMs: 0 }; _entries.set(key, e); }
+  e.calls += 1;
+  e.totalMs += actualMs;
+  e.lastMs = actualMs;
+  if (actualMs > e.maxMs) e.maxMs = actualMs;
+}
+
+// ── Render metadata (e.g. "how many tiles did MapView draw?") ──────────
+const _renderMeta = new Map<string, Record<string, number>>();
+export function setRenderMeta(component: string, meta: Record<string, number>) {
+  _renderMeta.set(component, meta);
+}
+export function getRenderMeta() { return new Map(_renderMeta); }
+
 export function getEntries(): ProfileEntry[] {
   return Array.from(_entries.values());
 }
