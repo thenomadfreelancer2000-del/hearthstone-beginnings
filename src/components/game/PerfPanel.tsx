@@ -133,6 +133,39 @@ export function PerfPanel() {
         </table>
       </Section>
 
+      <Section title="React commit time (actualDuration)">
+        {renderEntries.length === 0
+          ? <div style={{ opacity: 0.6 }}>no Profiler samples yet</div>
+          : (
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead><tr style={{ color: "#a89970", textAlign: "left" }}>
+                <th>component</th>
+                <th style={{ textAlign: "right" }}>commits</th>
+                <th style={{ textAlign: "right" }}>total</th>
+                <th style={{ textAlign: "right" }}>avg</th>
+                <th style={{ textAlign: "right" }}>max</th>
+              </tr></thead>
+              <tbody>
+                {renderEntries.map((e) => (
+                  <tr key={e.name}>
+                    <td>{e.name.replace("render:", "")}</td>
+                    <td style={{ textAlign: "right" }}>{e.calls}</td>
+                    <td style={{ textAlign: "right" }}>{e.totalMs.toFixed(1)}</td>
+                    <td style={{ textAlign: "right" }}>{(e.totalMs / Math.max(1, e.calls)).toFixed(2)}</td>
+                    <td style={{ textAlign: "right" }}>{e.maxMs.toFixed(2)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        {Array.from(renderMeta.entries()).map(([k, m]) => (
+          <div key={k} style={{ marginTop: 4, opacity: 0.85 }}>
+            <span style={{ color: "#a89970" }}>{k}:</span>{" "}
+            {Object.entries(m).map(([mk, mv]) => `${mk}=${mv}`).join("  ")}
+          </div>
+        ))}
+      </Section>
+
       <Section title="React re-renders (tracked components)">
         {renders.length === 0
           ? <div style={{ opacity: 0.6 }}>no components use useTrackRender yet</div>
