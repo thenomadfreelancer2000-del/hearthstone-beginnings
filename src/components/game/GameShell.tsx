@@ -80,11 +80,13 @@ export function GameShell() {
       <GameLoop />
       <ZombieLoop />
       <PerfPanel />
-      <TopBar
-        onToggleDock={() => setDockOpen((v) => !v)}
-        dockOpen={dockOpen}
-        onSettingsOpenChange={setSettingsOpen}
-      />
+      <ProfiledSection id="TopBar">
+        <TopBar
+          onToggleDock={() => setDockOpen((v) => !v)}
+          dockOpen={dockOpen}
+          onSettingsOpenChange={setSettingsOpen}
+        />
+      </ProfiledSection>
 
       <div className="flex-1 flex min-h-0 relative">
         <MapView />
