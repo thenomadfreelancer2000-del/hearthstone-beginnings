@@ -175,3 +175,129 @@ function Row({ k, v }: { k: string; v: React.ReactNode }) {
     </div>
   );
 }
+
+interface ReportLike {
+  generatedAt: string;
+  device: Record<string, unknown>;
+  counts: Record<string, number>;
+  frame: { fps: number; avgFrameMs: number };
+  tick: { lastMs: number; avgMs: number; maxMs: number; calls: number } | null;
+  top10: Array<{ name: string; calls: number; totalMs: number; avgMs: number; maxMs: number }>;
+  renderCounts: Array<{ name: string; count: number }>;
+}
+
+function buildReport(
+  survivors: ReturnType<typeof useGame.getState>["survivors"],
+  families: ReturnType<typeof useGame.getState>["families"],
+  buildings: ReturnType<typeof useGame.getState>["buildings"],
+  relationships: ReturnType<typeof useGame.getState>["relationships"],
+  animals: ReturnType<typeof useGame.getState>["animals"],
+  expeditions: ReturnType<typeof useGame.getState>["expeditions"],
+): ReportLike {
+  const { fps, avgFrameMs } = getFps();
+  const entries = getEntries().slice().sort((a, b) => b.totalMs - a.totalMs);
+  const tick = entries.find((e) => e.name === "@tick");
+  const top10 = entries.filter((e) => !e.name.startsWith("@")).slice(0, 10).map((e) => ({
+    name: e.name, calls: e.calls, totalMs: +e.totalMs.toFixed(2),
+    avgMs: +(e.totalMs / Math.max(1, e.calls)).toFixed(3), maxMs: +e.maxMs.toFixed(2),
+  }));
+  const renderCounts = getRenderCounts().sort((a, b) => b.count - a.count).slice(0, 20).map((r) => ({ name: r.name, count: r.count }));
+  const nav = typeof navigator !== "undefined" ? navigator : ({} as Navigator);
+  const win = typeof window !== "undefined" ? window : ({} as Window);
+  const device: Record<string, unknown> = {
+    userAgent: nav.userAgent ?? "unknown",
+    platform: (nav as { platform?: string }).platform ?? "unknown",
+    hardwareConcurrency: (nav as { hardwareConcurrency?: number }).hardwareConcurrency ?? null,
+    deviceMemoryGB: (nav as { deviceMemory?: number }).deviceMemory ?? null,
+    pixelRatio: (win as { devicePixelRatio?: number }).devicePixelRatio ?? null,
+    viewport: win.innerWidth ? `${win.innerWidth}x${win.innerHeight}` : null,
+    language: nav.language ?? null,
+    online: nav.onLine ?? null,
+  };
+  const alive = survivors.filter((s) => s.health > 0).length;
+  return {
+    generatedAt: new Date().toISOString(),
+    device,
+    counts: {
+      survivorsAlive: alive,
+      survivorsTotal: survivors.length,
+      families: families.length,
+      buildings: buildings.length,
+      relationships: relationships.length,
+      animals: animals.length,
+      activeExpeditions: expeditions.filter((e) => e.status === "active" || e.status === "planned").length,
+    },
+    frame: { fps: +fps.toFixed(2), avgFrameMs: +avgFrameMs.toFixed(3) },
+    tick: tick ? {
+      lastMs: +tick.lastMs.toFixed(2),
+      avgMs: +(tick.totalMs / Math.max(1, tick.calls)).toFixed(3),
+      maxMs: +tick.maxMs.toFixed(2),
+      calls: tick.calls,
+    } : null,
+    top10,
+    renderCounts,
+  };
+}
+
+function exportJson(report: ReportLike) {
+  try {
+    const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `ranch-perf-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (e) {
+    console.error("perf export failed", e);
+  }
+}
+
+async function copyReport(report: ReportLike, onDone: (v: boolean) => void) {
+  const text = formatReport(report);
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(text);
+    } else {
+      const ta = document.createElement("textarea");
+      ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+      document.body.appendChild(ta); ta.select(); document.execCommand("copy"); ta.remove();
+    }
+    onDone(true);
+    setTimeout(() => onDone(false), 1500);
+  } catch (e) {
+    console.error("perf copy failed", e);
+  }
+}
+
+function formatReport(r: ReportLike): string {
+  const lines: string[] = [];
+  lines.push(`=== RANCH PERFORMANCE REPORT ===`);
+  lines.push(`generated: ${r.generatedAt}`);
+  lines.push(``);
+  lines.push(`--- DEVICE ---`);
+  for (const [k, v] of Object.entries(r.device)) lines.push(`  ${k}: ${v}`);
+  lines.push(``);
+  lines.push(`--- WORLD COUNTS ---`);
+  for (const [k, v] of Object.entries(r.counts)) lines.push(`  ${k}: ${v}`);
+  lines.push(``);
+  lines.push(`--- FRAME ---`);
+  lines.push(`  avg FPS: ${r.frame.fps}`);
+  lines.push(`  avg frame: ${r.frame.avgFrameMs} ms`);
+  if (r.tick) {
+    lines.push(`  tick avg: ${r.tick.avgMs} ms (last ${r.tick.lastMs} ms, max ${r.tick.maxMs} ms, ${r.tick.calls} calls)`);
+  }
+  lines.push(``);
+  lines.push(`--- TOP 10 EXPENSIVE FUNCTIONS ---`);
+  for (const e of r.top10) {
+    lines.push(`  ${e.name.padEnd(28)} calls=${String(e.calls).padStart(5)}  total=${e.totalMs}ms  avg=${e.avgMs}ms  max=${e.maxMs}ms`);
+  }
+  if (r.renderCounts.length) {
+    lines.push(``);
+    lines.push(`--- REACT RE-RENDERS ---`);
+    for (const c of r.renderCounts) lines.push(`  ${c.name.padEnd(20)} ${c.count}`);
+  }
+  return lines.join("\n");
+}
