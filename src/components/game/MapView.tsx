@@ -2615,8 +2615,17 @@ export function MapView() {
   const VH = ISO.h * zoom;
   const initialCenterDone = useRef(false);
 
+  useEffect(() => {
+    debugLog("map:mounted", { mapW, mapH, tiles: tiles.length, buildings: buildings.length, nodes: nodes.length });
+    return () => debugLog("map:unmounted");
+  }, []);
 
   useEffect(() => {
+    debugLog("map:renderReady", { mapW, mapH, tiles: tiles.length, buildings: buildings.length, nodes: nodes.length, survivors: survivors.length });
+  }, [mapW, mapH, tiles.length, buildings.length, nodes.length, survivors.length]);
+
+  useEffect(() => {
+    debugLog("map:expandWorld:check", { mapW, mapH });
     expandWorldToCurrentSize();
   }, [expandWorldToCurrentSize]);
 
@@ -2631,6 +2640,7 @@ export function MapView() {
       const h = state.buildings.find(b => b.kind === "homestead");
       if (h) { cx = h.x + h.w / 2; cy = h.y + h.h / 2; }
     }
+    debugLog("camera:center:request", { behavior, cx, cy, zoom });
     requestAnimationFrame(() => {
       const target = scrollRef.current;
       if (!target) return;
@@ -2646,12 +2656,14 @@ export function MapView() {
         top: Math.max(0, sy),
         behavior,
       });
+      debugLog("camera:center:done", { left: Math.max(0, sx), top: Math.max(0, sy), behavior });
     });
   }
 
   useEffect(() => {
     if (initialCenterDone.current || buildings.length === 0) return;
     initialCenterDone.current = true;
+    debugLog("camera:initialCenter:start", { buildings: buildings.length });
     scrollToRanch("auto");
   }, [buildings.length, mapW, mapH]);
 
