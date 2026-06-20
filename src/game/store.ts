@@ -1644,9 +1644,10 @@ export const useGame = create<GameState>((set, get) => ({
     // (survivors, buildings, nodes, relationships, families, etc.) that
     // were not mutated keep their original identity — selectors that
     // didn't change their data will not trigger re-renders.
+    const _tickT0 = performance.now();
     const next = produce(st, (draft) => {
       const eng = draft as unknown as Engine;
-      advance(eng, n);
+      measure("sim:advance", () => advance(eng, n));
       const newTick = eng.time.tick;
 
       // Founder legacy — bestow an epithet at the moment of death and add a
