@@ -140,7 +140,7 @@ export function GameShell() {
               ◀
             </button>
           ) : (
-            <Inspector onHide={() => setInspectorCollapsed(true)} />
+            <ProfiledSection id="Inspector"><Inspector onHide={() => setInspectorCollapsed(true)} /></ProfiledSection>
           )
         )}
 
