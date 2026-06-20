@@ -13,6 +13,7 @@ import {
 export function PerfPanel() {
   const [open, setOpen] = useState<boolean>(isPanelOpen());
   const [, force] = useState(0);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => subscribePanel(setOpen), []);
 
