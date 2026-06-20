@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { useGame } from "@/game/store";
+import { debugLog } from "@/game/debug";
 import { MainMenu } from "@/components/game/MainMenu";
 import { FounderCreation } from "@/components/game/FounderCreation";
 import { GameShell } from "@/components/game/GameShell";
@@ -19,6 +21,29 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   const screen = useGame((s) => s.screen);
+  useEffect(() => {
+    debugLog("app:startup", {
+      userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "unknown",
+      href: typeof window !== "undefined" ? window.location.href : "unknown",
+    });
+    const onError = (event: ErrorEvent) => {
+      debugLog("app:error", { message: event.message, filename: event.filename, lineno: event.lineno, colno: event.colno });
+    };
+    const onUnhandledRejection = (event: PromiseRejectionEvent) => {
+      debugLog("app:unhandledRejection", { reason: String(event.reason) });
+    };
+    window.addEventListener("error", onError);
+    window.addEventListener("unhandledrejection", onUnhandledRejection);
+    return () => {
+      window.removeEventListener("error", onError);
+      window.removeEventListener("unhandledrejection", onUnhandledRejection);
+    };
+  }, []);
+
+  useEffect(() => {
+    debugLog("app:screen", { screen });
+  }, [screen]);
+
   return (
     <>
       <RotateDevicePrompt />

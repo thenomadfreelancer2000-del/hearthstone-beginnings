@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { useGame } from "@/game/store";
 import { hasSave } from "@/game/persistence";
+import { debugLog } from "@/game/debug";
 import heroImage from "@/assets/menu-hero.jpg";
 import { WorkshopPanel } from "./WorkshopPanel";
 
@@ -11,7 +12,14 @@ export function MainMenu() {
   const [canResume, setCanResume] = useState(false);
   const [workshopOpen, setWorkshopOpen] = useState(false);
   useEffect(() => {
-    setCanResume(hasSave());
+    debugLog("menu:mounted");
+    const can = hasSave();
+    debugLog("menu:hasSave", { canResume: can });
+    setCanResume(can);
+    const img = new Image();
+    img.onload = () => debugLog("asset:menuHero:loaded", { src: heroImage });
+    img.onerror = () => debugLog("asset:menuHero:error", { src: heroImage });
+    img.src = heroImage;
   }, []);
 
   return (
@@ -122,14 +130,20 @@ export function MainMenu() {
             {canResume && (
               <button
                 className="btn-ranch btn-ranch-primary"
-                onClick={() => resume()}
+                onClick={() => {
+                  debugLog("menu:resume:click");
+                  resume();
+                }}
               >
                 Resume the Chronicle
               </button>
             )}
             <button
               className={`btn-ranch ${canResume ? "" : "btn-ranch-primary"}`}
-              onClick={() => setScreen("founder")}
+              onClick={() => {
+                debugLog("menu:newFounding:click");
+                setScreen("founder");
+              }}
             >
               Begin a New Founding
             </button>

@@ -1,5 +1,6 @@
 import React from "react";
 import { getWorkshopVisual, workshopBaseKind, isWorkshopKind } from "@/game/workshop/registry";
+import { debugLog } from "@/game/debug";
 import homesteadAsset from "@/assets/homestead.png.asset.json";
 
 
@@ -27,6 +28,7 @@ const INK = "#1a1208";
 const INK_SOFT = "#2f2114";
 const SHADOW = "rgba(0,0,0,0.32)";
 const HILITE = "rgba(255,235,190,0.10)";
+const loggedSpriteEvents = new Set<string>();
 
 const poly = (...pts: P[]) => pts.map((p) => `${p[0]},${p[1]}`).join(" ");
 const lift = (p: P, by: number): P => [p[0], p[1] - by];
@@ -2152,6 +2154,18 @@ function IsoSprite({ gridW, gridH, T, src }: { gridW: number; gridH: number; T: 
         width={w}
         height={h}
         preserveAspectRatio="xMidYMax meet"
+        onLoad={() => {
+          const key = `loaded:${src}`;
+          if (loggedSpriteEvents.has(key)) return;
+          loggedSpriteEvents.add(key);
+          debugLog("asset:sprite:loaded", { src, gridW, gridH });
+        }}
+        onError={() => {
+          const key = `error:${src}`;
+          if (loggedSpriteEvents.has(key)) return;
+          loggedSpriteEvents.add(key);
+          debugLog("asset:sprite:error", { src, gridW, gridH });
+        }}
       />
     </g>
   );

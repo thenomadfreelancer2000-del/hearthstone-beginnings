@@ -1,5 +1,6 @@
 import type { SaveGame } from "./types";
 import { syncSkills } from "./sim/skills";
+import { debugError, debugLog } from "./debug";
 
 
 const KEY = "the-ranch-save-v2";
@@ -7,18 +8,40 @@ const LEGACY_KEY_V1 = "the-ranch-save-v1";
 
 export function saveToLocal(save: SaveGame) {
   try {
+    debugLog("save:write:start", {
+      tick: save.time.tick,
+      survivors: save.survivors.length,
+      buildings: save.buildings.length,
+      tiles: save.tiles.length,
+      nodes: save.resourceNodes.length,
+    });
     localStorage.setItem(KEY, JSON.stringify(save));
+    debugLog("save:write:done");
     return true;
-  } catch {
+  } catch (error) {
+    debugError("save:write:error", error);
     return false;
   }
 }
 
 export function loadFromLocal(): SaveGame | null {
   try {
+    debugLog("save:load:start");
     const raw = localStorage.getItem(KEY);
-    if (!raw) return null;
+    if (!raw) {
+      debugLog("save:load:empty");
+      return null;
+    }
+    debugLog("save:load:raw", { bytes: raw.length });
     const data = JSON.parse(raw) as SaveGame;
+    debugLog("save:load:parsed", {
+      version: data.version,
+      tick: data.time?.tick,
+      survivors: data.survivors?.length ?? 0,
+      buildings: data.buildings?.length ?? 0,
+      tiles: data.tiles?.length ?? 0,
+      nodes: data.resourceNodes?.length ?? 0,
+    });
     if (data.version !== 2 && data.version !== 3 && data.version !== 4 && data.version !== 5 && data.version !== 6) return null;
     if (data.version === 2) {
       (data as SaveGame).proposals = [];
@@ -54,8 +77,10 @@ export function loadFromLocal(): SaveGame | null {
     } catch {
       /* ignore — UI falls back to legacy fields if sync fails */
     }
+    debugLog("save:load:done", { version: data.version });
     return data;
-  } catch {
+  } catch (error) {
+    debugError("save:load:error", error);
     return null;
   }
 }

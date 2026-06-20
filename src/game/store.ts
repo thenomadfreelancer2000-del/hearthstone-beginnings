@@ -31,6 +31,7 @@ import {
   ROLE_OCCUPATION, makeMinister, applyApproval, applyRejection,
 } from "./sim/ministers";
 import { saveToLocal, loadFromLocal } from "./persistence";
+import { debugLog } from "./debug";
 import { makeRng } from "./sim/rng";
 import { normalizeConstructionBuilding } from "./sim/construction";
 import { CROPS, STARTER_CROP_IDS, isCropId, type CropId } from "./data/crops";
@@ -61,6 +62,8 @@ export type Overlay = "tree" | "family" | "chronicle" | null;
 // at a fixed visual cadence; faster speeds batch more sim ticks per update.
 let _tickAccumMs = 0;
 let _tickAccumSpeed: number | null = null;
+let _simLoopLogged = false;
+let _firstTickLogged = false;
 
 export interface SelectionNone { kind: "none" }
 export interface SelectionSurvivor { kind: "survivor"; id: string }
@@ -1065,8 +1068,11 @@ export const useGame = create<GameState>((set, get) => ({
 
 
   newGame: (ranchName, founderInput) => {
+    debugLog("world:newGame:start", { ranchName, companions: founderInput.companions ?? "alone" });
     const seed = Math.floor(Math.random() * 0xffffffff);
+    debugLog("world:generate:start", { seed, mapW: MAP_W, mapH: MAP_H });
     const { tiles, nodes, homesteadTile } = generateWorld(seed);
+    debugLog("world:generate:done", { seed, tiles: tiles.length, nodes: nodes.length, homesteadTile });
     const founder = makeFounder(founderInput, homesteadTile);
     const family = makeFounderFamily(founder, 1);
     founder.familyId = family.id;
@@ -1147,6 +1153,8 @@ export const useGame = create<GameState>((set, get) => ({
     const allSurvivors: Survivor[] = [founder, ...extraSurvivors];
     const allFamilies: Family[] = [family, ...extraFamilies];
     const pop = allSurvivors.length;
+    _simLoopLogged = false;
+    _firstTickLogged = false;
 
     const foundingBody =
       choice === "alone"
@@ -1211,13 +1219,38 @@ export const useGame = create<GameState>((set, get) => ({
       ministerReports: [],
       wornPaths: {},
     });
+    debugLog("world:newGame:stateApplied", {
+      screen: "game",
+      survivors: allSurvivors.length,
+      buildings: 1,
+      foundingPhase: true,
+    });
 
   },
 
   resumeFromSave: () => {
+    debugLog("world:resume:start");
     const rawSave = loadFromLocal();
-    if (!rawSave) return false;
+    if (!rawSave) {
+      debugLog("world:resume:noSave");
+      return false;
+    }
+    debugLog("world:resume:expand:start", {
+      seed: rawSave.seed,
+      mapW: rawSave.mapW,
+      mapH: rawSave.mapH,
+      tiles: rawSave.tiles.length,
+      nodes: rawSave.resourceNodes.length,
+    });
     const save = expandSavedWorld(rawSave);
+    debugLog("world:resume:expand:done", {
+      mapW: save.mapW,
+      mapH: save.mapH,
+      tiles: save.tiles.length,
+      nodes: save.resourceNodes.length,
+    });
+    _simLoopLogged = false;
+    _firstTickLogged = false;
     set({
       screen: "game",
       overlay: null,
@@ -1271,6 +1304,12 @@ export const useGame = create<GameState>((set, get) => ({
       expeditions: save.expeditions ?? [],
       borderMode: false,
       wornPaths: {},
+    });
+    debugLog("world:resume:stateApplied", {
+      screen: "game",
+      tick: save.time.tick,
+      survivors: save.survivors.length,
+      buildings: save.buildings.length,
     });
 
     return true;
@@ -1563,6 +1602,16 @@ export const useGame = create<GameState>((set, get) => ({
   tickReal: (deltaMs) => {
     const st = get();
     if (st.speed === 0 || st.screen !== "game") { _tickAccumMs = 0; return; }
+    if (!_simLoopLogged) {
+      _simLoopLogged = true;
+      debugLog("simulation:startup", {
+        tick: st.time.tick,
+        speed: st.speed,
+        survivors: st.survivors.length,
+        buildings: st.buildings.length,
+        nodes: st.nodes.length,
+      });
+    }
     if (st.pendingArrival) return; // pause while the player decides
     if (st.pendingCouncilVote) return; // pause during a council vote
     if (st.pendingFoundingCharter) return; // pause during the Founding Charter
@@ -1581,6 +1630,10 @@ export const useGame = create<GameState>((set, get) => ({
     if (visualBatches > maxVisualBatches) { _tickAccumMs = 0; visualBatches = maxVisualBatches; }
     else { _tickAccumMs -= visualBatches * msPerUpdate; }
     const n = visualBatches * speedMultiplier;
+    const logFirstTick = !_firstTickLogged;
+    if (logFirstTick) {
+      debugLog("simulation:firstTick:start", { deltaMs, visualBatches, n, tick: st.time.tick });
+    }
 
     const prevTick = st.time.tick;
     const prevFounderAlive = (st.survivors.find(s => s.id === st.founderId)?.health ?? 0) > 0;
@@ -1837,6 +1890,11 @@ export const useGame = create<GameState>((set, get) => ({
       }
     }
     if (st.foundingPhase) maybeCompleteFounding(get, set);
+    if (logFirstTick) {
+      _firstTickLogged = true;
+      const after = get();
+      debugLog("simulation:firstTick:done", { tick: after.time.tick, survivors: after.survivors.length, buildings: after.buildings.length });
+    }
   },
 
   acceptArrival: () => {
