@@ -24,9 +24,11 @@ import { FactionsPanel } from "./FactionsPanel";
 import { CouncilVoteModal } from "./CouncilVoteModal";
 import { FoundingCharterModal } from "./FoundingCharterModal";
 import { ExpeditionPanel } from "./ExpeditionPanel";
+import { PerfPanel } from "./PerfPanel";
 import { useGame } from "@/game/store";
 import { debugLog } from "@/game/debug";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useTrackRender } from "@/hooks/use-track-render";
 
 export function GameShell() {
   const overlay = useGame((s) => s.overlay);
