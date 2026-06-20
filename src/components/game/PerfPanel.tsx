@@ -63,7 +63,7 @@ export function PerfPanel() {
   const moving = stateCounts.moving ?? 0;
   const working = stateCounts.working ?? 0;
   const idle = stateCounts.idle ?? 0;
-  const activeExpeditions = expeditions.filter((e) => e.status === "in-progress" || e.status === "returning").length;
+  const activeExpeditions = expeditions.filter((e) => e.status === "active" || e.status === "planned").length;
 
   return (
     <div
