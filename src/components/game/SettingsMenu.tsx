@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { AmbientSound, useAmbientToggle } from "./AmbientSound";
 import { useGame } from "@/game/store";
+import { setPanelOpen as setPerfPanelOpen } from "@/game/profiler";
 
 export function SettingsMenu({ compact = false, onOpenChange }: { compact?: boolean; onOpenChange?: (open: boolean) => void }) {
   const { enabled, toggle } = useAmbientToggle();
