@@ -52,10 +52,12 @@ function ResourcesPanel() {
 export function TopBar({ onToggleDock, dockOpen, onSettingsOpenChange }: Props) {
   useTrackRender("TopBar");
   const ranchName = useGame((s) => s.ranchName);
-  const time = useGame((s) => s.time);
+  const season = useGame((s) => s.time.season);
+  const year = useGame((s) => s.time.year);
   const speed = useGame((s) => s.speed);
   const setSpeed = useGame((s) => s.setSpeed);
-  const stats = useGame((s) => s.stats);
+  const population = useGame((s) => s.stats.population);
+  const morale = useGame((s) => s.stats.morale);
   const save = useGame((s) => s.save);
   const setScreen = useGame((s) => s.setScreen);
   const isMobile = useIsMobile();
