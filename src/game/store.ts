@@ -1,5 +1,14 @@
 import { create } from "zustand";
-import { produce } from "immer";
+import { produce, setAutoFreeze } from "immer";
+
+// The sim engine and several reducers mutate engine state in place outside of
+// Immer producers (e.g. expedition resolution, livestock/minister handlers,
+// world setup). Immer's default deep-freeze of producer output would cause
+// those in-place mutations to throw "Cannot assign to read only property",
+// which manifests as the game crashing/reloading on entering the in-game view.
+// Disable auto-freeze so produce() still gives us structural sharing (for
+// shallow-equality selectors) without freezing the resulting tree.
+setAutoFreeze(false);
 import { nanoid } from "nanoid";
 import { toast } from "sonner";
 import type {
