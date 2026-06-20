@@ -3431,5 +3431,6 @@ export function MapView() {
       </svg>
       </div>
     </div>
+    </React.Profiler>
   );
 }
