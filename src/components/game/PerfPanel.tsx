@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useGame } from "@/game/store";
 import {
   getEntries, getFps, getRenderCounts, resetEntries,
-  isPanelOpen, setPanelOpen, subscribePanel,
+  isPanelOpen, setPanelOpen, subscribePanel, getRenderMeta,
 } from "@/game/profiler";
 
 /**
