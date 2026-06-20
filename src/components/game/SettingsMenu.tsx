@@ -62,6 +62,15 @@ export function SettingsMenu({ compact = false, onOpenChange }: { compact?: bool
           <div className="divider-amber my-2" />
           <button
             type="button"
+            onClick={() => { setPerfPanelOpen(true); setOpen(false); }}
+            className="btn-ranch btn-ranch-ghost w-full text-[10px] !py-1"
+            title="Open the developer performance panel"
+          >
+            Developer / Performance
+          </button>
+          <div className="divider-amber my-2" />
+          <button
+            type="button"
             onClick={() => { try { save(); } catch {} setScreen("menu"); }}
             className="btn-ranch btn-ranch-ghost w-full text-[10px] !py-1"
             title="Save and return to the main menu"
