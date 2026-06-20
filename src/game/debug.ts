@@ -43,7 +43,7 @@ function remember(entry: { at: number; event: string; data: Record<string, unkno
   try {
     if (typeof window === "undefined" || !window.localStorage) return;
     const raw = window.localStorage.getItem(BUFFER_KEY);
-    const entries = raw ? (JSON.parse(raw) as typeof entry[]) : [];
+    const entries = raw ? (JSON.parse(raw) as Array<typeof entry>) : [];
     entries.push(entry);
     window.localStorage.setItem(BUFFER_KEY, JSON.stringify(entries.slice(-MAX_BUFFERED)));
     (window as unknown as { __RANCH_DEBUG_LOGS__?: typeof entries }).__RANCH_DEBUG_LOGS__ = entries;
