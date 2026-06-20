@@ -29,9 +29,9 @@ const RES_ORDER: { key: keyof ReturnType<typeof useGame.getState>["resources"]; 
 
 function ResourcesPanel() {
   const resources = useGame((s) => s.resources);
-  const season = useGame((s) => s.time.season);
+  const season = useGame((s) => s.season);
   const day = useGame((s) => s.time.day);
-  const year = useGame((s) => s.time.year);
+  const year = useGame((s) => s.year);
   return (
     <div className="parchment-panel-warm border-t border-amber/30 px-3 py-1.5 shadow-inner">
       <div className="ranch-label text-[9px] text-amber mb-1">
@@ -52,12 +52,12 @@ function ResourcesPanel() {
 export function TopBar({ onToggleDock, dockOpen, onSettingsOpenChange }: Props) {
   useTrackRender("TopBar");
   const ranchName = useGame((s) => s.ranchName);
-  const season = useGame((s) => s.time.season);
-  const year = useGame((s) => s.time.year);
+  const season = useGame((s) => s.season);
+  const year = useGame((s) => s.year);
   const speed = useGame((s) => s.speed);
   const setSpeed = useGame((s) => s.setSpeed);
-  const population = useGame((s) => s.stats.population);
-  const morale = useGame((s) => s.stats.morale);
+  const population = useGame((s) => s.population);
+  const morale = useGame((s) => s.morale);
   const save = useGame((s) => s.save);
   const setScreen = useGame((s) => s.setScreen);
   const isMobile = useIsMobile();
@@ -75,7 +75,7 @@ export function TopBar({ onToggleDock, dockOpen, onSettingsOpenChange }: Props) 
               {ranchName}
             </span>
             <span className="ranch-data text-[9px] text-dust truncate">
-              {SEASON_LABEL[time.season].slice(0,3)} Y{time.year} · {stats.population} souls
+              {SEASON_LABEL[season].slice(0,3)} Y{year} · {population} souls
             </span>
           </button>
           <HudInline />
@@ -105,15 +105,15 @@ export function TopBar({ onToggleDock, dockOpen, onSettingsOpenChange }: Props) 
             {ranchName}
           </button>
           <span className="text-dust whitespace-nowrap">
-            {SEASON_LABEL[time.season]} Y<span className="text-amber">{time.year}</span>
+            {SEASON_LABEL[season]} Y<span className="text-amber">{year}</span>
           </span>
         </div>
 
         <div className="ml-auto flex items-center gap-2 ranch-data">
           <span className="text-dust">
-            <span className="text-amber">{stats.population}</span> souls
+            <span className="text-amber">{population}</span> souls
             <span className="text-dust/60"> · </span>
-            <span className={stats.morale >= 0 ? "text-success" : "text-danger"}>{Math.round(stats.morale)}</span> mood
+            <span className={morale >= 0 ? "text-success" : "text-danger"}>{Math.round(morale)}</span> mood
           </span>
           <HudInline />
           <button className="btn-ranch btn-ranch-ghost !py-0.5 !px-1.5 text-[10px]" onClick={() => save()} title="Save">Save</button>
