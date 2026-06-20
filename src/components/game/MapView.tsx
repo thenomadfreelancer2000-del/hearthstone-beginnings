@@ -2816,7 +2816,19 @@ export function MapView() {
     return { x: Math.floor(p.x / TILE), y: Math.floor(p.y / TILE) };
   }
 
+  // Report visible entity counts each render so the perf panel can show what MapView is actually drawing.
+  setRenderMeta("MapView", {
+    tiles: tiles.length,
+    buildings: buildings.length,
+    nodes: nodes.length,
+    survivors: survivors.length,
+    animals: animals.length,
+    wornPaths: wornPaths ? Object.keys(wornPaths).length : 0,
+    zoomPct: Math.round(zoom * 100),
+  });
+
   return (
+    <React.Profiler id="MapView" onRender={(_id, _phase, actual) => recordRender("MapView", actual)}>
     <div
       ref={scrollRef}
       className="flex-1 relative overflow-auto scroll-amber grain"
