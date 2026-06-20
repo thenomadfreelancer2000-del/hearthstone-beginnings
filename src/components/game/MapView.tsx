@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useTrackRender } from "@/hooks/use-track-render";
+import { recordRender, setRenderMeta } from "@/game/profiler";
 import { useGame, territoryDims } from "@/game/store";
 import { debugError, debugLog } from "@/game/debug";
 import { useShallow } from "zustand/react/shallow";
