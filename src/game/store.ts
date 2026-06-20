@@ -32,6 +32,7 @@ import {
 } from "./sim/ministers";
 import { saveToLocal, loadFromLocal } from "./persistence";
 import { debugLog } from "./debug";
+import { measure, recordFrame } from "./profiler";
 import { makeRng } from "./sim/rng";
 import { normalizeConstructionBuilding } from "./sim/construction";
 import { CROPS, STARTER_CROP_IDS, isCropId, type CropId } from "./data/crops";
