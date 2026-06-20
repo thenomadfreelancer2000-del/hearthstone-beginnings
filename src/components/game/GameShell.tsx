@@ -152,7 +152,7 @@ export function GameShell() {
               onClick={() => { setInspectorOpen(false); clearSelection(); }}
             />
             <div className="absolute right-0 top-0 bottom-0 z-40 w-[78vw] max-w-[300px] flex">
-              <Inspector />
+              <ProfiledSection id="Inspector"><Inspector /></ProfiledSection>
             </div>
           </>
         )}
