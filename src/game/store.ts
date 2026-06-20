@@ -1897,6 +1897,7 @@ export const useGame = create<GameState>((set, get) => ({
       const after = get();
       debugLog("simulation:firstTick:done", { tick: after.time.tick, survivors: after.survivors.length, buildings: after.buildings.length });
     }
+    recordFrame(performance.now() - _tickT0, "tick");
   },
 
   acceptArrival: () => {
