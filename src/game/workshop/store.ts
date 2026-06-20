@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { syncWorkshopRegistry } from "./registry";
+import { debugError, debugLog } from "../debug";
 import {
   WORKSHOP_PACK_VERSION,
   type WorkshopBuilding,
@@ -17,14 +18,22 @@ interface PersistedState {
 function loadPersisted(): PersistedState {
   if (typeof window === "undefined") return { packs: [], enabled: {} };
   try {
+    debugLog("workshop:load:start");
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { packs: [], enabled: {} };
+    if (!raw) {
+      debugLog("workshop:load:empty");
+      return { packs: [], enabled: {} };
+    }
+    debugLog("workshop:load:raw", { bytes: raw.length });
     const parsed = JSON.parse(raw) as PersistedState;
-    return {
+    const state = {
       packs: Array.isArray(parsed.packs) ? parsed.packs : [],
       enabled: parsed.enabled && typeof parsed.enabled === "object" ? parsed.enabled : {},
     };
-  } catch {
+    debugLog("workshop:load:done", { packs: state.packs.length, enabled: Object.keys(state.enabled).length });
+    return state;
+  } catch (error) {
+    debugError("workshop:load:error", error);
     return { packs: [], enabled: {} };
   }
 }
@@ -96,7 +105,9 @@ export interface WorkshopStore {
 }
 
 const initial = loadPersisted();
+debugLog("workshop:registry:sync:start", { packs: initial.packs.length, enabled: Object.keys(initial.enabled).length });
 syncWorkshopRegistry(initial.packs, initial.enabled);
+debugLog("workshop:registry:sync:done");
 
 function commit(set: (s: Partial<PersistedState>) => void, next: PersistedState) {
   savePersisted(next);
