@@ -8,6 +8,7 @@ interface LeaderProfileProps {
 }
 
 export function LeaderProfile({ dockOpen = false }: LeaderProfileProps) {
+  useTrackRender("LeaderProfile");
   const leader = useGame((s) => s.survivors.find((x) => x.id === s.currentLeaderId));
   const selectSurvivor = useGame((s) => s.selectSurvivor);
   const isMobile = useIsMobile();
