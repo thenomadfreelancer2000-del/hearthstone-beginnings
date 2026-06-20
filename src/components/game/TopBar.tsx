@@ -29,11 +29,13 @@ const RES_ORDER: { key: keyof ReturnType<typeof useGame.getState>["resources"]; 
 
 function ResourcesPanel() {
   const resources = useGame((s) => s.resources);
-  const time = useGame((s) => s.time);
+  const season = useGame((s) => s.time.season);
+  const day = useGame((s) => s.time.day);
+  const year = useGame((s) => s.time.year);
   return (
     <div className="parchment-panel-warm border-t border-amber/30 px-3 py-1.5 shadow-inner">
       <div className="ranch-label text-[9px] text-amber mb-1">
-        {SEASON_LABEL[time.season]} · Day {time.day} · Year {time.year} · Stockpile
+        {SEASON_LABEL[season]} · Day {day} · Year {year} · Stockpile
       </div>
       <ul className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-x-3 gap-y-0.5">
         {RES_ORDER.map((r) => (
