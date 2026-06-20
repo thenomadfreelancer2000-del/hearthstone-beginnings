@@ -79,6 +79,7 @@ export function GameShell() {
     <div className="h-full w-full flex flex-col overflow-hidden">
       <GameLoop />
       <ZombieLoop />
+      <PerfPanel />
       <TopBar
         onToggleDock={() => setDockOpen((v) => !v)}
         dockOpen={dockOpen}
