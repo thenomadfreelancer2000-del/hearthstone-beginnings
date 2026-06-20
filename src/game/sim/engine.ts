@@ -21,6 +21,7 @@ import { BUILDINGS } from "../data/content";
 import { enqueueProposalsForSeason, resolveProposalsDaily } from "./marriage";
 import { dailyLivestockTick } from "./livestock";
 import { dailyMinistersTick, autoAssignWorkers, managerBonus } from "./ministers";
+import { measure } from "../profiler";
 
 export interface Engine {
   time: GameTime;
