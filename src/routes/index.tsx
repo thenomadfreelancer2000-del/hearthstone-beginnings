@@ -26,6 +26,18 @@ function Index() {
       userAgent: typeof navigator !== "undefined" ? navigator.userAgent : "unknown",
       href: typeof window !== "undefined" ? window.location.href : "unknown",
     });
+    const onError = (event: ErrorEvent) => {
+      debugLog("app:error", { message: event.message, filename: event.filename, lineno: event.lineno, colno: event.colno });
+    };
+    const onUnhandledRejection = (event: PromiseRejectionEvent) => {
+      debugLog("app:unhandledRejection", { reason: String(event.reason) });
+    };
+    window.addEventListener("error", onError);
+    window.addEventListener("unhandledrejection", onUnhandledRejection);
+    return () => {
+      window.removeEventListener("error", onError);
+      window.removeEventListener("unhandledrejection", onUnhandledRejection);
+    };
   }, []);
 
   useEffect(() => {
