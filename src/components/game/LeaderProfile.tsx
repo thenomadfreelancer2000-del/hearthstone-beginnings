@@ -1,4 +1,5 @@
 import { useGame } from "@/game/store";
+import { useTrackRender } from "@/hooks/use-track-render";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { getPortraitUrl, defaultPortraitFor } from "@/game/data/portraits";
 
