@@ -273,6 +273,14 @@ function buildReport(
     } : null,
     top10,
     renderCounts,
+    componentRenderTime: entries.filter((e) => e.name.startsWith("render:")).map((e) => ({
+      name: e.name.replace("render:", ""),
+      calls: e.calls,
+      totalMs: +e.totalMs.toFixed(2),
+      avgMs: +(e.totalMs / Math.max(1, e.calls)).toFixed(3),
+      maxMs: +e.maxMs.toFixed(2),
+    })),
+    renderMeta: Object.fromEntries(getRenderMeta().entries()),
   };
 }
 
