@@ -11,6 +11,7 @@ import { MoodFace } from "./MoodFace";
 
 
 export function BottomDock() {
+  useTrackRender("BottomDock");
   const [tab, setTab] = useState<"build" | "people" | "chronicle" | null>(null);
   const [workshopOpen, setWorkshopOpen] = useState(false);
   const open = tab !== null;
