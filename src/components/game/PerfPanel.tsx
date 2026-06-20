@@ -79,10 +79,9 @@ export function PerfPanel() {
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
         <strong style={{ color: "#e6b35c" }}>PERF</strong>
         <div>
-          <button
-            onClick={() => { resetEntries(); force((v) => v + 1); }}
-            style={btnStyle}
-          >reset</button>
+          <button onClick={() => { resetEntries(); force((v) => v + 1); }} style={btnStyle}>reset</button>
+          <button onClick={() => exportJson(buildReport(survivors, families, buildings, relationships, animals, expeditions))} style={btnStyle}>export</button>
+          <button onClick={() => copyReport(buildReport(survivors, families, buildings, relationships, animals, expeditions), setCopied)} style={btnStyle}>{copied ? "✓" : "copy"}</button>
           <button onClick={() => setPanelOpen(false)} style={btnStyle}>×</button>
         </div>
       </div>
