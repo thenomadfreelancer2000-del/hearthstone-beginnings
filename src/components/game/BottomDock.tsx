@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTrackRender } from "@/hooks/use-track-render";
 import { toast } from "sonner";
 import { useGame } from "@/game/store";
 import { BUILDABLE_KINDS, BUILDINGS } from "@/game/data/content";
