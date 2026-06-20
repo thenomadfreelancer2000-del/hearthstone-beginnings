@@ -2837,11 +2837,12 @@ export function MapView() {
       <div style={{ width: VW, height: VH, position: "relative" }}>
       <svg
         ref={ref}
-        width={ISO.w}
-        height={ISO.h}
+        width={VW}
+        height={VH}
         viewBox={`0 0 ${ISO.w} ${ISO.h}`}
+        preserveAspectRatio="xMinYMin meet"
         className="block"
-        shapeRendering="geometricPrecision"
+        shapeRendering="optimizeSpeed"
         onMouseMove={(e) => {
           const p = svgToTile(e);
           if (p) setHover(p);
@@ -2881,9 +2882,7 @@ export function MapView() {
           if (buildPlacement) cancelBuild();
         }}
         style={{
-          transform: `scale(${zoom})`,
-          transformOrigin: "0 0",
-          transition: smoothZoom ? "transform 180ms ease-out" : "none",
+          transition: smoothZoom ? "width 180ms ease-out, height 180ms ease-out" : "none",
           backgroundColor: TILE_PAL.grass.base,
           cursor: (buildPlacement || borderMode) ? "crosshair" : "default",
         }}
