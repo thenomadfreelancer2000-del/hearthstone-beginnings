@@ -41,6 +41,7 @@ function cap(s: string) { return s[0].toUpperCase() + s.slice(1); }
 
 
 export function Inspector({ onHide }: { onHide?: () => void } = {}) {
+  useTrackRender("Inspector");
   const {
     sel,
     survivors,
